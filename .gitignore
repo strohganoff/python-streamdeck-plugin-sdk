@@ -1,0 +1,13 @@
+*.egg-info
+build/
+
+coverage/
+.coverage
+reports/
+
+.vscode/
+.venv/
+
+*.pyc
+.pytest_cache
+__pycache__

@@ -1,0 +1,227 @@
+[build-system]
+    requires = [
+        "setuptools>=61.0",
+        # "wheel"
+    ]
+    build-backend = "setuptools.build_meta"
+
+[project]
+    name = "streamdeck-plugin-sdk"
+    version = "0.1.0"
+    description = "Write Streamdeck plugins using Python"
+    readme = "README.md"
+    authors = [
+        { name = "strohganoff", email = "you@example.com" }
+    ]
+    # license = { file = "LICENSE" }
+    keywords = ["example", "project", "setup"]
+    classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ]
+    requires-python = ">=3.9"
+    "dependencies" = [
+    #     "jmespath>=1.0.1",  # Upcoming pattern-filtering functionality
+        "platformdirs>=4.3.6",
+        "pydantic>=2.9.2",
+        "pydantic_core>=2.23.4",
+        "websockets>=13.1",
+    ]
+
+[project.optional-dependencies]
+    dev = [
+        "polyfactory>=2.17.0",
+        "pprintpp>=0.4.0",
+        "pytest>=8.3.3",
+        "pytest-cov>=5.0.0",
+        "pytest-mock>=3.14.0",
+        "pytest-sugar>=1.0.0",
+    ]
+    # pack = [   # Upcoming CLI functionality
+    #     "pathspec>=0.12.1",
+    #     "tomli>=2.0.2",
+    # ]
+
+[project.urls]
+    "Homepage" = "https://github.com/strohganoff"
+
+[tool.setuptools.packages.find]
+    include = ["streamdeck*"]
+    exclude = ["tests"]
+
+
+# Add type annotations to your Python programs, and use mypy to type check them.
+[tool.mypy]
+    files                   = "streamdeck"
+    ignore_missing_imports  = true
+    pretty                  = true
+    show_column_numbers     = true
+    show_error_codes        = true
+    show_error_context      = true
+    strict                  = true
+    warn_unreachable        = true
+
+
+# Linting and code formatting
+[tool.ruff]
+    src=["streamdeck"]
+    line-length=100 # Same as Black
+    indent-width = 4
+    target-version="py312"
+
+    [tool.ruff.lint]
+        preview=false
+        fixable=["ALL"]
+
+        select = [
+            "A",      # flake8-builtins (redefinition of builtins)
+            "ANN",    # flake8-annotations (type annotations are everywhere)
+            "ARG",    # flake8-unused-arguments (unused argument in function/method/class/lambda)
+            "ASYNC",  # flake8-async (async/await usage)
+            "B",      # flake8-bugbear (bugs & design problems)
+            "BLE",    # flake8-blind-except (no "except:" or "except Exception:")
+            "C4",     # flake8-comprehensions (better list/set/dict comprehensions)
+            "C90",    # McCabe (code complexity)
+            # "COM",    # flake8-commas (force trailing commas) -> unelegant
+            # "COPY",   # flake8-copyright (copyright notices)
+            "D",      # pydocstyle (documentation style)
+            # "DJ",     # flake8-django (practices on Django)
+            "DTZ",    # flake8-datetimez (usage of unsafe naive datetime class)
+            "E",      # pycodestyle (violation of PEP-8)
+            "EM",     # flake8-errmsg (error messages)
+            "ERA",    # eradicate (no commented-out code)
+            "EXE",    # flake8-executable (executable permissions and shebangs)
+            "F",      # pyflakes (invalid Python code)
+            "FA",     # flake-8-future-annotations (future annotations)
+            "FBT",    # flake8-boolean-trap (misusage of booleans in function declarations & calls)
+            "FIX",    # flake8-fixme (fixme comments)
+            "FLY",    # flynt (f-strings)
+            # "FURB",   # refurb (refurbishing and modernizing Python codebases)
+            "G",      # flake8-logging-format (logging format strings)
+            "I",      # isort (import order)
+            "ICN",    # flake8-import-conventions (how certain packages should be imported or aliased)
+            "INP",    # flake8-no-pep420 (ban pep-420 implicit namespace packages)
+            "INT",    # flake8-gettext (f-string resolved before function calls)
+            "ISC",    # flake8-implicit-str-concat (string literal concatenation)
+            "LOG",    # flake8-logging (logging)
+            "N",      # pep88-naming (naming conventions)
+            # "NPY",    # NumPy-specific rules (e.g. deprecated-type-alias and legacy-random)
+            # "PD",     # pandas-vet (pandas linting)
+            "PERF",   # PerFlint (performance linter for anti-patterns)
+            "PGH",    # pygrep-hooks (miscellaneous lints, e.g. "use specific rule codes when using noqa")
+            "PIE",    # flake8-pie (miscellaneous lints)
+            "PL",     # Pylint (static code analyser)
+            "PT",     # flake8-pytest-style (style issues or inconsistencies with pytest-based tests)
+            "PTH",    # flake8-use-pathlib (use of functions that can be replaced by pathlib module)
+            "PYI",    # flake8-pyi (provide specializations for type hinting stub files)
+            "Q",      # flake8-quotes (avoid escaping quotes)
+            "RET",    # flake8-return (check return values)
+            "RSE",    # flake8-raise (improvements for raise statements)
+            "RUF",    # ruff (ruff specific rules)
+            "S",      # flake8-bandit (security)
+            "SIM",    # flake8-simplify (tips to simplify the code)
+            "SLF",    # flake8-self (private members)
+            "SLOT",   # flake8-slots (slots usage)
+            "T10",    # flake8-debugger (check for pdb; ipdb imports)
+            "T20",    # flake8-print (no print nor pprint)
+            "TCH",    # flake8-type-checking (move import only intended for type-checking in "if TYPE_CHECKING" blocks)
+            "TD",     # flake8-todos (todos)
+            "TID",    # flake8-tidy-imports (ordered imports)
+            "TRY",    # tryceratops (exception handling AntiPatterns)
+            "UP",     # pyupgrade (upgrade syntax for newer versions of Python)
+            "W",      # pycodestyle (violation of PEP-8)
+            "YTT",    # flake8-2020 (misuse of sys.version and sys.version_info)
+        ]
+
+        ignore = [
+            "ANN101", # ignore missing type annotation for self
+            # "ANN102", # missing type annotation for cls but hinting cls all the time is useless
+            "ANN204",   # ignore missing return type annotations for `__init__` special method
+            # "ANN401", # disallows Any, but some elements should be Any when they are external
+            "B024",   # forces abstract classes to have at least one abstract method, but sometimes a class is virtually abstract
+            "COM",    # flake8-commas (force trailing commas) -> unelegant
+            "CPY001", # flake8-copyright (copyright notices)
+            # "D105", # docstrings on magic methods, useless docstrings are well known 
+            "E501",   # ignore line size, bug-bear already sets it with a tolerance of 10% (B950)
+            "ISC001", # ignore for ruff format
+            "TD002",  # missing-todo-author -> unused
+            "TD003",  # missing-todo-link -> unused
+        ]
+
+        unfixable = [
+            "ERA",    # eradicat (no commented-out code) -> sometimes it is useful to comment out code
+            "F841",   # local variable is assigned to but never used, but sometimes it is useful to assign a variable to debug
+            "RET504", # local variable is assigned to and returned but never used, but sometimes it is useful to assign a variable to debug
+            # "F401",   # imported but unused, but sometimes it is useful to import a module to use its side effects
+        ]
+
+        [tool.ruff.lint.per-file-ignores]
+            # "__main__.py" = [
+            #     "FBT002",  # booleans in function calls -> Some CLI options defined in Typer command functions are definitely going to be booleans.
+            #     "B006",    # don't use mutable data structures for argument defaults -> It's OK to use mutable data structures for argument defaults in a CLI Typer command function.
+            #     "PLR0913", # too many arguments in function definition -> CLI Typer command functions may have many options. The function should hanlde calling the appropriate handler function based on the options.
+            # ]
+            "tests/*" = [
+                "ARG",     # some arguments are unused in test functions but useful (e.g. patching fixtures)
+                "S101",    # asserts are OK for tests
+                "S106",    # possible hardcoded password -> in tests, we commonly hardcode fake passwords
+                "S311",    # cryptographically weak random number generating -> we use random numbers for generating a port number, not for cryptographic
+                "SLF001",  # accessing private memebers is OK for tests
+                "ANN002",  # missing type annotation for *args
+                "ANN003",  # missing type annotation for *kwargs
+                "ANN201",  # missing-return-type-undocumented-public-function -> test functions usually don't return anything
+                "ANN202",  # missing-return-type-undocumented-private-function -> special methods (like __init__) may be mocked by a closure function defined within a test function.
+                "FBT001",  # booleans in function args -> sometimes we need to use booleans in test function args
+                "FBT002",  # booleans in function callas -> sometimes we need to use booleans in test function calls
+            ]
+
+        [tool.ruff.lint.mccabe]
+            max-complexity = 25
+
+        [tool.ruff.lint.pydocstyle]
+            convention = "google"
+
+        [tool.ruff.lint.pylint]
+            max-args=10
+
+        [tool.ruff.lint.isort]
+            known-first-party = ["app"]
+            lines-after-imports = 2
+            # required-imports = []
+
+    [tool.ruff.format]
+        preview = false
+        quote-style = "double"
+        indent-style = "space"
+        skip-magic-trailing-comma = false
+        line-ending = "auto"
+        docstring-code-format = true
+        docstring-code-line-length = "dynamic"
+
+
+[tool.pytest.ini_options]
+    minversion = "6.0"
+    addopts = "--color=yes --strict-markers --strict-config"
+    markers = ["unit", "integration"]
+    testpaths = ["tests"]
+
+
+[tool.coverage.run]  # Configure coverage.py to measure branch coverage and specify source files to be measured.
+    branch = true  # Enable branch coverage
+    source = ["streamdeck"]  # Specify the source files for coverage.
+
+[tool.coverage.report]
+    omit = ["tests/*"]  # Exclude test files from the coverage report.
+
+[tool.coverage.html]
+    directory = "reports/htmlcov"
+
+[tool.coverage.xml]
+    output = "reports/coverage-results.xml"
+    skip_empty = true
+    # skip_covered = true
+
+[tool.coverage.lcov]
+    output = "reports/lcov.info"

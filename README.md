@@ -66,40 +66,58 @@ def handle_will_appear(event):
 
 ### Running the Plugin
 
-Use the `PluginManager` to run your plugin. It manages the WebSocket connection and dispatches events to your handlers.
+Once the plugin's actions and their handlers have been defined, very little else is needed to get this code running. With this library installed, the streamdeck CLI command   will handle the setup, loading of action scripts, and running of the plugin automatically, making it much easier to manage.
 
-```python
-from streamdeck import PluginManager
+#### Usage
 
-# Replace these values with the ones provided by the Stream Deck software
-PORT = 12345
-PLUGIN_UUID = "your-plugin-uuid"
-REGISTER_EVENT = "registerPlugin"
-INFO = {}  # Additional info provided by the Stream Deck software
+The following commands are required, which are the same as the Stream Deck software passes in when running a plugin:
 
-def main():
-    plugin_manager = PluginManager(
-        port=PORT,
-        plugin_uuid=PLUGIN_UUID,
-        register_event=REGISTER_EVENT,
-        info=INFO
-    )
+- `-port`: The port number assigned by the Stream Deck.
 
-    # Register your actions
-    plugin_manager.register_action(my_action)
+- `-pluginUUID`: Your plugin's unique identifier, provided by the Stream Deck.
 
-    # Run the plugin
-    plugin_manager.run()
+- `-registerEvent`: The event used to register your plugin. 
 
-if __name__ == "__main__":
-    main()
+- `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
+
+There are also  two additional options for specifying action scripts to load. Note that you can't use both of these options together, and the Stream Deck software doesn't pass in these options.
+
+- Plugin Directory: Pass the directory containing the plugin files as a positional argument:
+
+    ```bash
+    streamdeck myplugin_dir/
+    ```
+    This will read the pyproject.toml file inside the directory to locate the action scripts. If this is not passed in, then the library looks in the current working directory for a pyproject.toml file.
+
+- Action Scripts Directly: Alternatively, pass the script paths directly using the `--action-scripts` option:
+
+    ```bash
+    streamdeck --action-scripts actions1.py actions2.py
+    ```
+
+
+#### Configuration
+
+To configure your plugin to use the streamdeck CLI, add a tool.streamdeck section to your pyproject.toml with a list variable for action_scripts that should contain paths to all the action scripts you want the plugin to load.
+
+Below is an example of the pyproject.toml configuration and how to run the plugin:
+```toml
+# pyproject.toml
+
+[tools.streamdeck]
+    action_scripts = [
+        "actions1.py",
+        "actions2.py",
+    ]
 ```
 
 ## Simple Example
 
-Below is a complete example that creates a plugin with a single action. The action handles the `keyDown` event and sends a message back to the Stream Deck.
+Below is a complete example that creates a plugin with a single action. The action handles the `keyDown` event and simply prints a statement that the event occurred.
 
 ```python
+# main.py
+
 from streamdeck import Action, PluginManager, events
 
 # Define your action
@@ -109,29 +127,19 @@ my_action = Action(uuid="com.example.myaction")
 @my_action.on("keyDown")
 def handle_key_down(event):
     print("Key Down event received:", event)
+```
 
-# Set up and run the plugin
-def main():
-    parser = argparse.ArgumentParser(description="StreamDeck Plugin")
-    parser.add_argument("-port", dest="port", type=int, help="Port", required=True)
-    parser.add_argument("-pluginUUID", dest="pluginUUID", type=str, help="pluginUUID", required=True)
-    parser.add_argument("-registerEvent", dest="registerEvent", type=str, help="registerEvent", required=True)
-    parser.add_argument("-info", dest="info", type=str, help="info", required=True)
-    args = parser.parse_args()
+```toml
+# pyproject.toml
 
-    plugin_manager = PluginManager(
-        port=args.port,
-        plugin_uuid=args.pluginUUID,
-        register_event=args.registerEvent,
-        info=args.info
-    )
-
-    plugin_manager.register_action(my_action)
-
-    plugin_manager.run()
-
-if __name__ == "__main__":
-    main()
+[tools.streamdeck]
+    action_scripts = [
+        "main.py",
+    ]
+```
+And a command like the following is called by the Stream Deck software:
+```bash
+streamdeck -port 28196 -pluginUUID 63831042F4048F072B096732E0385245 -registerEvent registerPlugin -info '{"application": {...}, "plugin": {"uuid": "my-plugin-name", "version": "1.1.3"}, ...}'
 ```
 
 
@@ -147,7 +155,6 @@ The following upcoming improvements are in the works:
 - **Improved Documentation**: Expand and improve the documentation with more examples, guides, and use cases.
 - **Bind Command Sender**: Automatically bind `command_sender` and action instance context-holding objects to handler function arguments if they are included in the definition.
 - **Optional Event Pattern Matching on Hooks**: Add support for optional pattern-matching on event messages to further filter when hooks get called.
-- **CLI Entrypoint**: Add a command-line interface (CLI) entrypoint to the library to handle discovering actions, setting up, and running the `PluginManager`.
 - **Async Support**: Introduce asynchronous features to handle WebSocket communication more efficiently.
 
 

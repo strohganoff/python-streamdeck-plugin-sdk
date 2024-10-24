@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
+import os
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -34,7 +35,7 @@ logger = logging.getLogger("streamdeck-plugin-sdk")
 logger.addHandler(logging.StreamHandler())
 
 # TODO: Add better functionality for setting up logging to save to files in the proper streamdeck log directory.
-file_handler = logging.FileHandler("~/plugin.log")
+file_handler = logging.FileHandler(os.path.expanduser("~/plugin.log"))
 file_handler.setLevel(logging.DEBUG)
 logger.addHandler(file_handler)
 

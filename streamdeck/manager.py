@@ -11,21 +11,13 @@ from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
-    from typing import Any
-
-    from typing_extensions import Literal
+    from typing import Any, Literal
 
     from streamdeck.actions import Action
     from streamdeck.models.events import EventBase
 
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
-logging.basicConfig(
-    filename="~/plugin.log",
-    filemode="a",
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
 logger = getLogger("streamdeck.manager")
 logger.addHandler(logging.StreamHandler())
 

@@ -1,5 +1,6 @@
 *.egg-info
 build/
+dist/
 
 coverage/
 .coverage
@@ -11,3 +12,6 @@ reports/
 *.pyc
 .pytest_cache
 __pycache__
+
+*.txt
+*.env

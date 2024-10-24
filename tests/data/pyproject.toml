@@ -1,0 +1,8 @@
+[build-system]
+    requires = []
+
+[tool.streamdeck]
+    action_scripts = [
+        "tests/data/test_action1.py",
+        "tests/data/test_action2.py",
+    ]

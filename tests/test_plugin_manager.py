@@ -1,3 +1,4 @@
+import uuid
 from typing import cast
 from unittest.mock import MagicMock, Mock
 
@@ -22,12 +23,14 @@ def plugin_manager(port_number: int) -> PluginManager:
         PluginManager: An instance of PluginManager with test parameters.
     """
     plugin_uuid = "test-plugin-uuid"
+    plugin_registration_uuid = str(uuid.uuid1())
     register_event = "registerPlugin"
     info = {"some": "info"}
 
     return PluginManager(
         port=port_number,
         plugin_uuid=plugin_uuid,
+        plugin_registration_uuid=plugin_registration_uuid,
         register_event=register_event,
         info=info
     )
@@ -43,7 +46,6 @@ def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, 
     Returns:
         tuple: Mocked instance of WebSocketClient, and a fake DialRotateEvent.
     """
-
     mock_websocket_client = MagicMock(spec=WebSocketClient)
 
     mock_websocket_client.__enter__.return_value = mock_websocket_client
@@ -117,7 +119,7 @@ def test_plugin_manager_sends_registration_event(mock_command_sender: Mock, plug
 
     mock_command_sender.send_action_registration.assert_called_once_with(
         register_event=plugin_manager._register_event,
-        plugin_uuid=plugin_manager.uuid,
+        plugin_registration_uuid=plugin_manager._registration_uuid,
     )
 
 

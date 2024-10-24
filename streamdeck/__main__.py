@@ -203,7 +203,7 @@ def main():
     args = cast(CliArgsNamespace, parser.parse_args())
 
     info = json.loads(args.info)
-    plugin_name = info["plugin"]["uuid"]
+    plugin_uuid = info["plugin"]["uuid"]
 
     action_scripts = determine_action_scripts(
         plugin_dir=args.plugin_dir,
@@ -214,7 +214,10 @@ def main():
 
     manager = PluginManager(
         port=args.port,
-        plugin_uuid=args.pluginUUID,
+        plugin_uuid=plugin_uuid,
+        # NOT the configured plugin UUID in the manifest.json,
+        # which can be pulled out of `info["plugin"]["uuid"]`
+        plugin_registration_uuid=args.pluginUUID,
         register_event=args.registerEvent,
         info=info,
     )

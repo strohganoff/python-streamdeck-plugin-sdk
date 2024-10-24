@@ -29,7 +29,8 @@ class PluginManager:
     def __init__(
         self,
         port: int,
-        plugin_uuid: str,  # Passed in by Streamdeck to the entry-point script. should we compare what's in the manifest.json file?
+        plugin_uuid: str,
+        plugin_registration_uuid: str,  # Passed in by Streamdeck to the entry-point script. should we compare what's in the manifest.json file?
         register_event: Literal["registerPlugin"],  # Passed in by Streamdeck to the entry-point script. Will this always be "registerPlugin"?
         info: dict[str, Any]
     ):
@@ -37,12 +38,18 @@ class PluginManager:
 
         Args:
             port (int): The port number for WebSocket connection.
-            plugin_uuid (str): The unique identifier for the plugin.
-            register_event (str): The registration event type.
+            plugin_uuid (str): The unique identifier for the plugin, as configured in the manifest.json file.
+                This can be retrieved either from the manifest.json, or from the -info json object string option passed in by
+                the Stream Deck software under `{"plugin": {"uuid": "MY-PLUGIN-UUID"}}`
+            plugin_registration_uuid (str): Randomly-generated unique ID passed in by Stream Deck as -pluginUUID option,
+                used to send back in the registerPlugin event.
+            register_event (str): The registration event type, passed in by the Stream Deck software as -registerEvent option.
+                It's value will almost definitely will be "registerPlugin".
             info (dict[str, Any]): The information related to the plugin.
         """
         self._port = port
         self.uuid = plugin_uuid
+        self._registration_uuid = plugin_registration_uuid
         self._register_event = register_event
         self._info = info
 
@@ -65,7 +72,7 @@ class PluginManager:
         with WebSocketClient(port=self._port) as client:
             command_sender = StreamDeckCommandSender(client)
 
-            command_sender.send_action_registration(register_event=self._register_event, plugin_uuid=self.uuid)
+            command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 
             for message in client.listen_forever():
                 data: EventBase = event_adapter.validate_json(message)

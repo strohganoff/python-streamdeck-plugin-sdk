@@ -257,17 +257,23 @@ class StreamDeckCommandSender:
     def send_action_registration(
         self,
         register_event: str,
-        plugin_uuid: str,
+        plugin_registration_uuid: str,
     ) -> None:
-        """Send a payload to another plugin.
+        """Registers a plugin with the Stream Deck software very shortly after the plugin is started.
+
+        Upon running a plugin's startup command, the Stream Deck software will pass in args that include a
+        register event type string (almost definitely "registerPlugin") and a unique random ID, which the
+        plugin needs to immediately send back as an event message in order to register itself.
+        If the Stream Deck software doesn't receive this event after a very brief period, it will keep
+        trying to re-run the plugin until getting the event.
 
         Args:
-            action: The unique identifier of the receiving plugin's action.
-                If your plugin supports multiple actions, you should use this value to find out
-                which action was triggered.
-            payload: The data that will be received by the receiving plugin.
+            register_event (str): The registration event type, passed in by the Stream Deck software as -registerEvent option.
+                It's value will almost definitely will be "registerPlugin".
+            plugin_registration_uuid (str): Randomly-generated unique ID passed in by StreamDeck as -pluginUUID option,
+                used to send back in the registerPlugin event. Note that this is NOT the manifest.json -configured plugin UUID value.
         """
         self._send_event(
             event=register_event,
-            uuid=plugin_uuid,
+            uuid=plugin_registration_uuid,
         )

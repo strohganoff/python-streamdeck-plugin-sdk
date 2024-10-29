@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
-import os
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -21,6 +20,7 @@ from streamdeck.cli.models import (
     StreamDeckConfigDict,
 )
 from streamdeck.manager import PluginManager
+from streamdeck.utils.logging import configure_streamdeck_logger
 
 
 if TYPE_CHECKING:
@@ -30,16 +30,7 @@ if TYPE_CHECKING:
     from typing_extensions import Self  # noqa: UP035
 
 
-logger = logging.getLogger("streamdeck-plugin-sdk")
-
-logger.addHandler(logging.StreamHandler())
-
-# TODO: Add better functionality for setting up logging to save to files in the proper streamdeck log directory.
-file_handler = logging.FileHandler(os.path.expanduser("~/plugin.log"))
-file_handler.setLevel(logging.DEBUG)
-logger.addHandler(file_handler)
-
-logger.info("Starting run...")
+logger = logging.getLogger("streamdeck")
 
 
 def setup_cli() -> ArgumentParser:
@@ -65,14 +56,21 @@ def setup_cli() -> ArgumentParser:
 
     # Options that will always be passed in by the StreamDeck software when running this plugin.
     parser.add_argument("-port", dest="port", type=int, help="Port", required=True)
-    parser.add_argument("-pluginUUID", dest="pluginUUID", type=str, help="pluginUUID", required=True)
-    parser.add_argument("-registerEvent", dest="registerEvent", type=str, help="registerEvent", required=True)
+    parser.add_argument(
+        "-pluginUUID", dest="pluginUUID", type=str, help="pluginUUID", required=True
+    )
+    parser.add_argument(
+        "-registerEvent", dest="registerEvent", type=str, help="registerEvent", required=True
+    )
     parser.add_argument("-info", dest="info", type=str, help="info", required=True)
 
     return parser
 
 
-def determine_action_scripts(plugin_dir: Path | None, action_scripts: list[str] | None) -> list[str]:
+def determine_action_scripts(
+    plugin_dir: Path | None,
+    action_scripts: list[str] | None,
+) -> list[str]:
     """Determine the action scripts to be loaded based on provided arguments.
 
     plugin_dir and action_scripts cannot both have values -> either only one of them isn't None, or they are both None.
@@ -100,7 +98,6 @@ def determine_action_scripts(plugin_dir: Path | None, action_scripts: list[str] 
     except KeyError as e:
         msg = f"'action_plugin' setting missing from streamdeck config in pyproject.toml in '{args.plugin_dir}'."
         raise KeyError(msg) from e
-
 
 
 def read_streamdeck_config_from_pyproject(plugin_dir: Path) -> StreamDeckConfigDict:
@@ -178,12 +175,12 @@ class ActionLoader:
         # Create a module specification for a module located at the given filepath.
         # A "specification" is an object that contains information about how to load the module, such as its location and loader.
         # "module.name" is an arbitrary name used to identify the module internally.
-        spec: ModuleSpec = importlib.util.spec_from_file_location("module.name", str(filepath)) # type: ignore
+        spec: ModuleSpec = importlib.util.spec_from_file_location("module.name", str(filepath))  # type: ignore
         # Create a new module object from the given specification.
         # At this point, the module is created but not yet loaded (i.e. its code hasn't been executed).
         module: ModuleType = importlib.util.module_from_spec(spec)
         # Load the module by executing its code, making available its functions, classes, and variables.
-        spec.loader.exec_module(module) # type: ignore
+        spec.loader.exec_module(module)  # type: ignore
 
         return module
 
@@ -205,6 +202,10 @@ def main():
     info = json.loads(args.info)
     plugin_uuid = info["plugin"]["uuid"]
 
+    # After configuring once here, we can grab the logger in any other module with `logging.getLogger("streamdeck")`, or
+    # a child logger with `logging.getLogger("streamdeck.mycomponent")`, all with the same handler/formatter configuration.
+    configure_streamdeck_logger(name="streamdeck", plugin_uuid=plugin_uuid)
+
     action_scripts = determine_action_scripts(
         plugin_dir=args.plugin_dir,
         action_scripts=args.action_scripts,
@@ -223,6 +224,10 @@ def main():
     )
 
     for action in actions:
+        # Configure a logger for each action, giving it the last part of its uuid as logger name.
+        action_component_name = action.uuid.split(".")[-1]
+        configure_streamdeck_logger(name=action_component_name, plugin_uuid=plugin_uuid)
+
         manager.register_action(action)
 
     manager.run()

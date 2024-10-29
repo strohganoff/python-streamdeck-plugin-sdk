@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 
-logger = getLogger("streamdeck")
+logger = getLogger("streamdeck.command_sender")
 
 
 class StreamDeckCommandSender:

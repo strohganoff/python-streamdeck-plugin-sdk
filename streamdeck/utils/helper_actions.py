@@ -12,13 +12,12 @@ if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
 
 
-
-logger = getLogger("streamdeck")
-
-
-def create_logging_action(action_name: str):
+def create_logging_action(action_uuid: str) -> Action:
     """Action that logs the event name of every occurring event."""
-    logging_action = Action(action_name)
+    logging_action = Action(action_uuid)
+
+    action_component_name = action_uuid.split(".")[-1]
+    logger = getLogger(action_component_name)
 
     def log_event(event_data: EventBase) -> None:
         logger.info("Action %s — event %s", logging_action.__class__, event_data.event)
@@ -30,10 +29,12 @@ def create_logging_action(action_name: str):
     return logging_action
 
 
-
-def create_file_writing_action(action_name: str, file: TextIOWrapper) -> Action:
+def create_file_writing_action(action_uuid: str, file: TextIOWrapper) -> Action:
     """Action that saves the full json of every occurring event."""
-    file_writing_action = Action(action_name)
+    file_writing_action = Action(action_uuid)
+
+    action_component_name = action_uuid.split(".")[-1]
+    logger = getLogger(action_component_name)
 
     def write_event(event_data: EventBase) -> None:
         logger.info("Action %s — event %s", file_writing_action.__class__, event_data.event)

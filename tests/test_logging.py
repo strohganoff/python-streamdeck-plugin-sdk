@@ -66,11 +66,13 @@ def test_local_logger(fake_plugin_local_log_dir: Path):
 
     logger.info(LOG_STATEMENT)
 
+    plugin_component_name = FAKE_PLUGIN_UUID.split(".")[-1]
+
     log_file = (
         fake_plugin_local_log_dir
         / "com.elgato.StreamDeck/Plugins"
-        / FAKE_PLUGIN_UUID
-        / f"logs/{FAKE_LOGGER_NAME}.log"
+        / f"{FAKE_PLUGIN_UUID}.sdPlugin"
+        / f"logs/{plugin_component_name}.log"
     )
 
     assert log_file.exists()

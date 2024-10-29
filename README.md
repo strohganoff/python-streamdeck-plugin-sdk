@@ -47,7 +47,7 @@ An **Action** represents a specific functionality in your plugin. You can create
 from streamdeck import Action
 
 # Create an action with a unique UUID (from your manifest.json)
-my_action = Action(uuid="com.example.myaction")
+my_action = Action(uuid="com.example.myplugin.myaction")
 ```
 
 ### Registering Event Handlers
@@ -63,6 +63,47 @@ def handle_key_down(event):
 def handle_will_appear(event):
     print("Will Appear event received:", event)
 ```
+
+
+### Writing Logs
+
+For convenience, a logger is configured with the same name as the last part of the Action's UUID, so you can simply call logging.getLogger(<name>) with the appropriate name to get the already-configured logger that writes to a rotating file. The log file is located in the Stream Deck user log directory.
+
+When creating actions in your plugin, you can configure logging using the logger name that matches the last part of your Action's UUID. For example, consider the following code:
+
+```python
+import logging
+from streamdeck import Action
+
+logger = logging.getLogger("myaction")
+
+my_action = Action(uuid="com.example.mytestplugin.myaction")
+```
+
+Here, the logger name "myaction" matches the last part of the UUID passed in to instantiate the Action ("com.strohganoff.mytestplugin.myaction"). 
+
+#### Configuring your own Loggers
+
+Loggers can also be easily configured using provided utility functions, allowing for flexibility. If custom logging configurations are prefered over the automatic method shown above, you can use the following functions:
+
+`configure_streamdeck_logger`: Configures a logger for the Stream Deck plugin with a rotating file handler that writes logs to a centralized location.
+
+`configure_local_logger`: Configures a logger for a Stream Deck plugin that writes logs to a local data directory, allowing for plugin-specific logging.
+
+These functions can be used to set up the logging behavior you desire, depending on whether you want the logs to be centralized or specific to each plugin.
+
+For example:
+```python
+import logging
+from streamdeck.utils.logging import configure_streamdeck_logger
+
+configure_streamdeck_logger(name="myaction", plugin_uuid="com.example.mytestplugin")
+
+logger = logging.getLogger("myaction")
+```
+
+Using the above code, you can ensure that logs from your action are properly collected and managed, helping you debug and monitor the behavior of your Stream Deck plugins.
+
 
 ### Running the Plugin
 
@@ -117,21 +158,22 @@ Below is a complete example that creates a plugin with a single action. The acti
 
 ```python
 # main.py
-
+import logging
 from streamdeck import Action, PluginManager, events
 
+logger = logging.getLogger("myaction")
+
 # Define your action
-my_action = Action(uuid="com.example.myaction")
+my_action = Action(uuid="com.example.myplugin.myaction")
 
 # Register event handlers
 @my_action.on("keyDown")
 def handle_key_down(event):
-    print("Key Down event received:", event)
+    logger.debug("Key Down event received:", event)
 ```
 
 ```toml
 # pyproject.toml
-
 [tools.streamdeck]
     action_scripts = [
         "main.py",

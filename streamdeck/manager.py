@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
 logger = getLogger("streamdeck.manager")
-logger.addHandler(logging.StreamHandler())
 
 
 

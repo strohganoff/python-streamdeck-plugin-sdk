@@ -224,10 +224,6 @@ def main():
     )
 
     for action in actions:
-        # Configure a logger for each action, giving it the last part of its uuid as logger name.
-        action_component_name = action.uuid.split(".")[-1]
-        configure_streamdeck_logger(name=action_component_name, plugin_uuid=plugin_uuid)
-
         manager.register_action(action)
 
     manager.run()

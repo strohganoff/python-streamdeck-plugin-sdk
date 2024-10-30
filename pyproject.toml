@@ -39,6 +39,7 @@
             "pytest-cov >= 5.0.0",
             "pytest-mock >= 3.14.0",
             "pytest-sugar >= 1.0.0",
+            "tox >= 4.23.2",
         ]
 
     [project.urls]
@@ -207,6 +208,15 @@
     addopts = "--color=yes --strict-markers --strict-config"
     markers = ["unit", "integration"]
     testpaths = ["tests"]
+
+
+[tool.tox]
+    envlist = ["py39", "py310", "py311", "py312", "py313"]
+
+    [tool.tox.env_run_base]
+        deps = [".[dev]"]
+        commands = [["pytest", "tests/"]]
+        allowlist_externals = ["echo"]
 
 
 [tool.coverage.run]  # Configure coverage.py to measure branch coverage and specify source files to be measured.

@@ -43,7 +43,17 @@ pytest
 
 This will run all tests located in the `tests/` directory.
 
-## Running Tests with Coverage
+### Running Tests with multiple Python versions
+
+Multiple versions of Python can be tested using Tox. Versions 3.9-3.13 are supported. To have Tox run the tests, simply call its command:
+
+```sh
+tox
+```
+
+Tox will create an isolated environment for each Python version to run the tests in.
+
+### Running Tests with Coverage
 
 To run the tests and generate coverage reports, use the following command:
 

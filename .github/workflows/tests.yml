@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' ||
-        ((github.event.action == 'opened' || github.event.action == 'synchronize') && contains(github.event.pull_request.labels, 'READY TO TEST')) ||
+        ((github.event.action == 'opened' || github.event.action == 'synchronize') && contains(github.event.pull_request.labels.*.name, 'READY TO TEST')) ||
         (github.event.action == 'labeled' && github.event.label.name == 'READY TO TEST')
     steps:
       - uses: actions/checkout@v4

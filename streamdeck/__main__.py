@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import logging
+import sys
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -68,7 +69,7 @@ def setup_cli() -> ArgumentParser:
 
 
 def determine_action_scripts(
-    plugin_dir: Path | None,
+    plugin_dir: Path,
     action_scripts: list[str] | None,
 ) -> list[str]:
     """Determine the action scripts to be loaded based on provided arguments.
@@ -89,14 +90,14 @@ def determine_action_scripts(
     if action_scripts is not None:
         return action_scripts
 
-    # If `action_scripts` is None, then either plugin_dir has a value or it is None.
+    # If `action_scripts` is None, then either plugin_dir has a value or it is the default CWD.
     # Thus either use the value given to plugin_value if it was given one, or fallback to using the current working directory.
-    streamdeck_config = read_streamdeck_config_from_pyproject(plugin_dir=plugin_dir or Path.cwd())
+    streamdeck_config = read_streamdeck_config_from_pyproject(plugin_dir=plugin_dir)
     try:
         return streamdeck_config["action_scripts"]
 
     except KeyError as e:
-        msg = f"'action_plugin' setting missing from streamdeck config in pyproject.toml in '{args.plugin_dir}'."
+        msg = f"'action_plugin' setting missing from streamdeck config in pyproject.toml in '{plugin_dir}'."
         raise KeyError(msg) from e
 
 
@@ -145,7 +146,12 @@ def read_streamdeck_config_from_pyproject(plugin_dir: Path) -> StreamDeckConfigD
 
 class ActionLoader:
     @classmethod
-    def load_actions(cls: type[Self], files: list[str]) -> Generator[Action, None, None]:
+    def load_actions(cls: type[Self], plugin_dir: Path, files: list[str]) -> Generator[Action, None, None]:
+        # Ensure the parent directory of the plugin modules is in `sys.path`,
+        # so that import statements in the plugin module will work as expected.
+        if str(plugin_dir) not in sys.path:
+            sys.path.insert(0, str(plugin_dir))
+
         for action_script in files:
             module = cls._load_module_from_file(filepath=Path(action_script))
             yield from cls._get_actions_from_loaded_module(module=module)
@@ -199,6 +205,9 @@ def main():
     parser = setup_cli()
     args = cast(CliArgsNamespace, parser.parse_args())
 
+    # If `plugin_dir` was not passed in as a cli option, then fall back to using the CWD.
+    plugin_dir = args.plugin_dir or Path.cwd()
+
     info = json.loads(args.info)
     plugin_uuid = info["plugin"]["uuid"]
 
@@ -207,11 +216,11 @@ def main():
     configure_streamdeck_logger(name="streamdeck", plugin_uuid=plugin_uuid)
 
     action_scripts = determine_action_scripts(
-        plugin_dir=args.plugin_dir,
+        plugin_dir=plugin_dir,
         action_scripts=args.action_scripts,
     )
 
-    actions = list(ActionLoader.load_actions(files=action_scripts))
+    actions = list(ActionLoader.load_actions(plugin_dir=plugin_dir, files=action_scripts))
 
     manager = PluginManager(
         port=args.port,

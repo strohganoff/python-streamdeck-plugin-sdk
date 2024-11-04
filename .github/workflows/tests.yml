@@ -1,0 +1,31 @@
+name: Tests
+on: 
+  push:
+    branches: [main]
+    paths-ignore: ['*.md', '.gitignore']
+  pull_request:
+    types: [opened, synchronize, labeled]
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' ||
+        ((github.event.action == 'opened' || github.event.action == 'synchronize') && contains(github.event.pull_request.labels.*.name, 'READY TO TEST')) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'READY TO TEST')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          cache: 'pip'
+          python-version: "3.x"
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install .[dev]
+      - name: Test with pytest and python version
+        run: pytest -p no:sugar --cov=streamdeck --cov-report=xml --cov-report=html --cov-report=term --junit-xml=reports/xunit-results.xml
+      - name: Upload test coverage reports to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-coverage-reports
+          path: reports/
+        if: ${{ always() }}

@@ -7,7 +7,7 @@
 
 [project]
     name = "streamdeck-plugin-sdk"
-    version = "0.3.0"
+    dynamic = ["version"]
     description = "Write Streamdeck plugins using Python"
     readme = "README.md"
     authors = [
@@ -52,6 +52,9 @@
 [tool.setuptools.packages.find]
     include = ["streamdeck*"]
     exclude = ["tests"]
+
+[tool.setuptools.dynamic]
+    version = {attr = "streamdeck.utils._version.MODULE_VERSION"}
 
 
 # Add type annotations to your Python programs, and use mypy to type check them.

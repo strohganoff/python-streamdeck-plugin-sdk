@@ -64,6 +64,9 @@ def handle_will_appear(event):
     print("Will Appear event received:", event)
 ```
 
+!!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
+
+
 
 ### Writing Logs
 

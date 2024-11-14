@@ -17,8 +17,9 @@ class EventBase(BaseModel, ABC):
     """Name of the event used to identify what occurred."""
 
     @classmethod
-    def is_action_specific(cls):
-        return "context" in cls.model_fields
+    def is_action_specific(cls) -> bool:
+        """Check if the event is specific to an action instance (i.e. the event has an "action" field)."""
+        return "action" in cls.model_fields
 
 
 class ApplicationDidLaunchEvent(EventBase):

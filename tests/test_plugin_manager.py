@@ -32,7 +32,7 @@ def plugin_manager(port_number: int) -> PluginManager:
         plugin_uuid=plugin_uuid,
         plugin_registration_uuid=plugin_registration_uuid,
         register_event=register_event,
-        info=info
+        info=info,
     )
 
 
@@ -51,7 +51,7 @@ def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, 
     mock_websocket_client.__enter__.return_value = mock_websocket_client
 
     # Create a fake event message, and convert it to a json string to be passed back by the client.listen_forever() method.
-    fake_event_message = DialRotateEventFactory.build()
+    fake_event_message: DialRotateEvent = DialRotateEventFactory.build()
     mock_websocket_client.listen_forever.return_value = [fake_event_message.model_dump_json()]
 
     monkeypatch.setattr("streamdeck.manager.WebSocketClient", lambda port: mock_websocket_client)
@@ -75,7 +75,9 @@ def mock_command_sender(mocker: pytest_mock.MockerFixture) -> Mock:
 
 
 @pytest.fixture
-def _spy_action_registry_get_action_handlers(mocker: pytest_mock.MockerFixture, plugin_manager: PluginManager) -> None:
+def _spy_action_registry_get_action_handlers(
+    mocker: pytest_mock.MockerFixture, plugin_manager: PluginManager
+) -> None:
     """Fixture that wraps and spies on the get_action_handlers method of the action_registry.
 
     Args:
@@ -113,7 +115,9 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager):
 
 
 @pytest.mark.usefixtures("patch_websocket_client")
-def test_plugin_manager_sends_registration_event(mock_command_sender: Mock, plugin_manager: PluginManager):
+def test_plugin_manager_sends_registration_event(
+    mock_command_sender: Mock, plugin_manager: PluginManager
+):
     """Test that StreamDeckCommandSender.send_action_registration() method is called with correct arguments within the PluginManager.run() method."""
     plugin_manager.run()
 
@@ -125,16 +129,26 @@ def test_plugin_manager_sends_registration_event(mock_command_sender: Mock, plug
 
 @pytest.mark.usefixtures("_spy_action_registry_get_action_handlers")
 @pytest.mark.usefixtures("_spy_event_adapter_validate_json")
-def test_plugin_manager_process_event(patch_websocket_client: tuple[MagicMock, EventBase], plugin_manager: PluginManager):
+def test_plugin_manager_process_event(
+    patch_websocket_client: tuple[MagicMock, EventBase], plugin_manager: PluginManager
+):
     """Test that PluginManager processes events correctly, calling event_adapter.validate_json and action_registry.get_action_handlers."""
     mock_websocket_client, fake_event_message = patch_websocket_client
 
     plugin_manager.run()
 
+    # First check that the WebSocketClient's listen_forever() method was called.
+    # This has been stubbed to return the fake_event_message's json string.
     mock_websocket_client.listen_forever.assert_called_once()
 
+    # Check that the event_adapter.validate_json method was called with the stub json string returned by listen_forever().
     spied_event_adapter_validate_json = cast(Mock, event_adapter.validate_json)
     spied_event_adapter_validate_json.assert_called_once_with(fake_event_message.model_dump_json())
+    # Check that the validate_json method returns the same event type model as the fake_event_message.
     assert spied_event_adapter_validate_json.spy_return == fake_event_message
 
-    cast(Mock, plugin_manager._registry.get_action_handlers).assert_called_once_with(fake_event_message.event)
+    # Check that the action_registry.get_action_handlers method was called with the event name and action uuid.
+    cast(Mock, plugin_manager._registry.get_action_handlers).assert_called_once_with(
+        event_name=fake_event_message.event, event_action_uuid=fake_event_message.action
+    )
+

@@ -1,13 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action, ActionRegistry
+from streamdeck.models import events
 
 
-if TYPE_CHECKING:
-    from streamdeck.models.events import EventBase
+class DialUpEventFactory(ModelFactory[events.DialUpEvent]):
+    """Polyfactory factory for creating a fake dialUp event message based on our Pydantic model."""
+
+class DialDownEventFactory(ModelFactory[events.DialDownEvent]):
+    """Polyfactory factory for creating a fake dialDown event message based on our Pydantic model."""
+
+class KeyUpEventFactory(ModelFactory[events.KeyUpEvent]):
+    """Polyfactory factory for creating a fake keyUp event message based on our Pydantic model."""
+
 
 
 
@@ -30,7 +37,8 @@ def test_get_action_handlers_no_handlers():
 
     registry.register(action)
 
-    handlers = list(registry.get_action_handlers("dialUp"))
+    fake_event_data: events.DialUpEvent = DialUpEventFactory.build()
+    handlers = list(registry.get_action_handlers(event_name=fake_event_data.event, event_action_uuid=fake_event_data.action))
     assert len(handlers) == 0
 
 
@@ -40,11 +48,14 @@ def test_get_action_handlers_with_handlers():
     action = Action("my-fake-action-uuid")
 
     @action.on("dialDown")
-    def dial_down_handler(event: EventBase):
+    def dial_down_handler(event: events.EventBase):
         pass
 
     registry.register(action)
-    handlers = list(registry.get_action_handlers("dialDown"))
+
+    fake_event_data: events.DialDownEvent = DialDownEventFactory.build(action=action.uuid)
+    handlers = list(registry.get_action_handlers(event_name=fake_event_data.event, event_action_uuid=fake_event_data.action))
+    # handlers = list(registry.get_action_handlers("dialDown"))
     assert len(handlers) == 1
     assert handlers[0] == dial_down_handler
 
@@ -67,7 +78,10 @@ def test_get_action_handlers_multiple_actions():
     registry.register(action1)
     registry.register(action2)
 
-    handlers = list(registry.get_action_handlers("keyUp"))
+    fake_event_data: events.KeyUpEvent = KeyUpEventFactory.build(action=action1.uuid)
+    # Notice no action uuid is passed in here, so we should get all handlers for the event.
+    handlers = list(registry.get_action_handlers(event_name=fake_event_data.event))
+
     assert len(handlers) == 2
     assert key_up_handler1 in handlers
     assert key_up_handler2 in handlers

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from streamdeck.actions import ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
@@ -82,6 +82,9 @@ class PluginManager:
                 data: EventBase = event_adapter.validate_json(message)
                 logger.debug("Event received: %s", data.event)
 
-                for handler in self._registry.get_action_handlers(data.event): # type: ignore
+                # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
+                event_action_uuid: str | None = cast(str, data.action) if data.is_action_specific() else None
+
+                for handler in self._registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
                     # TODO: from contextual event occurences, save metadata to the action's properties.
                     handler(data)

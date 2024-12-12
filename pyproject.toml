@@ -14,12 +14,47 @@
         { name = "strohganoff", email = "you@example.com" }
     ]
     license = { file = "LICENSE" }
-    keywords = ["example", "project", "setup"]
+    keywords = [
+        "python",
+        "sdk",
+        "streamdeck",
+        "streamdeck_sdk",
+        "streamdeck_plugin_sdk",
+        "stream deck",
+        "stream deck sdk",
+        "stream deck plugin sdk",
+        "streamdeck-sdk",
+        "streamdeck-plugin-sdk",
+        "stream-deck",
+        "stream-deck-sdk",
+        "stream-deck-plugin-sdk",
+        "elgato",
+        "elgato sdk",
+        "elgato plugin",
+        "elgato sdk",
+        "elgato stream deck",
+        "elgato stream deck sdk",
+        "elgato stream deck plugin sdk",
+    ]
     classifiers = [
-        "Development Status :: 3 - Alpha",
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "Intended Audience :: Developers",
         "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Development Status :: 4 - Beta",
+        "Environment :: Desktop",
+        "License :: OSI Approved :: MIT License",
+        "Topic :: CLI",
+        "Topic :: Stream Deck",
+        "Topic :: Stream Deck :: Plugin",
+        "Topic :: Stream Deck :: Plugin :: SDK",
+        "Topic :: Stream Deck :: SDK",
+        "Typing :: Typed",
     ]
     requires-python = ">=3.9"
     "dependencies" = [
@@ -45,6 +80,8 @@
     [project.urls]
         "Homepage" = "https://github.com/strohganoff/python-streamdeck-plugin-sdk"
         "Repository" = "https://github.com/strohganoff/python-streamdeck-plugin-sdk"
+        "Documentation" = "https://docs.elgato.com/streamdeck/sdk/introduction/getting-started/"
+        "Issues" = "https://github.com/strohganoff/python-streamdeck-plugin-sdk/issues"
 
     [project.scripts]
         streamdeck = "streamdeck.__main__:main"

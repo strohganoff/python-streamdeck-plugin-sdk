@@ -21,6 +21,8 @@ This library differs from the official Stream Deck TypeScript SDK, as it aims to
 
 - **PluginManager**: Orchestrates action lifecycle, event-routing, and context-gathering behind the scenes.
 
+- **CLI Tool**: Quickly create new plugins projects from a template and package them to use on your Stream Deck using [the Python sdk cli tool](https://github.com/strohganoff/python-streamdeck-plugin-sdk-cli).
+
 ## Installation
 
 You can install the library via pip:
@@ -187,6 +189,9 @@ And a command like the following is called by the Stream Deck software:
 streamdeck -port 28196 -pluginUUID 63831042F4048F072B096732E0385245 -registerEvent registerPlugin -info '{"application": {...}, "plugin": {"uuid": "my-plugin-name", "version": "1.1.3"}, ...}'
 ```
 
+## Creating and Packaging Plugins
+
+To create a new plugin with all of the necessary files to start from and package it for use on your Stream Deck, use [the Python SDK CLI tool](https://github.com/strohganoff/python-streamdeck-plugin-sdk-cli).
 
 ## Contributing
 

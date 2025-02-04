@@ -21,6 +21,16 @@ class EventBase(BaseModel, ABC):
         """Check if the event is specific to an action instance (i.e. the event has an "action" field)."""
         return "action" in cls.model_fields
 
+    @classmethod
+    def is_device_specific(cls) -> bool:
+        """Check if the event is specific to a device instance (i.e. the event has a "device" field)."""
+        return "device" in cls.model_fields
+
+    @classmethod
+    def is_action_instance_specific(cls) -> bool:
+        """Check if the event is specific to an action instance (i.e. the event has a "context" field)."""
+        return "context" in cls.model_fields
+
 
 class ApplicationDidLaunchEvent(EventBase):
     event: Literal["applicationDidLaunch"]

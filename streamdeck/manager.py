@@ -61,8 +61,8 @@ class PluginManager:
         Args:
             action (Action): The action to register.
         """
-        # First, configure a logger for the action, giving it the last part of its uuid as name.
-        action_component_name = action.uuid.split(".")[-1]
+        # First, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
+        action_component_name = action.uuid.split(".")[-1] if hasattr(action, "uuid") else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
         self._registry.register(action)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from collections import defaultdict
 from functools import cached_property
 from logging import getLogger
@@ -39,7 +40,7 @@ available_event_names: set[EventNameStr] = {
 }
 
 
-class ActionBase:
+class ActionBase(ABC):
     """Base class for all actions."""
 
     def __init__(self):
@@ -88,6 +89,9 @@ class ActionBase:
         if event_name not in available_event_names:
             msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
             raise KeyError(msg)
+
+        if event_name not in self._events:
+            return
 
         yield from self._events[event_name]
 

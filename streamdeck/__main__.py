@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, cast
 
 import tomli as toml
 
-from streamdeck.actions import Action
+from streamdeck.actions import ActionBase
 from streamdeck.cli.errors import (
     DirectoryNotFoundError,
     NotAFileError,
@@ -146,7 +146,7 @@ def read_streamdeck_config_from_pyproject(plugin_dir: Path) -> StreamDeckConfigD
 
 class ActionLoader:
     @classmethod
-    def load_actions(cls: type[Self], plugin_dir: Path, files: list[str]) -> Generator[Action, None, None]:
+    def load_actions(cls: type[Self], plugin_dir: Path, files: list[str]) -> Generator[ActionBase, None, None]:
         # Ensure the parent directory of the plugin modules is in `sys.path`,
         # so that import statements in the plugin module will work as expected.
         if str(plugin_dir) not in sys.path:
@@ -191,12 +191,12 @@ class ActionLoader:
         return module
 
     @staticmethod
-    def _get_actions_from_loaded_module(module: ModuleType) -> Generator[Action, None, None]:
+    def _get_actions_from_loaded_module(module: ModuleType) -> Generator[ActionBase, None, None]:
         # Iterate over all attributes in the module to find Action subclasses
         for attribute_name in dir(module):
             attribute = getattr(module, attribute_name)
-            # Check if the attribute is an instance of the Action class
-            if isinstance(attribute, Action):
+            # Check if the attribute is an instance of the Action class or GlobalAction class.
+            if issubclass(type(attribute), ActionBase):
                 yield attribute
 
 

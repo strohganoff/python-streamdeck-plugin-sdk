@@ -7,11 +7,11 @@ import pytest_mock
 from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action
 from streamdeck.manager import PluginManager
-from streamdeck.models.events import DialRotateEvent, EventBase, event_adapter
+from streamdeck.models.events import DialRotate, EventBase, event_adapter
 from streamdeck.websocket import WebSocketClient
 
 
-class DialRotateEventFactory(ModelFactory[DialRotateEvent]):
+class DialRotateEventFactory(ModelFactory[DialRotate]):
     """Polyfactory factory for creating a fake event message based on our Pydantic model."""
 
 
@@ -51,7 +51,7 @@ def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, 
     mock_websocket_client.__enter__.return_value = mock_websocket_client
 
     # Create a fake event message, and convert it to a json string to be passed back by the client.listen_forever() method.
-    fake_event_message: DialRotateEvent = DialRotateEventFactory.build()
+    fake_event_message: DialRotate = DialRotateEventFactory.build()
     mock_websocket_client.listen_forever.return_value = [fake_event_message.model_dump_json()]
 
     monkeypatch.setattr("streamdeck.manager.WebSocketClient", lambda port: mock_websocket_client)

@@ -22,19 +22,19 @@ def mock_event_handler() -> Mock:
     return create_autospec(dummy_handler, spec_set=True)
 
 
-class ApplicationDidLaunchEventFactory(ModelFactory[events.ApplicationDidLaunchEvent]):
+class ApplicationDidLaunchEventFactory(ModelFactory[events.ApplicationDidLaunch]):
     """Polyfactory factory for creating fake applicationDidLaunch event message based on our Pydantic model.
 
     ApplicationDidLaunchEvent's hold no unique identifier properties, besides the almost irrelevant `event` name property.
     """
 
-class DeviceDidConnectFactory(ModelFactory[events.DeviceDidConnectEvent]):
+class DeviceDidConnectFactory(ModelFactory[events.DeviceDidConnect]):
     """Polyfactory factory for creating fake deviceDidConnect event message based on our Pydantic model.
 
     DeviceDidConnectEvent's have `device` unique identifier property.
     """
 
-class KeyDownEventFactory(ModelFactory[events.KeyDownEvent]):
+class KeyDownEventFactory(ModelFactory[events.KeyDown]):
     """Polyfactory factory for creating fake keyDown event message based on our Pydantic model.
 
     KeyDownEvent's have the unique identifier properties:
@@ -81,7 +81,8 @@ def test_action_gets_triggered_by_event(mock_event_handler: Mock, event_name: st
     # Create a fake event model instance
     fake_event_data: events.EventBase = event_factory.build()
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else "my-fake-action-uuid"
+    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else "my-fake-action-uuid"
+    action_uuid: str = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else "my-fake-action-uuid"
 
     action = Action(uuid=action_uuid)
 
@@ -108,7 +109,8 @@ def test_global_action_registry_get_action_handlers_filtering(mock_event_handler
     # Create a fake event model instance
     fake_event_data: events.EventBase = event_factory.build()
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
+    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, without an action UUID as global actions aren't associated with a specific action
@@ -139,7 +141,8 @@ def test_action_registry_get_action_handlers_filtering(mock_event_handler: Mock,
     # Create a fake event model instance
     fake_event_data: events.EventBase = event_factory.build()
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
+    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, using either the fake event's action UUID or a default value
@@ -184,8 +187,8 @@ def test_multiple_actions_filtering():
     registry.register(action)
 
     # Create a fake event model instances
-    fake_app_did_launch_event_data: events.ApplicationDidLaunchEvent = ApplicationDidLaunchEventFactory.build()
-    fake_key_down_event_data: events.KeyDownEvent = KeyDownEventFactory.build(action=action.uuid)
+    fake_app_did_launch_event_data: events.ApplicationDidLaunch = ApplicationDidLaunchEventFactory.build()
+    fake_key_down_event_data: events.KeyDown = KeyDownEventFactory.build(action=action.uuid)
 
     for handler in registry.get_action_handlers(event_name=fake_app_did_launch_event_data.event):
         handler(fake_app_did_launch_event_data)

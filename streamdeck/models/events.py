@@ -16,154 +16,94 @@ class EventBase(BaseModel, ABC):
     event: str
     """Name of the event used to identify what occurred."""
 
-    @classmethod
-    def is_action_specific(cls) -> bool:
-        """Check if the event is specific to an action instance (i.e. the event has an "action" field)."""
-        return "action" in cls.model_fields
 
-    @classmethod
-    def is_device_specific(cls) -> bool:
-        """Check if the event is specific to a device instance (i.e. the event has a "device" field)."""
-        return "device" in cls.model_fields
+class ContextualEventMixin:
+    action: str
+    """Unique identifier of the action"""
+    context: str
+    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
 
-    @classmethod
-    def is_action_instance_specific(cls) -> bool:
-        """Check if the event is specific to an action instance (i.e. the event has a "context" field)."""
-        return "context" in cls.model_fields
+class DeviceSpecificEventMixin:
+    device: str
+    """Unique identifier of the Stream Deck device that this event is associated with."""
 
 
-class ApplicationDidLaunchEvent(EventBase):
+class ApplicationDidLaunch(EventBase):
     event: Literal["applicationDidLaunch"]
     payload: dict[Literal["application"], str]
     """Payload containing the name of the application that triggered the event."""
 
 
-class ApplicationDidTerminateEvent(EventBase):
+class ApplicationDidTerminate(EventBase):
     event: Literal["applicationDidTerminate"]
     payload: dict[Literal["application"], str]
     """Payload containing the name of the application that triggered the event."""
 
 
-class DeviceDidConnectEvent(EventBase):
+class DeviceDidConnect(EventBase, DeviceSpecificEventMixin):
     event: Literal["deviceDidConnect"]
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
     deviceInfo: dict[str, Any]
     """Information about the newly connected device."""
 
 
-class DeviceDidDisconnectEvent(EventBase):
+class DeviceDidDisconnect(EventBase, DeviceSpecificEventMixin):
     event: Literal["deviceDidDisconnect"]
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
 
 
-class DialDownEvent(EventBase):
+class DialDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["dialDown"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class DialRotateEvent(EventBase):
+class DialRotate(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["dialRotate"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class DialUpEvent(EventBase):
+class DialUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["dialUp"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class DidReceiveDeepLinkEvent(EventBase):
+class DidReceiveDeepLink(EventBase):
     event: Literal["didReceiveDeepLink"]
     payload: dict[Literal["url"], str]
 
 
-class DidReceiveGlobalSettingsEvent(EventBase):
+class DidReceiveGlobalSettings(EventBase):
     event: Literal["didReceiveGlobalSettings"]
     payload: dict[Literal["settings"], dict[str, Any]]
 
 
-class DidReceivePropertyInspectorMessageEvent(EventBase):
+class DidReceivePropertyInspectorMessage(EventBase, ContextualEventMixin):
     event: Literal["sendToPlugin"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class DidReceiveSettingsEvent(EventBase):
+class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["didReceiveSettings"]
-    context: str
-    """UUID of the instance of an action that caused the event."""
-    device: str
-    """UUID of the Stream Deck device that this event is associated with."""
-    action: str
-    """UUID of the action."""
     payload: dict[str, Any]
 
 
-class KeyDownEvent(EventBase):
+class KeyDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["keyDown"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class KeyUpEvent(EventBase):
+class KeyUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["keyUp"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class PropertyInspectorDidAppearEvent(EventBase):
+class PropertyInspectorDidAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["propertyInspectorDidAppear"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
 
 
-class PropertyInspectorDidDisappearEvent(EventBase):
+class PropertyInspectorDidDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["propertyInspectorDidDisappear"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
 
 
-class SystemDidWakeUpEvent(EventBase):
+class SystemDidWakeUp(EventBase):
     event: Literal["systemDidWakeUp"]
 
 
@@ -186,46 +126,25 @@ class TitleParametersDidChangePayload(TypedDict):
     titleParameters: TitleParametersDict
 
 
-class TitleParametersDidChangeEvent(EventBase):
+class TitleParametersDidChange(EventBase, DeviceSpecificEventMixin):
     event: Literal["titleParametersDidChange"]
     context: str
     """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    # payload: dict[str, Any]
     payload: TitleParametersDidChangePayload
 
 
-class TouchTap(EventBase):
+class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["touchTap"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class WillAppearEvent(EventBase):
+class WillAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["willAppear"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
-class WillDisappearEvent(EventBase):
+class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     event: Literal["willDisappear"]
-    context: str
-    """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""
-    action: str
-    """Unique identifier of the action"""
     payload: dict[str, Any]
 
 
@@ -234,26 +153,26 @@ class WillDisappearEvent(EventBase):
 event_adapter: TypeAdapter[EventBase] = TypeAdapter(
     Annotated[
         Union[  # noqa: UP007
-            ApplicationDidLaunchEvent,
-            ApplicationDidTerminateEvent,
-            DeviceDidConnectEvent,
-            DeviceDidDisconnectEvent,
-            DialDownEvent,
-            DialRotateEvent,
-            DialUpEvent,
-            DidReceiveDeepLinkEvent,
-            KeyUpEvent,
-            KeyDownEvent,
-            DidReceivePropertyInspectorMessageEvent,
-            PropertyInspectorDidAppearEvent,
-            PropertyInspectorDidDisappearEvent,
-            DidReceiveGlobalSettingsEvent,
-            DidReceiveSettingsEvent,
-            SystemDidWakeUpEvent,
-            TitleParametersDidChangeEvent,
+            ApplicationDidLaunch,
+            ApplicationDidTerminate,
+            DeviceDidConnect,
+            DeviceDidDisconnect,
+            DialDown,
+            DialRotate,
+            DialUp,
+            DidReceiveDeepLink,
+            KeyUp,
+            KeyDown,
+            DidReceivePropertyInspectorMessage,
+            PropertyInspectorDidAppear,
+            PropertyInspectorDidDisappear,
+            DidReceiveGlobalSettings,
+            DidReceiveSettings,
+            SystemDidWakeUp,
+            TitleParametersDidChange,
             TouchTap,
-            WillAppearEvent,
-            WillDisappearEvent,
+            WillAppear,
+            WillDisappear,
         ],
         Field(discriminator="event")
     ]

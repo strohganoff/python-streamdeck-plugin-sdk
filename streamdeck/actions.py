@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from collections import defaultdict
 from functools import cached_property
 from logging import getLogger
@@ -39,23 +40,16 @@ available_event_names: set[EventNameStr] = {
 }
 
 
-class Action:
-    """Represents an action that can be performed, with event handlers for specific event types."""
+class ActionBase(ABC):
+    """Base class for all actions."""
 
-    def __init__(self, uuid: str):
+    def __init__(self):
         """Initialize an Action instance.
 
         Args:
             uuid (str): The unique identifier for the action.
         """
-        self.uuid = uuid
-
         self._events: dict[EventNameStr, set[EventHandlerFunc]] = defaultdict(set)
-
-    @cached_property
-    def name(self) -> str:
-        """The name of the action, derived from the last part of the UUID."""
-        return self.uuid.split(".")[-1]
 
     def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc], EventHandlerFunc]:
         """Register an event handler for a specific event.
@@ -96,7 +90,32 @@ class Action:
             msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
             raise KeyError(msg)
 
+        if event_name not in self._events:
+            return
+
         yield from self._events[event_name]
+
+
+class GlobalAction(ActionBase):
+    """Represents an action that is performed at the plugin level, meaning it isn't associated with a specific device or action."""
+
+
+class Action(ActionBase):
+    """Represents an action that can be performed for a specific action, with event handlers for specific event types."""
+
+    def __init__(self, uuid: str):
+        """Initialize an Action instance.
+
+        Args:
+            uuid (str): The unique identifier for the action.
+        """
+        super().__init__()
+        self.uuid = uuid
+
+    @cached_property
+    def name(self) -> str:
+        """The name of the action, derived from the last part of the UUID."""
+        return self.uuid.split(".")[-1]
 
 
 class ActionRegistry:
@@ -104,9 +123,9 @@ class ActionRegistry:
 
     def __init__(self) -> None:
         """Initialize an ActionRegistry instance."""
-        self._plugin_actions: list[Action] = []
+        self._plugin_actions: list[ActionBase] = []
 
-    def register(self, action: Action) -> None:
+    def register(self, action: ActionBase) -> None:
         """Register an action with the registry.
 
         Args:
@@ -126,9 +145,10 @@ class ActionRegistry:
             EventHandlerFunc: The event handler functions for the specified event.
         """
         for action in self._plugin_actions:
-            # If the event is action-specific, only get handlers for that action, as we don't want to trigger
+            # If the event is action-specific (i.e is not a GlobalAction and has a UUID attribute),
+            # only get handlers for that action, as we don't want to trigger
             # and pass this event to handlers for other actions.
-            if event_action_uuid is not None and event_action_uuid != action.uuid:
+            if event_action_uuid is not None and (hasattr(action, "uuid") and action.uuid != event_action_uuid):
                 continue
 
             yield from action.get_event_handlers(event_name)

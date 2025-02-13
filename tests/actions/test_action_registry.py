@@ -6,13 +6,13 @@ from streamdeck.actions import Action, ActionRegistry
 from streamdeck.models import events
 
 
-class DialUpEventFactory(ModelFactory[events.DialUpEvent]):
+class DialUpEventFactory(ModelFactory[events.DialUp]):
     """Polyfactory factory for creating a fake dialUp event message based on our Pydantic model."""
 
-class DialDownEventFactory(ModelFactory[events.DialDownEvent]):
+class DialDownEventFactory(ModelFactory[events.DialDown]):
     """Polyfactory factory for creating a fake dialDown event message based on our Pydantic model."""
 
-class KeyUpEventFactory(ModelFactory[events.KeyUpEvent]):
+class KeyUpEventFactory(ModelFactory[events.KeyUp]):
     """Polyfactory factory for creating a fake keyUp event message based on our Pydantic model."""
 
 
@@ -37,7 +37,7 @@ def test_get_action_handlers_no_handlers():
 
     registry.register(action)
 
-    fake_event_data: events.DialUpEvent = DialUpEventFactory.build()
+    fake_event_data: events.DialUp = DialUpEventFactory.build()
     handlers = list(registry.get_action_handlers(event_name=fake_event_data.event, event_action_uuid=fake_event_data.action))
     assert len(handlers) == 0
 
@@ -53,7 +53,7 @@ def test_get_action_handlers_with_handlers():
 
     registry.register(action)
 
-    fake_event_data: events.DialDownEvent = DialDownEventFactory.build(action=action.uuid)
+    fake_event_data: events.DialDown = DialDownEventFactory.build(action=action.uuid)
     handlers = list(registry.get_action_handlers(event_name=fake_event_data.event, event_action_uuid=fake_event_data.action))
     # handlers = list(registry.get_action_handlers("dialDown"))
     assert len(handlers) == 1
@@ -78,7 +78,7 @@ def test_get_action_handlers_multiple_actions():
     registry.register(action1)
     registry.register(action2)
 
-    fake_event_data: events.KeyUpEvent = KeyUpEventFactory.build(action=action1.uuid)
+    fake_event_data: events.KeyUp = KeyUpEventFactory.build(action=action1.uuid)
     # Notice no action uuid is passed in here, so we should get all handlers for the event.
     handlers = list(registry.get_action_handlers(event_name=fake_event_data.event))
 

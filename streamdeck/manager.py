@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 
 from streamdeck.actions import ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
-from streamdeck.models.events import event_adapter
+from streamdeck.models.events import ContextualEventMixin, event_adapter
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
 
@@ -61,8 +61,8 @@ class PluginManager:
         Args:
             action (Action): The action to register.
         """
-        # First, configure a logger for the action, giving it the last part of its uuid as name.
-        action_component_name = action.uuid.split(".")[-1]
+        # First, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
+        action_component_name = action.uuid.split(".")[-1] if hasattr(action, "uuid") else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
         self._registry.register(action)
@@ -83,7 +83,7 @@ class PluginManager:
                 logger.debug("Event received: %s", data.event)
 
                 # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
-                event_action_uuid: str | None = cast(str, data.action) if data.is_action_specific() else None
+                event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
 
                 for handler in self._registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
                     # TODO: from contextual event occurences, save metadata to the action's properties.

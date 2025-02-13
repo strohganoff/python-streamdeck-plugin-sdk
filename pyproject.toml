@@ -47,13 +47,11 @@
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Development Status :: 4 - Beta",
-        "Environment :: Desktop",
+        "Environment :: MacOS X",
+        "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
-        "Topic :: CLI",
-        "Topic :: Stream Deck",
-        "Topic :: Stream Deck :: Plugin",
-        "Topic :: Stream Deck :: Plugin :: SDK",
-        "Topic :: Stream Deck :: SDK",
+        "Topic :: Software Development :: Libraries :: Application Frameworks",
+        "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
     ]
     requires-python = ">=3.9"

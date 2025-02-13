@@ -41,9 +41,13 @@ This guide will help you set up your first Stream Deck plugin using the library.
 - Stream Deck software installed
 - A valid `manifest.json` file for your plugin
 
-### Creating an Action
+### Creating Actions
 
-An **Action** represents a specific functionality in your plugin. You can create multiple actions, each with its own set of event handlers.
+The SDK provides two types of actions: `Action` and `GlobalAction`. Each represents functionality with different scopes in your plugin, determining how  events are handled.
+
+#### Regular Actions
+
+An `Action` handles events that are specifically associated with it based on event metadata. When the Stream Deck sends an event, the action's handlers only run if the event metadata indicates it was triggered by or is intended for that specific action instance.
 
 ```python
 from streamdeck import Action
@@ -52,18 +56,33 @@ from streamdeck import Action
 my_action = Action(uuid="com.example.myplugin.myaction")
 ```
 
+#### Global Actions
+
+A `GlobalAction` runs its event handlers for all events of a given type, regardless of which action the events were originally intended for. Unlike regular Actions which only process events specifically targeted at their UUID, GlobalActions handle events meant for any action in the plugin, making them useful for implementing plugin-wide behaviors or monitoring.
+
+```python
+from streamdeck import GlobalAction
+
+# Create a global action
+my_global_action = GlobalAction()
+```
+
+Choose `GlobalAction` when you want to handle events at the plugin-scope (i.e. globally) without filtering by action, and `Action` when you need to process events specific to particular actions.
+
+Note that an action with its UUID still needs to be defined in the manifest.json. Global Actions are an abstract component unique to this library — the global behavior is not how the Stream Deck software itself handles registering actions and publishing events.
+
 ### Registering Event Handlers
 
 Use the `.on()` method to register event handlers for specific events.
 
 ```python
 @my_action.on("keyDown")
-def handle_key_down(event):
-    print("Key Down event received:", event)
+def handle_key_down(event_data):
+    print("Key Down event received:", event_data)
 
 @my_action.on("willAppear")
-def handle_will_appear(event):
-    print("Will Appear event received:", event)
+def handle_will_appear(event_data):
+    print("Will Appear event received:", event_data)
 ```
 
 !!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
@@ -159,22 +178,34 @@ Below is an example of the pyproject.toml configuration and how to run the plugi
 
 ## Simple Example
 
-Below is a complete example that creates a plugin with a single action. The action handles the `keyDown` event and simply prints a statement that the event occurred.
+Below is a complete example that creates a plugin with a single action. The action handles the `keyDown` and `applicationDidLaunch` event and simply prints a statement that an event occurred.
 
 ```python
 # main.py
 import logging
-from streamdeck import Action, PluginManager, events
+from streamdeck import Action, GlobalAction, PluginManager, events
 
 logger = logging.getLogger("myaction")
 
 # Define your action
 my_action = Action(uuid="com.example.myplugin.myaction")
 
-# Register event handlers
+# Define your global action
+my_global_action = GlobalAction()
+
+# Register event handlers for regular action
+@my_action.on("applicationDidLaunch")
+def handle_application_did_launch(event_data: events.ApplicationDidLaunch):
+    logger.debug("Application Did Launch event recieved:", event_data)
+
 @my_action.on("keyDown")
-def handle_key_down(event):
-    logger.debug("Key Down event received:", event)
+def handle_key_down(event_data: events.KeyDown):
+    logger.debug("Key Down event received:", event_data)
+
+# Register event handlers for global action
+@my_global_action.on("keyDown")
+def handle_global_key_down(event_data: events.KeyDown):
+    logger.debug("Global Key Down event received:", event_data)
 ```
 
 ```toml

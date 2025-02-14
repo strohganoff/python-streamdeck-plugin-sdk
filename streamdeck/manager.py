@@ -67,6 +67,24 @@ class PluginManager:
 
         self._registry.register(action)
 
+    def _inject_command_sender(self, handler: Callable[..., None], command_sender: StreamDeckCommandSender) -> Callable[..., None]:
+        """Inject command_sender into handler if it accepts it as a parameter.
+
+        Args:
+            handler: The event handler function
+            command_sender: The StreamDeckCommandSender instance
+
+        Returns:
+            The handler with command_sender injected if needed
+        """
+        args: dict[str, inspect.Parameter] = inspect.signature(handler).parameters
+
+        # Check dynamically if the `command_sender`'s name is in the handler's arguments.
+        if "command_sender" in args:
+            return functools.partial(handler, command_sender=command_sender)
+
+        return handler
+
     def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
@@ -86,5 +104,7 @@ class PluginManager:
                 event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
 
                 for handler in self._registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
+                    handler = self._inject_command_sender(handler, command_sender)
                     # TODO: from contextual event occurences, save metadata to the action's properties.
+
                     handler(data)

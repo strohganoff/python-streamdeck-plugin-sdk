@@ -29,82 +29,82 @@ class DeviceSpecificEventMixin:
 
 
 class ApplicationDidLaunch(EventBase):
-    event: Literal["applicationDidLaunch"]
+    event: Literal["applicationDidLaunch"]  # type: ignore[override]
     payload: dict[Literal["application"], str]
     """Payload containing the name of the application that triggered the event."""
 
 
 class ApplicationDidTerminate(EventBase):
-    event: Literal["applicationDidTerminate"]
+    event: Literal["applicationDidTerminate"]  # type: ignore[override]
     payload: dict[Literal["application"], str]
     """Payload containing the name of the application that triggered the event."""
 
 
 class DeviceDidConnect(EventBase, DeviceSpecificEventMixin):
-    event: Literal["deviceDidConnect"]
+    event: Literal["deviceDidConnect"]  # type: ignore[override]
     deviceInfo: dict[str, Any]
     """Information about the newly connected device."""
 
 
 class DeviceDidDisconnect(EventBase, DeviceSpecificEventMixin):
-    event: Literal["deviceDidDisconnect"]
+    event: Literal["deviceDidDisconnect"]  # type: ignore[override]
 
 
 class DialDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["dialDown"]
+    event: Literal["dialDown"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class DialRotate(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["dialRotate"]
+    event: Literal["dialRotate"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class DialUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["dialUp"]
+    event: Literal["dialUp"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class DidReceiveDeepLink(EventBase):
-    event: Literal["didReceiveDeepLink"]
+    event: Literal["didReceiveDeepLink"]  # type: ignore[override]
     payload: dict[Literal["url"], str]
 
 
 class DidReceiveGlobalSettings(EventBase):
-    event: Literal["didReceiveGlobalSettings"]
+    event: Literal["didReceiveGlobalSettings"]  # type: ignore[override]
     payload: dict[Literal["settings"], dict[str, Any]]
 
 
 class DidReceivePropertyInspectorMessage(EventBase, ContextualEventMixin):
-    event: Literal["sendToPlugin"]
+    event: Literal["sendToPlugin"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["didReceiveSettings"]
+    event: Literal["didReceiveSettings"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class KeyDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["keyDown"]
+    event: Literal["keyDown"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class KeyUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["keyUp"]
+    event: Literal["keyUp"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class PropertyInspectorDidAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["propertyInspectorDidAppear"]
+    event: Literal["propertyInspectorDidAppear"]  # type: ignore[override]
 
 
 class PropertyInspectorDidDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["propertyInspectorDidDisappear"]
+    event: Literal["propertyInspectorDidDisappear"]  # type: ignore[override]
 
 
 class SystemDidWakeUp(EventBase):
-    event: Literal["systemDidWakeUp"]
+    event: Literal["systemDidWakeUp"]  # type: ignore[override]
 
 
 class TitleParametersDict(TypedDict):
@@ -127,24 +127,24 @@ class TitleParametersDidChangePayload(TypedDict):
 
 
 class TitleParametersDidChange(EventBase, DeviceSpecificEventMixin):
-    event: Literal["titleParametersDidChange"]
+    event: Literal["titleParametersDidChange"]  # type: ignore[override]
     context: str
     """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
     payload: TitleParametersDidChangePayload
 
 
 class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["touchTap"]
+    event: Literal["touchTap"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class WillAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["willAppear"]
+    event: Literal["willAppear"]  # type: ignore[override]
     payload: dict[str, Any]
 
 
 class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
-    event: Literal["willDisappear"]
+    event: Literal["willDisappear"]  # type: ignore[override]
     payload: dict[str, Any]
 
 

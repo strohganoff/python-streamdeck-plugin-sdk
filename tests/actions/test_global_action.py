@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from streamdeck.actions import GlobalAction, available_event_names
+from streamdeck.actions import GlobalAction
+from streamdeck.types import available_event_names
 
 
 if TYPE_CHECKING:

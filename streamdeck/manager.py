@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 import functools
-import inspect
-import logging
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from streamdeck.actions import ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.models.events import ContextualEventMixin, event_adapter
+from streamdeck.types import (
+    EventHandlerBasicFunc,
+    EventHandlerFunc,
+    TEvent_contra,
+    is_bindable_handler,
+    is_valid_event_name,
+)
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from typing import Any, Literal
 
     from streamdeck.actions import Action
@@ -70,7 +74,7 @@ class PluginManager:
 
         self._registry.register(action)
 
-    def _inject_command_sender(self, handler: Callable[..., None], command_sender: StreamDeckCommandSender) -> Callable[..., None]:
+    def _inject_command_sender(self, handler: EventHandlerFunc[TEvent_contra], command_sender: StreamDeckCommandSender) -> EventHandlerBasicFunc[TEvent_contra]:
         """Inject command_sender into handler if it accepts it as a parameter.
 
         Args:
@@ -80,10 +84,7 @@ class PluginManager:
         Returns:
             The handler with command_sender injected if needed
         """
-        args: dict[str, inspect.Parameter] = inspect.signature(handler).parameters
-
-        # Check dynamically if the `command_sender`'s name is in the handler's arguments.
-        if "command_sender" in args:
+        if is_bindable_handler(handler):
             return functools.partial(handler, command_sender=command_sender)
 
         return handler
@@ -101,13 +102,20 @@ class PluginManager:
 
             for message in client.listen_forever():
                 data: EventBase = event_adapter.validate_json(message)
+
+                if not is_valid_event_name(data.event):
+                    logger.error("Received event name is not valid: %s", data.event)
+                    continue
+
                 logger.debug("Event received: %s", data.event)
 
                 # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
                 event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
 
-                for handler in self._registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
-                    handler = self._inject_command_sender(handler, command_sender)
+                for event_handler in self._registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
+                    processed_handler = self._inject_command_sender(event_handler, command_sender)
                     # TODO: from contextual event occurences, save metadata to the action's properties.
 
-                    handler(data)
+                    processed_handler(data)
+
+

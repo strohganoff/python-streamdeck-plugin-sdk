@@ -4,40 +4,19 @@ from abc import ABC
 from collections import defaultdict
 from functools import cached_property
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from streamdeck.types import BaseEventHandlerFunc, available_event_names
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
-    from streamdeck.types import EventHandlerFunc, EventNameStr
+    from streamdeck.models.events import EventBase
+    from streamdeck.types import EventHandlerFunc, EventNameStr, TEvent_contra
 
 
 logger = getLogger("streamdeck.actions")
-
-
-
-available_event_names: set[EventNameStr] = {
-    "applicationDidLaunch",
-    "applicationDidTerminate",
-    "deviceDidConnect",
-    "deviceDidDisconnect",
-    "dialDown",
-    "dialRotate",
-    "dialUp",
-    "didReceiveGlobalSettings",
-    "didReceiveDeepLink",
-    "didReceiveSettings",
-    "keyDown",
-    "keyUp",
-    "propertyInspectorDidAppear",
-    "propertyInspectorDidDisappear",
-    "systemDidWakeUp",
-    "titleParametersDidChange",
-    "touchTap",
-    "willAppear",
-    "willDisappear",
-}
 
 
 class ActionBase(ABC):
@@ -49,9 +28,9 @@ class ActionBase(ABC):
         Args:
             uuid (str): The unique identifier for the action.
         """
-        self._events: dict[EventNameStr, set[EventHandlerFunc]] = defaultdict(set)
+        self._events: dict[EventNameStr, set[BaseEventHandlerFunc]] = defaultdict(set)
 
-    def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc], EventHandlerFunc]:
+    def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc[TEvent_contra] | BaseEventHandlerFunc], EventHandlerFunc[TEvent_contra] | BaseEventHandlerFunc]:
         """Register an event handler for a specific event.
 
         Args:
@@ -67,14 +46,15 @@ class ActionBase(ABC):
             msg = f"Provided event name for action handler does not exist: {event_name}"
             raise KeyError(msg)
 
-        def _wrapper(func: EventHandlerFunc) -> EventHandlerFunc:
-            self._events[event_name].add(func)
+        def _wrapper(func: EventHandlerFunc[TEvent_contra]) -> EventHandlerFunc[TEvent_contra]:
+            # Cast to BaseEventHandlerFunc so that the storage type is consistent.
+            self._events[event_name].add(cast(BaseEventHandlerFunc, func))
 
             return func
 
         return _wrapper
 
-    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc, None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase], None, None]:
         """Get all event handlers for a specific event.
 
         Args:
@@ -133,12 +113,12 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc, None, None]:
+    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase], None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:
             event_name (EventName): The name of the event to retrieve handlers for.
-            event_action_uuid (str | None): The action UUID to get handlers for. 
+            event_action_uuid (str | None): The action UUID to get handlers for.
                 If None (i.e., the event is not action-specific), get all handlers for the event.
 
         Yields:
@@ -148,7 +128,7 @@ class ActionRegistry:
             # If the event is action-specific (i.e is not a GlobalAction and has a UUID attribute),
             # only get handlers for that action, as we don't want to trigger
             # and pass this event to handlers for other actions.
-            if event_action_uuid is not None and (hasattr(action, "uuid") and action.uuid != event_action_uuid):
+            if event_action_uuid is not None and (isinstance(action, Action) and action.uuid != event_action_uuid):
                 continue
 
             yield from action.get_event_handlers(event_name)

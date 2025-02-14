@@ -16,8 +16,9 @@ logger = getLogger("streamdeck.command_sender")
 
 class StreamDeckCommandSender:
     """Class for sending command event messages to the Stream Deck software through a WebSocket client."""
-    def __init__(self, client: WebSocketClient):
+    def __init__(self, client: WebSocketClient, plugin_registration_uuid: str):
         self._client = client
+        self._plugin_registration_uuid = plugin_registration_uuid
 
     def _send_event(self, event: str, **kwargs: Any) -> None:
         self._client.send_event({
@@ -38,18 +39,17 @@ class StreamDeckCommandSender:
             context=context,
         )
 
-    def set_global_settings(self, context: str, payload: dict[str, Any]) -> None:
+    def set_global_settings(self, payload: dict[str, Any]) -> None:
         self._send_event(
             event="setGlobalSettings",
-            context=context,
+            context=self._plugin_registration_uuid,
             payload=payload,
         )
 
-    def get_global_settings(self, context: str) -> None:
-        """FYI: It seems like this causes the 'didReceiveGlobalSettings' event to only the Property Inspector."""
+    def get_global_settings(self) -> None:
         self._send_event(
             event="getGlobalSettings",
-            context=context,
+            context=self._plugin_registration_uuid,
         )
 
     def open_url(self, context: str, url: str) -> None:

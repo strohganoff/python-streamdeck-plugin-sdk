@@ -95,7 +95,7 @@ class PluginManager:
         and triggers the appropriate action handlers based on the received events.
         """
         with WebSocketClient(port=self._port) as client:
-            command_sender = StreamDeckCommandSender(client)
+            command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
 
             command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 

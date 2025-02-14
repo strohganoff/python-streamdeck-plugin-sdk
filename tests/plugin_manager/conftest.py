@@ -9,14 +9,13 @@ from streamdeck.websocket import WebSocketClient
 
 
 @pytest.fixture
-def plugin_manager(port_number: int) -> PluginManager:
+def plugin_manager(port_number: int, plugin_registration_uuid: str) -> PluginManager:
     """Fixture that provides a configured instance of PluginManager for testing.
 
     Returns:
         PluginManager: An instance of PluginManager with test parameters.
     """
     plugin_uuid = "test-plugin-uuid"
-    plugin_registration_uuid = str(uuid.uuid1())
     register_event = "registerPlugin"
     info = {"some": "info"}
 

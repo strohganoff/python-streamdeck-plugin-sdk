@@ -14,9 +14,9 @@ def mock_client() -> Mock:
 
 
 @pytest.fixture
-def command_sender(mock_client: Mock) -> StreamDeckCommandSender:
+def command_sender(mock_client: Mock, plugin_registration_uuid: str) -> StreamDeckCommandSender:
     """Fixture to provide an instance of StreamDeckCommandSender with a mocked client."""
-    return StreamDeckCommandSender(client=mock_client)
+    return StreamDeckCommandSender(client=mock_client, plugin_registration_uuid=plugin_registration_uuid)
 
 
 @pytest.mark.parametrize(
@@ -24,7 +24,7 @@ def command_sender(mock_client: Mock) -> StreamDeckCommandSender:
     [
         (
             "get_global_settings",
-            "fake_context",
+            None,  # get_global_settings uses the command_sender's own plugin_registration_uuid attribute as the context.
             {},
             "getGlobalSettings",
             {}
@@ -115,7 +115,7 @@ def command_sender(mock_client: Mock) -> StreamDeckCommandSender:
         ),
         (
             "set_global_settings",
-            "fake_context",
+            None,  # set_global_settings uses the command_sender's own plugin_registration_uuid attribute as the context.
             {"payload": {"key": "value"}},
             "setGlobalSettings",
             {"payload": {"key": "value"}},
@@ -147,7 +147,7 @@ def test_command_sender_methods(
     command_sender: StreamDeckCommandSender,
     mock_client: Mock,
     method_name: str,
-    context: str,
+    context: str | None,
     extra_args: dict,
     expected_event: str,
     expected_payload: dict,
@@ -157,11 +157,14 @@ def test_command_sender_methods(
     assert hasattr(command_sender, method_name)
 
     method = getattr(command_sender, method_name)
-    method(context, **extra_args)
+    if context is not None:
+        method(context, **extra_args)
+    else:
+        method(**extra_args)
 
     # Build the expected data structure to send through the WebSocket
     expected_data = {
-        "context": context,
+        "context": context or command_sender._plugin_registration_uuid,
         "event": expected_event,
         **expected_payload,
     }

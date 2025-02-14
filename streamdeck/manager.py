@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+import inspect
 import logging
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
@@ -12,6 +14,7 @@ from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any, Literal
 
     from streamdeck.actions import Action
@@ -92,7 +95,7 @@ class PluginManager:
         and triggers the appropriate action handlers based on the received events.
         """
         with WebSocketClient(port=self._port) as client:
-            command_sender = StreamDeckCommandSender(client)
+            command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
 
             command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 

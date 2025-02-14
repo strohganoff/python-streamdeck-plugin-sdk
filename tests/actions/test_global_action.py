@@ -3,14 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from polyfactory.factories.pydantic_factory import ModelFactory
-from streamdeck.actions import Action, GlobalAction, available_event_names
-from streamdeck.models import events
+from streamdeck.actions import GlobalAction, available_event_names
 
 
 if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
-    from streamdeck.types import EventNameStr
 
 
 def test_global_action_register_event_handler():

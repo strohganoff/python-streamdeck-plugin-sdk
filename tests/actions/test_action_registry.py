@@ -1,21 +1,14 @@
 from __future__ import annotations
 
 import pytest
-from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action, ActionRegistry
 from streamdeck.models import events
 
-
-class DialUpEventFactory(ModelFactory[events.DialUp]):
-    """Polyfactory factory for creating a fake dialUp event message based on our Pydantic model."""
-
-class DialDownEventFactory(ModelFactory[events.DialDown]):
-    """Polyfactory factory for creating a fake dialDown event message based on our Pydantic model."""
-
-class KeyUpEventFactory(ModelFactory[events.KeyUp]):
-    """Polyfactory factory for creating a fake keyUp event message based on our Pydantic model."""
-
-
+from tests.test_utils.fake_event_factories import (
+    DialDownEventFactory,
+    DialUpEventFactory,
+    KeyUpEventFactory,
+)
 
 
 def test_register_action():

@@ -87,6 +87,18 @@ def handle_will_appear(event_data):
 
 !!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
 
+Handlers can optionally include a `command_sender` parameter to access Stream Deck command sending capabilities.
+
+```python
+@my_action.on("willAppear")
+def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
+    # Use command_sender to interact with Stream Deck
+    command_sender.set_title(context=event_data.context, title="Hello!")
+    command_sender.set_state(context=event_data.context, state=0)
+```
+
+The `command_sender` parameter is optional. If included in the handler's signature, the SDK automatically injects a `StreamDeckCommandSender` instance that can be used to send commands back to the Stream Deck (like setting titles, states, or images).
+
 
 
 ### Writing Logs
@@ -234,7 +246,7 @@ Contributions are welcome! Please open an issue or submit a pull request on GitH
 The following upcoming improvements are in the works:
 
 - **Improved Documentation**: Expand and improve the documentation with more examples, guides, and use cases.
-- **Bind Command Sender**: Automatically bind `command_sender` and action instance context-holding objects to handler function arguments if they are included in the definition.
+- **Store & Bind Settings**: Automatically store and bind action instance context-holding objects to handler function arguments if they are included in the definition.
 - **Optional Event Pattern Matching on Hooks**: Add support for optional pattern-matching on event messages to further filter when hooks get called.
 - **Async Support**: Introduce asynchronous features to handle WebSocket communication more efficiently.
 

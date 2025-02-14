@@ -4,13 +4,20 @@ from typing import TYPE_CHECKING
 from unittest.mock import create_autospec
 
 import pytest
-from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action, ActionRegistry, GlobalAction
 from streamdeck.models import events
+
+from tests.test_utils.fake_event_factories import (
+    ApplicationDidLaunchEventFactory,
+    DeviceDidConnectFactory,
+    KeyDownEventFactory,
+)
 
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
+
+    from polyfactory.factories.pydantic_factory import ModelFactory
 
 
 
@@ -20,28 +27,6 @@ def mock_event_handler() -> Mock:
         """Dummy event handler function that matches the EventHandlerFunc TypeAlias."""
 
     return create_autospec(dummy_handler, spec_set=True)
-
-
-class ApplicationDidLaunchEventFactory(ModelFactory[events.ApplicationDidLaunch]):
-    """Polyfactory factory for creating fake applicationDidLaunch event message based on our Pydantic model.
-
-    ApplicationDidLaunchEvent's hold no unique identifier properties, besides the almost irrelevant `event` name property.
-    """
-
-class DeviceDidConnectFactory(ModelFactory[events.DeviceDidConnect]):
-    """Polyfactory factory for creating fake deviceDidConnect event message based on our Pydantic model.
-
-    DeviceDidConnectEvent's have `device` unique identifier property.
-    """
-
-class KeyDownEventFactory(ModelFactory[events.KeyDown]):
-    """Polyfactory factory for creating fake keyDown event message based on our Pydantic model.
-
-    KeyDownEvent's have the unique identifier properties:
-        `device`: Identifies the Stream Deck device that this event is associated with.
-        `action`: Identifies the action that caused the event.
-        `context`: Identifies the *instance* of an action that caused the event.
-    """
 
 
 @pytest.mark.parametrize(("event_name","event_factory"), [

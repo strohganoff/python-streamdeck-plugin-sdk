@@ -1,77 +1,31 @@
-import uuid
 from typing import cast
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 import pytest_mock
-from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action
 from streamdeck.manager import PluginManager
 from streamdeck.models.events import DialRotate, EventBase, event_adapter
-from streamdeck.websocket import WebSocketClient
 
-
-class DialRotateEventFactory(ModelFactory[DialRotate]):
-    """Polyfactory factory for creating a fake event message based on our Pydantic model."""
+from tests.test_utils.fake_event_factories import DialRotateEventFactory
 
 
 @pytest.fixture
-def plugin_manager(port_number: int) -> PluginManager:
-    """Fixture that provides a configured instance of PluginManager for testing.
-
-    Returns:
-        PluginManager: An instance of PluginManager with test parameters.
-    """
-    plugin_uuid = "test-plugin-uuid"
-    plugin_registration_uuid = str(uuid.uuid1())
-    register_event = "registerPlugin"
-    info = {"some": "info"}
-
-    return PluginManager(
-        port=port_number,
-        plugin_uuid=plugin_uuid,
-        plugin_registration_uuid=plugin_registration_uuid,
-        register_event=register_event,
-        info=info,
-    )
-
-
-@pytest.fixture
-def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> tuple[MagicMock, EventBase]:
-    """Fixture that uses pytest's MonkeyPatch to mock WebSocketClient and StreamDeckCommandSender for the PluginManager run method.
+def mock_websocket_client_with_event(patch_websocket_client: Mock) -> tuple[Mock, EventBase]:
+    """Fixture that mocks the WebSocketClient and provides a fake DialRotateEvent message.
 
     Args:
-        monkeypatch: pytest's monkeypatch fixture.
+        patch_websocket_client: Mocked instance of the patched WebSocketClient.
 
     Returns:
         tuple: Mocked instance of WebSocketClient, and a fake DialRotateEvent.
     """
-    mock_websocket_client = MagicMock(spec=WebSocketClient)
-
-    mock_websocket_client.__enter__.return_value = mock_websocket_client
-
     # Create a fake event message, and convert it to a json string to be passed back by the client.listen_forever() method.
     fake_event_message: DialRotate = DialRotateEventFactory.build()
-    mock_websocket_client.listen_forever.return_value = [fake_event_message.model_dump_json()]
+    patch_websocket_client.listen_forever.return_value = [fake_event_message.model_dump_json()]
 
-    monkeypatch.setattr("streamdeck.manager.WebSocketClient", lambda port: mock_websocket_client)
+    return patch_websocket_client, fake_event_message
 
-    return mock_websocket_client, fake_event_message
-
-
-@pytest.fixture
-def mock_command_sender(mocker: pytest_mock.MockerFixture) -> Mock:
-    """Fixture that patches the StreamDeckCommandSender.
-
-    Args:
-        mocker: pytest-mock's mocker fixture.
-
-    Returns:
-        Mock: Mocked instance of StreamDeckCommandSender
-    """
-    mock_cmd_sender = Mock()
-    mocker.patch("streamdeck.manager.StreamDeckCommandSender", return_value=mock_cmd_sender)
-    return mock_cmd_sender
 
 
 @pytest.fixture
@@ -114,7 +68,7 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager):
     assert plugin_manager._registry._plugin_actions[0] == action
 
 
-@pytest.mark.usefixtures("patch_websocket_client")
+@pytest.mark.usefixtures("mock_websocket_client_with_event")
 def test_plugin_manager_sends_registration_event(
     mock_command_sender: Mock, plugin_manager: PluginManager
 ):
@@ -130,10 +84,10 @@ def test_plugin_manager_sends_registration_event(
 @pytest.mark.usefixtures("_spy_action_registry_get_action_handlers")
 @pytest.mark.usefixtures("_spy_event_adapter_validate_json")
 def test_plugin_manager_process_event(
-    patch_websocket_client: tuple[MagicMock, EventBase], plugin_manager: PluginManager
+    mock_websocket_client_with_event: tuple[Mock, EventBase], plugin_manager: PluginManager
 ):
     """Test that PluginManager processes events correctly, calling event_adapter.validate_json and action_registry.get_action_handlers."""
-    mock_websocket_client, fake_event_message = patch_websocket_client
+    mock_websocket_client, fake_event_message = mock_websocket_client_with_event
 
     plugin_manager.run()
 

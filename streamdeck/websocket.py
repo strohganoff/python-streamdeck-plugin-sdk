@@ -4,7 +4,7 @@ import json
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from websockets.exceptions import ConnectionClosed, ConnectionClosedError, ConnectionClosedOK
+from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.sync.client import ClientConnection, connect
 
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Any
 
-    from typing_extensions import Self
+    from typing_extensions import Self  # noqa: UP035
 
 
 logger = getLogger("streamdeck.websocket")
@@ -38,10 +38,14 @@ class WebSocketClient:
         Args:
             data (dict[str, Any]): The event data to send.
         """
+        if self._client is None:
+            msg = "WebSocket connection not established yet."
+            raise ValueError(msg)
+
         data_str = json.dumps(data)
         self._client.send(message=data_str)
 
-    def listen_forever(self) -> Generator[str | bytes, Any, None]:
+    def listen(self) -> Generator[str | bytes, Any, None]:
         """Listen for messages from the WebSocket server indefinitely.
 
         TODO: implement more concise error-handling.
@@ -55,8 +59,23 @@ class WebSocketClient:
                 message: str | bytes = self._client.recv()
                 yield message
 
+        except ConnectionClosedOK:
+            logger.debug("Connection was closed normally, stopping the client.")
+
+        except ConnectionClosed:
+            logger.exception("Connection was closed with an error.")
+
         except Exception:
-            logger.exception("Failed to receive messages from websocket server.")
+            logger.exception("Failed to receive messages from websocket server due to unexpected error.")
+
+    def start(self) -> None:
+        """Start the connection to the websocket server."""
+        self._client = connect(uri=f"ws://localhost:{self._port}")
+
+    def stop(self) -> None:
+        """Close the WebSocket connection, if open."""
+        if self._client is not None:
+            self._client.close()
 
     def __enter__(self) -> Self:
         """Start the connection to the websocket server.
@@ -64,11 +83,10 @@ class WebSocketClient:
         Returns:
             Self: The WebSocketClient instance after connecting to the WebSocket server.
         """
-        self._client = connect(uri=f"ws://localhost:{self._port}")
+        self.start()
         return self
 
     def __exit__(self, *args, **kwargs) -> None:
         """Close the WebSocket connection, if open."""
-        if self._client is not None:
-            self._client.close()
+        self.stop()
 

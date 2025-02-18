@@ -100,7 +100,7 @@ class PluginManager:
 
             command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 
-            for message in client.listen_forever():
+            for message in client.listen():
                 data: EventBase = event_adapter.validate_json(message)
 
                 if not is_valid_event_name(data.event):

@@ -32,8 +32,8 @@ def plugin_manager(port_number: int, plugin_registration_uuid: str) -> PluginMan
 def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Fixture that uses pytest's MonkeyPatch to mock WebSocketClient for the PluginManager run method.
 
-    The mocked WebSocketClient can be given fake event messages to yield when listen_forever() is called:
-      ```patch_websocket_client.listen_forever.return_value = [fake_event_json1, fake_event_json2, ...]```
+    The mocked WebSocketClient can be given fake event messages to yield when listen() is called:
+      ```patch_websocket_client.listen.return_value = [fake_event_json1, fake_event_json2, ...]```
 
     Args:
         monkeypatch: pytest's monkeypatch fixture.

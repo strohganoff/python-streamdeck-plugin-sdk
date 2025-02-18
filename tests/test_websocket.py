@@ -47,12 +47,12 @@ def test_send_event_serializes_and_sends(mock_connection: Mock, port_number: int
 
 
 @pytest.mark.usefixtures("patched_connect")
-def test_listen_forever_yields_messages(mock_connection: Mock, port_number: int):
-    """Test that listen_forever yields messages from the WebSocket connection."""
+def test_listen_yields_messages(mock_connection: Mock, port_number: int):
+    """Test that listen yields messages from the WebSocket connection."""
     # Set up the mocked connection to return messages until closing
     mock_connection.recv.side_effect = ["message1", b"message2", WebSocketException()]
 
     with WebSocketClient(port=port_number) as client:
-        messages = list(client.listen_forever())
+        messages = list(client.listen())
 
     assert messages == ["message1", b"message2"]

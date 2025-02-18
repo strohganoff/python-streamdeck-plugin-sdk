@@ -64,12 +64,12 @@ def mock_websocket_client_with_fake_events(patch_websocket_client: Mock) -> tupl
     Returns:
         tuple: Mocked instance of WebSocketClient, and a list of fake event messages.
     """
-    # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen_forever() method.
+    # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen() method.
     fake_event_messages: list[events.EventBase] = [
         KeyDownEventFactory.build(action="my-fake-action-uuid"),
     ]
 
-    patch_websocket_client.listen_forever.return_value = [event.model_dump_json() for event in fake_event_messages]
+    patch_websocket_client.listen.return_value = [event.model_dump_json() for event in fake_event_messages]
 
     return patch_websocket_client, fake_event_messages
 

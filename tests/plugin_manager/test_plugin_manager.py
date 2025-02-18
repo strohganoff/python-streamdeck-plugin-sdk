@@ -20,9 +20,9 @@ def mock_websocket_client_with_event(patch_websocket_client: Mock) -> tuple[Mock
     Returns:
         tuple: Mocked instance of WebSocketClient, and a fake DialRotateEvent.
     """
-    # Create a fake event message, and convert it to a json string to be passed back by the client.listen_forever() method.
+    # Create a fake event message, and convert it to a json string to be passed back by the client.listen() method.
     fake_event_message: DialRotate = DialRotateEventFactory.build()
-    patch_websocket_client.listen_forever.return_value = [fake_event_message.model_dump_json()]
+    patch_websocket_client.listen.return_value = [fake_event_message.model_dump_json()]
 
     return patch_websocket_client, fake_event_message
 
@@ -91,11 +91,11 @@ def test_plugin_manager_process_event(
 
     plugin_manager.run()
 
-    # First check that the WebSocketClient's listen_forever() method was called.
+    # First check that the WebSocketClient's listen() method was called.
     # This has been stubbed to return the fake_event_message's json string.
-    mock_websocket_client.listen_forever.assert_called_once()
+    mock_websocket_client.listen.assert_called_once()
 
-    # Check that the event_adapter.validate_json method was called with the stub json string returned by listen_forever().
+    # Check that the event_adapter.validate_json method was called with the stub json string returned by listen().
     spied_event_adapter_validate_json = cast(Mock, event_adapter.validate_json)
     spied_event_adapter_validate_json.assert_called_once_with(fake_event_message.model_dump_json())
     # Check that the validate_json method returns the same event type model as the fake_event_message.

@@ -5,14 +5,8 @@ import logging
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
-from streamdeck.cli.errors import (
-    DirectoryNotFoundError,
-)
-from streamdeck.cli.models import (
-    CliArgsNamespace,
-)
 from streamdeck.manager import PluginManager
 from streamdeck.models.configs import PyProjectConfigs
 from streamdeck.utils.logging import configure_streamdeck_logger
@@ -20,6 +14,25 @@ from streamdeck.utils.logging import configure_streamdeck_logger
 
 logger = logging.getLogger("streamdeck")
 
+
+
+class DirectoryNotFoundError(FileNotFoundError):
+    """Custom exception to indicate that a specified directory was not found."""
+    def __init__(self, *args: object, directory: Path):
+        super().__init__(*args)
+        self.directory = directory
+
+
+class CliArgsNamespace(Protocol):
+    """Represents the command-line arguments namespace."""
+    plugin_dir: Path | None
+    action_scripts: list[str] | None
+
+    # Args always passed in by StreamDeck software
+    port: int
+    pluginUUID: str  # noqa: N815
+    registerEvent: str  # noqa: N815
+    info: str  # Actually a string representation of json object
 
 
 def setup_cli() -> ArgumentParser:
@@ -56,7 +69,7 @@ def setup_cli() -> ArgumentParser:
     return parser
 
 
-def main():
+def main() -> None:
     """Main function to parse arguments, load actions, and execute them."""
     parser = setup_cli()
     args = cast(CliArgsNamespace, parser.parse_args())

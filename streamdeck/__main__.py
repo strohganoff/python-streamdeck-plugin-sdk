@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import json
 import logging
 import sys
-from argparse import ArgumentParser
 from pathlib import Path
-from typing import Protocol, cast
+from typing import Annotated, Union
+
+import typer
 
 from streamdeck.manager import PluginManager
 from streamdeck.models.configs import PyProjectConfigs
@@ -16,99 +15,45 @@ logger = logging.getLogger("streamdeck")
 
 
 
-class DirectoryNotFoundError(FileNotFoundError):
-    """Custom exception to indicate that a specified directory was not found."""
-    def __init__(self, *args: object, directory: Path):
-        super().__init__(*args)
-        self.directory = directory
+plugin = typer.Typer()
 
 
-class CliArgsNamespace(Protocol):
-    """Represents the command-line arguments namespace."""
-    plugin_dir: Path | None
-    action_scripts: list[str] | None
+@plugin.command()
+def main(
+    port: Annotated[int, typer.Option("-p", "-port")],
+    plugin_registration_uuid: Annotated[str, typer.Option("-pluginUUID")],
+    register_event: Annotated[str, typer.Option("-registerEvent")],
+    info: Annotated[str, typer.Option("-info")],
+    plugin_dir: Annotated[Path, typer.Option(file_okay=False, exists=True, readable=True)] = Path.cwd(),  # noqa: B008
+    action_scripts: Union[list[str], None] = None,  # noqa: UP007
+) -> None:
+    """Start the Stream Deck plugin with the given configuration.
 
-    # Args always passed in by StreamDeck software
-    port: int
-    pluginUUID: str  # noqa: N815
-    registerEvent: str  # noqa: N815
-    info: str  # Actually a string representation of json object
-
-
-def setup_cli() -> ArgumentParser:
-    """Set up the command-line interface for the script.
-
-    Returns:
-        argparse.ArgumentParser: The argument parser for the CLI.
+    NOTE: Single flag long-name options are extected & passed in by the Stream Deck software.
+    Double flag long-name options are used during development and testing.
     """
-    parser = ArgumentParser(description="CLI to load Actions from action scripts.")
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument(
-        "plugin_dir",
-        type=Path,
-        nargs="?",
-        help="The directory containing plugin files to load Actions from.",
-    )
-    group.add_argument(
-        "--action-scripts",
-        type=str,
-        nargs="+",
-        help="A list of action script file paths to load Actions from or a single value to be processed.",
-    )
-
-    # Options that will always be passed in by the StreamDeck software when running this plugin.
-    parser.add_argument("-port", dest="port", type=int, help="Port", required=True)
-    parser.add_argument(
-        "-pluginUUID", dest="pluginUUID", type=str, help="pluginUUID", required=True
-    )
-    parser.add_argument(
-        "-registerEvent", dest="registerEvent", type=str, help="registerEvent", required=True
-    )
-    parser.add_argument("-info", dest="info", type=str, help="info", required=True)
-
-    return parser
-
-
-def main() -> None:
-    """Main function to parse arguments, load actions, and execute them."""
-    parser = setup_cli()
-    args = cast(CliArgsNamespace, parser.parse_args())
-
-    # If `plugin_dir` was not passed in as a cli option, then fall back to using the CWD.
-    if args.plugin_dir is None:
-        plugin_dir = Path.cwd()
-    # Also validate the plugin_dir argument.
-    elif not args.plugin_dir.is_dir():
-        msg = f"The provided plugin directory '{args.plugin_dir}' is not a directory."
-        raise NotADirectoryError(msg)
-    elif not args.plugin_dir.exists():
-        msg = f"The provided plugin directory '{args.plugin_dir}' does not exist."
-        raise DirectoryNotFoundError(msg, directory=args.plugin_dir)
-    else:
-        plugin_dir = args.plugin_dir
-
     # Ensure plugin_dir is in `sys.path`, so that import statements in the plugin module will work as expected.
     if str(plugin_dir) not in sys.path:
         sys.path.insert(0, str(plugin_dir))
 
-    info = json.loads(args.info)
-    plugin_uuid = info["plugin"]["uuid"]
+    info_data = json.loads(info)
+    plugin_uuid = info_data["plugin"]["uuid"]
 
     # After configuring once here, we can grab the logger in any other module with `logging.getLogger("streamdeck")`, or
     # a child logger with `logging.getLogger("streamdeck.mycomponent")`, all with the same handler/formatter configuration.
     configure_streamdeck_logger(name="streamdeck", plugin_uuid=plugin_uuid)
 
-    pyproject = PyProjectConfigs.validate_from_toml_file(plugin_dir / "pyproject.toml")
-    actions = list(pyproject.streamdeck_plugin_actions)
+    pyproject = PyProjectConfigs.validate_from_toml_file(plugin_dir / "pyproject.toml", action_scripts=action_scripts)
+    actions = pyproject.streamdeck_plugin_actions
 
     manager = PluginManager(
-        port=args.port,
+        port=port,
         plugin_uuid=plugin_uuid,
         # NOT the configured plugin UUID in the manifest.json,
         # which can be pulled out of `info["plugin"]["uuid"]`
-        plugin_registration_uuid=args.pluginUUID,
-        register_event=args.registerEvent,
-        info=info,
+        plugin_registration_uuid=plugin_registration_uuid,
+        register_event=register_event,
+        info=info_data,
     )
 
     for action in actions:
@@ -117,5 +62,9 @@ def main() -> None:
     manager.run()
 
 
-if __name__ == "__main__":
-    main()
+# Also run the plugin if this script is ran as a console script.
+if __name__ in ("__main__", "streamdeck.__main__"):
+    plugin()
+
+
+

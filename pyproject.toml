@@ -74,6 +74,7 @@
             "pytest-mock >= 3.14.0",
             "pytest-sugar >= 1.0.0",
             "tox >= 4.23.2",
+            "debugpy",
         ]
 
     [project.urls]

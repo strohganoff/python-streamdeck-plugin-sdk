@@ -2,8 +2,9 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Annotated, Union
+from typing import Annotated, Optional
 
+import debugpy
 import typer
 
 from streamdeck.manager import PluginManager
@@ -18,6 +19,14 @@ logger = logging.getLogger("streamdeck")
 plugin = typer.Typer()
 
 
+def setup_debug_mode(debug_port: int) -> None:
+    """Setup the debug mode for the plugin and wait for the debugger to attach."""
+    debugpy.listen(debug_port)
+    logger.info("Starting in debug mode. Waiting for debugger to attach on port %d...", debug_port)
+    debugpy.wait_for_client()
+    logger.info("Debugger attached.")
+
+
 @plugin.command()
 def main(
     port: Annotated[int, typer.Option("-p", "-port")],
@@ -25,7 +34,8 @@ def main(
     register_event: Annotated[str, typer.Option("-registerEvent")],
     info: Annotated[str, typer.Option("-info")],
     plugin_dir: Annotated[Path, typer.Option(file_okay=False, exists=True, readable=True)] = Path.cwd(),  # noqa: B008
-    action_scripts: Union[list[str], None] = None,  # noqa: UP007
+    action_scripts: Optional[list[str]] = None,  # noqa: UP007
+    debug_port: Annotated[Optional[int], typer.Option("--debug", "-d")] = None,  # noqa: UP007
 ) -> None:
     """Start the Stream Deck plugin with the given configuration.
 
@@ -42,6 +52,9 @@ def main(
     # After configuring once here, we can grab the logger in any other module with `logging.getLogger("streamdeck")`, or
     # a child logger with `logging.getLogger("streamdeck.mycomponent")`, all with the same handler/formatter configuration.
     configure_streamdeck_logger(name="streamdeck", plugin_uuid=plugin_uuid)
+
+    if debug_port:
+        setup_debug_mode(debug_port)
 
     pyproject = PyProjectConfigs.validate_from_toml_file(plugin_dir / "pyproject.toml", action_scripts=action_scripts)
     actions = pyproject.streamdeck_plugin_actions

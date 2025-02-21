@@ -4,7 +4,7 @@ import functools
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from streamdeck.actions import ActionRegistry
+from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.models.events import ContextualEventMixin, event_adapter
 from streamdeck.types import (
@@ -21,7 +21,6 @@ from streamdeck.websocket import WebSocketClient
 if TYPE_CHECKING:
     from typing import Any, Literal
 
-    from streamdeck.actions import Action
     from streamdeck.models.events import EventBase
 
 
@@ -62,14 +61,14 @@ class PluginManager:
 
         self._registry = ActionRegistry()
 
-    def register_action(self, action: Action) -> None:
+    def register_action(self, action: ActionBase) -> None:
         """Register an action with the PluginManager, and configure its logger.
 
         Args:
             action (Action): The action to register.
         """
         # First, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
-        action_component_name = action.uuid.split(".")[-1] if hasattr(action, "uuid") else "global"
+        action_component_name = action.uuid.split(".")[-1] if isinstance(action, Action) else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
         self._registry.register(action)

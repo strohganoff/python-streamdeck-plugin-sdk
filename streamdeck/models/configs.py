@@ -10,6 +10,7 @@ from pydantic import (
     ImportString,
     ValidationInfo,
     field_validator,
+    model_validator,
 )
 
 from streamdeck.actions import ActionBase
@@ -33,14 +34,32 @@ class PyProjectConfigs(BaseModel):
         with filepath.open("rb") as f:
             pyproject_configs = toml.load(f)
 
-            # Pass the action scripts to the context dictionary if they are provided, so they can be used in the before-validater for the nested StreamDeckToolConfig model.
+            # Pass the action scripts to the context dictionary if they are provided,
+            # so they can be used in the before-validater for the nested StreamDeckToolConfig model.
             ctx = {"action_scripts": action_scripts} if action_scripts else None
 
             # Return the loaded PyProjectConfigs model instance.
             return cls.model_validate(pyproject_configs, context=ctx)
 
+    @model_validator(mode="before")
+    @classmethod
+    def overwrite_action_scripts(cls, data: object, info: ValidationInfo) -> object:
+        """If action scripts were provided as a context variable, overwrite the action_scripts field in the PyProjectConfigs model."""
+        context = info.context
+
+        # If no action scripts were provided, return the data as-is.
+        if context is None or "action_scripts" not in context:
+            return data
+
+        # If data isn't a dict as expected, let Pydantic's validation handle them as usual in its next validations step.
+        if isinstance(data, dict):
+            # We also need to ensure the "tool" and "streamdeck" sections exist in the data dictionary in case they were not defined in the PyProject.toml file.
+            data.setdefault("tool", {}).setdefault("streamdeck", {})["action_scripts"] = context["action_scripts"]
+
+        return data
+
     @property
-    def streamdeck_plugin_actions(self) -> Generator[type[ActionBase], Any, None]:
+    def streamdeck_plugin_actions(self) -> Generator[ActionBase, Any, None]:
         """Reach into the [tool.streamdeck] section of the PyProject.toml file and yield the plugin's actions configured by the developer."""
         for loaded_action_script in self.tool.streamdeck.action_script_modules:
             for object_name in dir(loaded_action_script):
@@ -71,19 +90,6 @@ class StreamDeckToolConfig(BaseModel, arbitrary_types_allowed=True):
 
     This field is filtered to only include objects that are subclasses of ActionBase (as well as the built-in magic methods and attributes typically found in a module).
     """
-
-    @field_validator("action_script_modules", mode="before")
-    @classmethod
-    def overwrite_action_scripts_with_user_provided_data(cls, value: list[str], info: ValidationInfo) -> list[str]:
-        """Overwrite the list of action script modules with the user-provided data.
-
-        NOTE: This is a before-validator that runs before the next field_validator method on the same field.
-        """
-        # If the user provided action_scripts to load, use that instead of the value from the PyProject.toml file.
-        if info.context is not None and "action_scripts" in info.context:
-            return info.context["action_scripts"]
-
-        return value
 
     @field_validator("action_script_modules", mode="after")
     @classmethod

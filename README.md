@@ -157,7 +157,7 @@ The following commands are required, which are the same as the Stream Deck softw
 
 - `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
 
-There are also two additional options for specifying action scripts to load. Note that you can't use both of these options together, and the Stream Deck software doesn't pass in these options.
+There are also  two additional options for specifying action scripts to load. Note that you can't use both of these options together, and the Stream Deck software doesn't pass in these options.
 
 - Plugin Directory: Pass the directory containing the plugin files as a positional argument:
 
@@ -171,58 +171,6 @@ There are also two additional options for specifying action scripts to load. Not
     ```bash
     streamdeck --action-scripts actions1.py actions2.py
     ```
-
-In addition to these, there is an additional option to use debug mode, which is discussed below.
-
-#### Debugging
-
-The SDK supports remote debugging capabilities, allowing you to attach a debugger after the plugin has started. This is particularly useful since Stream Deck plugins run as separate processes.
-
-To enable debug mode, pass in the option `--debug {debug port number}`, which tells the plugin to wait for a debugger to attach on that port number.
-
-    ```bash
-    streamdeck --debug 5675
-    ```
-
-When running in debug mode, the plugin will pause for 10 seconds after initialization, giving you time to attach your debugger. You'll see a message in the logs indicating that the plugin is waiting for a debugger to attach.
-
-If things get messy, and you have a prior instance already listening to that port, you should kill the process with something like the following command:
-
-    ```bash
-    kill $(lsof -t -i:$DEBUG_PORT)
-    ```
-
-#### Debugging with VS Code
-
-1. Create a launch configuration in `.vscode/launch.json`:
-
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: Attach to Stream Deck Plugin",
-            "type": "debugpy",
-            "request": "attach",
-            "connect": {
-                "host": "localhost",
-                "port": 5678
-            }
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "."
-                }
-            ],
-            "justMyCode": false,
-        }
-    ]
-}
-```
-
-2. Start your plugin with debugging enabled
-3. When you see the "waiting for debugger" message, use VS Code's Run and Debug view to attach using the configuration above
-4. Set breakpoints and debug as normal
 
 
 #### Configuration

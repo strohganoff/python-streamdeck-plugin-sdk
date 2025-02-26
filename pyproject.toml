@@ -74,6 +74,7 @@
             "pytest-mock >= 3.14.0",
             "pytest-sugar >= 1.0.0",
             "tox >= 4.23.2",
+            "debugpy",
         ]
 
     [project.urls]
@@ -83,7 +84,7 @@
         "Issues" = "https://github.com/strohganoff/python-streamdeck-plugin-sdk/issues"
 
     [project.scripts]
-        streamdeck = "streamdeck.__main__:main"
+        streamdeck = "streamdeck.__main__:plugin"
 
 [tool.setuptools.packages.find]
     include = ["streamdeck*"]

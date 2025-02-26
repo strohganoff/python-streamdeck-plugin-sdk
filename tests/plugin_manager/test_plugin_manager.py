@@ -41,7 +41,7 @@ def _spy_action_registry_get_action_handlers(
     Returns:
         None
     """
-    mocker.spy(plugin_manager._registry, "get_action_handlers")
+    mocker.spy(plugin_manager._action_registry, "get_action_handlers")
 
 
 @pytest.fixture
@@ -59,13 +59,13 @@ def _spy_event_adapter_validate_json(mocker: pytest_mock.MockerFixture) -> None:
 
 def test_plugin_manager_register_action(plugin_manager: PluginManager):
     """Test that an action can be registered in the PluginManager."""
-    assert len(plugin_manager._registry._plugin_actions) == 0
+    assert len(plugin_manager._action_registry._plugin_actions) == 0
 
     action = Action("my-fake-action-uuid")
     plugin_manager.register_action(action)
 
-    assert len(plugin_manager._registry._plugin_actions) == 1
-    assert plugin_manager._registry._plugin_actions[0] == action
+    assert len(plugin_manager._action_registry._plugin_actions) == 1
+    assert plugin_manager._action_registry._plugin_actions[0] == action
 
 
 @pytest.mark.usefixtures("mock_websocket_client_with_event")
@@ -102,7 +102,7 @@ def test_plugin_manager_process_event(
     assert spied_event_adapter_validate_json.spy_return == fake_event_message
 
     # Check that the action_registry.get_action_handlers method was called with the event name and action uuid.
-    cast(Mock, plugin_manager._registry.get_action_handlers).assert_called_once_with(
+    cast(Mock, plugin_manager._action_registry.get_action_handlers).assert_called_once_with(
         event_name=fake_event_message.event, event_action_uuid=fake_event_message.action
     )
 

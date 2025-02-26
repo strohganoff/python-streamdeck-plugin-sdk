@@ -54,6 +54,8 @@ def main(
     # a child logger with `logging.getLogger("streamdeck.mycomponent")`, all with the same handler/formatter configuration.
     configure_streamdeck_logger(name="streamdeck", plugin_uuid=plugin_uuid)
 
+    logger.info("Stream Deck listening to plugin UUID '%s' on port %d", plugin_uuid, port)
+
     if debug_port:
         setup_debug_mode(debug_port)
 

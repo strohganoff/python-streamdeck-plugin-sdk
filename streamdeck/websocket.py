@@ -59,8 +59,9 @@ class WebSocketClient:
                 message: str | bytes = self._client.recv()
                 yield message
 
-        except ConnectionClosedOK:
+        except ConnectionClosedOK as exc:
             logger.debug("Connection was closed normally, stopping the client.")
+            logger.exception(dir(exc))
 
         except ConnectionClosed:
             logger.exception("Connection was closed with an error.")
@@ -70,7 +71,11 @@ class WebSocketClient:
 
     def start(self) -> None:
         """Start the connection to the websocket server."""
-        self._client = connect(uri=f"ws://localhost:{self._port}")
+        try:
+            self._client = connect(uri=f"ws://localhost:{self._port}")
+        except ConnectionRefusedError:
+            logger.exception("Failed to connect to the WebSocket server. Make sure the Stream Deck software is running.")
+            raise
 
     def stop(self) -> None:
         """Close the WebSocket connection, if open."""

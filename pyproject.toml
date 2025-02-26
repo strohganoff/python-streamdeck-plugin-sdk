@@ -84,7 +84,7 @@
         "Issues" = "https://github.com/strohganoff/python-streamdeck-plugin-sdk/issues"
 
     [project.scripts]
-        streamdeck = "streamdeck.__main__:main"
+        streamdeck = "streamdeck.__main__:plugin"
 
 [tool.setuptools.packages.find]
     include = ["streamdeck*"]

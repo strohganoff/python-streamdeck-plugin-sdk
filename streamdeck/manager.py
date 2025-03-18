@@ -8,13 +8,13 @@ from pydantic import ValidationError
 
 from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
-from streamdeck.models.events import ContextualEventMixin, event_adapter
+from streamdeck.event_listener import EventListener, EventListenerManager
+from streamdeck.models.events import ContextualEventMixin, EventAdapter
 from streamdeck.types import (
     EventHandlerBasicFunc,
     EventHandlerFunc,
     TEvent_contra,
     is_bindable_handler,
-    is_valid_event_name,
 )
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
@@ -63,6 +63,20 @@ class PluginManager:
         self._info = info
 
         self._action_registry = ActionRegistry()
+        self._event_listener_manager = EventListenerManager()
+        self._event_adapter = EventAdapter()
+
+    def _ensure_action_has_valid_events(self, action: ActionBase) -> None:
+        """Ensure that the action's registered events are valid.
+
+        Args:
+            action (Action): The action to validate.
+        """
+        for event_name in action.get_registered_event_names():
+            if not self._event_adapter.event_name_exists(event_name):
+                msg = f"Invalid event received: {event_name}"
+                logger.error(msg)
+                raise KeyError(msg)
 
     def register_action(self, action: ActionBase) -> None:
         """Register an action with the PluginManager, and configure its logger.
@@ -70,11 +84,25 @@ class PluginManager:
         Args:
             action (Action): The action to register.
         """
-        # First, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
+        # First, validate that the action's registered events are valid.
+        self._ensure_action_has_valid_events(action)
+
+        # Next, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
         action_component_name = action.uuid.split(".")[-1] if isinstance(action, Action) else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
         self._action_registry.register(action)
+
+    def register_event_listener(self, listener: EventListener) -> None:
+        """Register an event listener with the PluginManager, and add its event models to the event adapter.
+
+        Args:
+            listener (EventListener): The event listener to register.
+        """
+        self._event_listener_manager.add_listener(listener)
+
+        for event_model in listener.event_models:
+            self._event_adapter.add_model(event_model)
 
     def _inject_command_sender(self, handler: EventHandlerFunc[TEvent_contra], command_sender: StreamDeckCommandSender) -> EventHandlerBasicFunc[TEvent_contra]:
         """Inject command_sender into handler if it accepts it as a parameter.
@@ -91,7 +119,7 @@ class PluginManager:
 
         return handler
 
-    def _stream_event_data(self, client: WebSocketClient) -> Generator[EventBase, None, None]:
+    def _stream_event_data(self) -> Generator[EventBase, None, None]:
         """Stream event data from the event listeners.
 
         Validate and model the incoming event data before yielding it.
@@ -99,17 +127,18 @@ class PluginManager:
         Yields:
             EventBase: The event data received from the event listeners.
         """
-        for message in client.listen():
+        for message in self._event_listener_manager.event_stream():
             try:
-                data: EventBase = event_adapter.validate_json(message)
+                data: EventBase = self._event_adapter.validate_json(message)
             except ValidationError:
                 logger.exception("Error modeling event data.")
                 continue
 
             logger.debug("Event received: %s", data.event)
 
-            if not is_valid_event_name(data.event):
-                logger.error("Received event name is not valid: %s", data.event)
+            # TODO: is this necessary? Or would this be covered by the event adapter validation?
+            if not self._event_adapter.event_name_exists(data.event):
+                logger.error("Invalid event received: %s", data.event)
                 continue
 
             yield data
@@ -121,10 +150,13 @@ class PluginManager:
         and triggers the appropriate action handlers based on the received events.
         """
         with WebSocketClient(port=self._port) as client:
+            # Register the WebSocketClient as an event listener, so we can receive Stream Deck events.
+            self.register_event_listener(client)
+
             command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
             command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 
-            for data in self._stream_event_data(client):
+            for data in self._stream_event_data():
                 # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
                 event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
 

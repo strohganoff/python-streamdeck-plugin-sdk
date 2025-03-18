@@ -75,6 +75,13 @@ class ActionBase(ABC):
 
         yield from self._events[event_name]
 
+    def get_registered_event_names(self) -> list[str]:
+        """Get all event names for which event handlers are registered.
+
+        Returns:
+            list[str]: The list of event names for which event handlers are registered.
+        """
+        return list(self._events.keys())
 
 class GlobalAction(ActionBase):
     """Represents an action that is performed at the plugin level, meaning it isn't associated with a specific device or action."""

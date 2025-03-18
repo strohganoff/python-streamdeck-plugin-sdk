@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from types import ModuleType
-from typing import TYPE_CHECKING, Annotated
+from types import ModuleType  # noqa: TC003
+from typing import TYPE_CHECKING, Annotated, ClassVar
 
 import tomli as toml
 from pydantic import (
@@ -19,14 +19,28 @@ from streamdeck.actions import ActionBase
 if TYPE_CHECKING:
     from collections.abc import Generator
     from pathlib import Path
-    from typing import Any
 
 
+
+def parse_objects_from_modules(value: list[ModuleType]) -> Generator[object, None, None]:
+    """Loop through objects in each provided module to be yielded.
+
+    Methods and attributes that are magic, special, or built-in are ignored.
+    """
+    for module in value:
+        for object_name in dir(module):
+            obj = getattr(module, object_name)
+
+            # Ignore magic/special/built-in methods and attributes.
+            if object_name.startswith("__"):
+                continue
+
+            yield obj
 
 
 class PyProjectConfigs(BaseModel):
     """A Pydantic model for the PyProject.toml configuration file to load a Stream Deck plugin's actions."""
-    tool: ToolSection = Field(alias="tool")
+    tool: ToolSection
 
     @classmethod
     def validate_from_toml_file(cls, filepath: Path, action_scripts: list[str] | None = None) -> PyProjectConfigs:
@@ -59,17 +73,14 @@ class PyProjectConfigs(BaseModel):
         return data
 
     @property
-    def streamdeck_plugin_actions(self) -> Generator[ActionBase, Any, None]:
+    def streamdeck(self) -> StreamDeckToolConfig:
+        """Reach into the [tool.streamdeck] section of the PyProject.toml file and return the plugin's configuration."""
+        return self.tool.streamdeck
+
+    @property
+    def streamdeck_plugin_actions(self) -> Generator[ActionBase, None, None]:
         """Reach into the [tool.streamdeck] section of the PyProject.toml file and yield the plugin's actions configured by the developer."""
-        for loaded_action_script in self.tool.streamdeck.action_script_modules:
-            for object_name in dir(loaded_action_script):
-                obj = getattr(loaded_action_script, object_name)
-
-                # Ensure the object isn't a magic method or attribute of the loaded module.
-                if object_name.startswith("__"):
-                    continue
-
-                yield obj
+        yield from self.streamdeck.actions
 
 
 class ToolSection(BaseModel):
@@ -90,26 +101,23 @@ class StreamDeckToolConfig(BaseModel, arbitrary_types_allowed=True):
 
     This field is filtered to only include objects that are subclasses of ActionBase (as well as the built-in magic methods and attributes typically found in a module).
     """
+    # The following fields are populated by the field validators below, and are not during Pydantic's validation process.
+    actions: ClassVar[list[ActionBase]] = []
 
     @field_validator("action_script_modules", mode="after")
     @classmethod
-    def filter_module_objects(cls, value: list[ModuleType]) -> list[ModuleType]:
-        """Filter out non- ActionBase subclasses from the list of objects loaded from each action script module."""
-        loaded_modules: list[ModuleType] = []
+    def filter_action_module_objects(cls, value: list[ModuleType]) -> list[ModuleType]:
+        """Loop through objects in each configured action script module, and collect ActionBase subclasses.
 
-        for module in value:
-            new_module = ModuleType(module.__name__)
+        The value arg isn't modified here, it is simply returned as-is at the end of the method.
+        """
+        for obj in parse_objects_from_modules(value):
+            # Ignore obj if it's not an instance of an ActionBase subclass.
+            if not isinstance(obj, ActionBase):
+                continue
 
-            for object_name in dir(module):
-                obj = getattr(module, object_name)
+            cls.actions.append(obj)
 
-                if not isinstance(obj, ActionBase):
-                    continue
-
-                setattr(new_module, object_name, obj)
-
-            loaded_modules.append(new_module)
-
-        return loaded_modules
+        return value
 
 

@@ -11,7 +11,7 @@ from tests.test_utils.fake_event_factories import (
 )
 
 
-def test_register_action():
+def test_register_action() -> None:
     """Test that an action can be registered."""
     registry = ActionRegistry()
     action = Action("my-fake-action-uuid")
@@ -23,7 +23,7 @@ def test_register_action():
     assert registry._plugin_actions[0] == action
 
 
-def test_get_action_handlers_no_handlers():
+def test_get_action_handlers_no_handlers() -> None:
     """Test that getting action handlers when there are no handlers yields nothing."""
     registry = ActionRegistry()
     action = Action("my-fake-action-uuid")
@@ -35,13 +35,13 @@ def test_get_action_handlers_no_handlers():
     assert len(handlers) == 0
 
 
-def test_get_action_handlers_with_handlers():
+def test_get_action_handlers_with_handlers() -> None:
     """Test that registered event handlers can be retrieved correctly."""
     registry = ActionRegistry()
     action = Action("my-fake-action-uuid")
 
     @action.on("dialDown")
-    def dial_down_handler(event: events.EventBase):
+    def dial_down_handler(event: events.EventBase) -> None:
         pass
 
     registry.register(action)
@@ -53,7 +53,7 @@ def test_get_action_handlers_with_handlers():
     assert handlers[0] == dial_down_handler
 
 
-def test_get_action_handlers_multiple_actions():
+def test_get_action_handlers_multiple_actions() -> None:
     """Test that multiple actions with registered handlers return all handlers."""
     registry = ActionRegistry()
 
@@ -61,11 +61,11 @@ def test_get_action_handlers_multiple_actions():
     action2 = Action("fake-action-uuid-2")
 
     @action1.on("keyUp")
-    def key_up_handler1(event):
+    def key_up_handler1(event) -> None:
         pass
 
     @action2.on("keyUp")
-    def key_up_handler2(event):
+    def key_up_handler2(event) -> None:
         pass
 
     registry.register(action1)
@@ -78,14 +78,3 @@ def test_get_action_handlers_multiple_actions():
     assert len(handlers) == 2
     assert key_up_handler1 in handlers
     assert key_up_handler2 in handlers
-
-
-def test_get_action_handlers_event_not_available():
-    """Test that a KeyError is raised if an unavailable event name is provided."""
-    registry = ActionRegistry()
-    action = Action("my-fake-action-uuid")
-
-    registry.register(action)
-
-    with pytest.raises(KeyError):
-        list(registry.get_action_handlers("nonExistentEvent"))

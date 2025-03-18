@@ -1,3 +1,7 @@
+"""A client for connecting to the Stream Deck device's WebSocket server and sending/receiving events.
+
+Inherits from the EventListener class to work with the EventListenerManager for processing events.
+"""
 from __future__ import annotations
 
 import json
@@ -7,10 +11,14 @@ from typing import TYPE_CHECKING
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.sync.client import ClientConnection, connect
 
+from streamdeck.event_listener import EventListener
+from streamdeck.models import events
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from typing import Any
+    from types import TracebackType
+    from typing import Any, ClassVar
 
     from typing_extensions import Self  # noqa: UP035
 
@@ -19,9 +27,11 @@ logger = getLogger("streamdeck.websocket")
 
 
 
-class WebSocketClient:
+class WebSocketClient(EventListener):
     """A client for connecting to the Stream Deck device's WebSocket server and sending/receiving events."""
     _client: ClientConnection | None
+
+    event_models: ClassVar[list[type[events.EventBase]]] = events.DEFAULT_EVENT_MODELS
 
     def __init__(self, port: int):
         """Initialize a WebSocketClient instance.
@@ -53,15 +63,17 @@ class WebSocketClient:
         Yields:
             Union[str, bytes]: The received message from the WebSocket server.
         """
-        # TODO: Check that self._client is a connected thing.
+        if self._client is None:
+            msg = "WebSocket connection not established yet."
+            raise ValueError(msg)
+
         try:
             while True:
                 message: str | bytes = self._client.recv()
                 yield message
 
-        except ConnectionClosedOK as exc:
+        except ConnectionClosedOK:
             logger.debug("Connection was closed normally, stopping the client.")
-            logger.exception(dir(exc))
 
         except ConnectionClosed:
             logger.exception("Connection was closed with an error.")
@@ -91,7 +103,7 @@ class WebSocketClient:
         self.start()
         return self
 
-    def __exit__(self, *args, **kwargs) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         """Close the WebSocket connection, if open."""
         self.stop()
 

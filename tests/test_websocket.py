@@ -24,7 +24,7 @@ def patched_connect(mocker: MockerFixture, mock_connection: Mock) -> Mock:
     return mocker.patch("streamdeck.websocket.connect", return_value=mock_connection)
 
 
-def test_initialization_calls_connect_correctly(patched_connect: Mock, mock_connection: Mock, port_number: int):
+def test_initialization_calls_connect_correctly(patched_connect: Mock, mock_connection: Mock, port_number: int) -> None:
     """Test that WebSocketClient initializes correctly by calling the connect function with the appropriate URI."""
     with WebSocketClient(port=port_number) as client:
         # Assert that 'connect' was called once with the correct URI.
@@ -35,7 +35,7 @@ def test_initialization_calls_connect_correctly(patched_connect: Mock, mock_conn
 
 
 @pytest.mark.usefixtures("patched_connect")
-def test_send_event_serializes_and_sends(mock_connection: Mock, port_number: int):
+def test_send_event_serializes_and_sends(mock_connection: Mock, port_number: int) -> None:
     """Test that the send_event method corrently serializes the data to JSON and sends it via the websocket connection."""
     with WebSocketClient(port=port_number) as client:
         fake_data = {"event": "test_event", "payload": {"key": "value"}}
@@ -47,7 +47,7 @@ def test_send_event_serializes_and_sends(mock_connection: Mock, port_number: int
 
 
 @pytest.mark.usefixtures("patched_connect")
-def test_listen_yields_messages(mock_connection: Mock, port_number: int):
+def test_listen_yields_messages(mock_connection: Mock, port_number: int) -> None:
     """Test that listen yields messages from the WebSocket connection."""
     # Set up the mocked connection to return messages until closing
     mock_connection.recv.side_effect = ["message1", b"message2", WebSocketException()]

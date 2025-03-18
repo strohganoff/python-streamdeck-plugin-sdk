@@ -6,7 +6,7 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
-from streamdeck.types import BaseEventHandlerFunc, available_event_names
+from streamdeck.types import BaseEventHandlerFunc
 
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ logger = getLogger("streamdeck.actions")
 class ActionBase(ABC):
     """Base class for all actions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an Action instance.
 
         Args:
@@ -42,13 +42,13 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        if event_name not in available_event_names:
-            msg = f"Provided event name for action handler does not exist: {event_name}"
-            raise KeyError(msg)
+        # if event_name not in DEFAULT_EVENT_NAMES:
+        #     msg = f"Provided event name for action handler does not exist: {event_name}"
+        #     raise KeyError(msg)
 
         def _wrapper(func: EventHandlerFunc[TEvent_contra]) -> EventHandlerFunc[TEvent_contra]:
             # Cast to BaseEventHandlerFunc so that the storage type is consistent.
-            self._events[event_name].add(cast(BaseEventHandlerFunc, func))
+            self._events[event_name].add(cast("BaseEventHandlerFunc", func))
 
             return func
 
@@ -66,9 +66,9 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        if event_name not in available_event_names:
-            msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
-            raise KeyError(msg)
+        # if event_name not in DEFAULT_EVENT_NAMES:
+        #     msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
+        #     raise KeyError(msg)
 
         if event_name not in self._events:
             return
@@ -83,7 +83,7 @@ class GlobalAction(ActionBase):
 class Action(ActionBase):
     """Represents an action that can be performed for a specific action, with event handlers for specific event types."""
 
-    def __init__(self, uuid: str):
+    def __init__(self, uuid: str) -> None:
         """Initialize an Action instance.
 
         Args:

@@ -4,6 +4,8 @@ import functools
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from pydantic import ValidationError
+
 from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.models.events import ContextualEventMixin, event_adapter
@@ -19,6 +21,7 @@ from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from typing import Any, Literal
 
     from streamdeck.models.events import EventBase
@@ -88,6 +91,29 @@ class PluginManager:
 
         return handler
 
+    def _stream_event_data(self, client: WebSocketClient) -> Generator[EventBase, None, None]:
+        """Stream event data from the event listeners.
+
+        Validate and model the incoming event data before yielding it.
+
+        Yields:
+            EventBase: The event data received from the event listeners.
+        """
+        for message in client.listen():
+            try:
+                data: EventBase = event_adapter.validate_json(message)
+            except ValidationError:
+                logger.exception("Error modeling event data.")
+                continue
+
+            logger.debug("Event received: %s", data.event)
+
+            if not is_valid_event_name(data.event):
+                logger.error("Received event name is not valid: %s", data.event)
+                continue
+
+            yield data
+
     def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
@@ -96,18 +122,9 @@ class PluginManager:
         """
         with WebSocketClient(port=self._port) as client:
             command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
-
             command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
 
-            for message in client.listen():
-                data: EventBase = event_adapter.validate_json(message)
-
-                if not is_valid_event_name(data.event):
-                    logger.error("Received event name is not valid: %s", data.event)
-                    continue
-
-                logger.debug("Event received: %s", data.event)
-
+            for data in self._stream_event_data(client):
                 # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
                 event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
 

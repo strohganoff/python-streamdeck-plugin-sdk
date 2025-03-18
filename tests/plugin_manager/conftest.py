@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import uuid
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, create_autospec
 
 import pytest
 from streamdeck.manager import PluginManager
+from streamdeck.models import events
 from streamdeck.websocket import WebSocketClient
+
+
+if TYPE_CHECKING:
+    import pytest_mock
 
 
 @pytest.fixture
@@ -39,6 +45,7 @@ def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> Mock:
         monkeypatch: pytest's monkeypatch fixture.
 
     Returns:
+        Mock: Mocked instance of WebSocketClient
     """
     mock_websocket_client: Mock = create_autospec(WebSocketClient, spec_set=True)
     mock_websocket_client.__enter__.return_value = mock_websocket_client

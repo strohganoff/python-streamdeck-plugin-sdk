@@ -57,7 +57,7 @@ def _spy_event_adapter_validate_json(mocker: pytest_mock.MockerFixture) -> None:
     mocker.spy(event_adapter, "validate_json")
 
 
-def test_plugin_manager_register_action(plugin_manager: PluginManager):
+def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
     """Test that an action can be registered in the PluginManager."""
     assert len(plugin_manager._action_registry._plugin_actions) == 0
 
@@ -70,8 +70,9 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager):
 
 @pytest.mark.usefixtures("mock_websocket_client_with_event")
 def test_plugin_manager_sends_registration_event(
-    mock_command_sender: Mock, plugin_manager: PluginManager
-):
+    mock_command_sender: Mock,
+    plugin_manager: PluginManager,
+) -> None:
     """Test that StreamDeckCommandSender.send_action_registration() method is called with correct arguments within the PluginManager.run() method."""
     plugin_manager.run()
 
@@ -84,8 +85,9 @@ def test_plugin_manager_sends_registration_event(
 @pytest.mark.usefixtures("_spy_action_registry_get_action_handlers")
 @pytest.mark.usefixtures("_spy_event_adapter_validate_json")
 def test_plugin_manager_process_event(
-    mock_websocket_client_with_event: tuple[Mock, EventBase], plugin_manager: PluginManager
-):
+    mock_websocket_client_with_event: tuple[Mock, EventBase],
+    plugin_manager: PluginManager
+) -> None:
     """Test that PluginManager processes events correctly, calling event_adapter.validate_json and action_registry.get_action_handlers."""
     mock_websocket_client, fake_event_message = mock_websocket_client_with_event
 

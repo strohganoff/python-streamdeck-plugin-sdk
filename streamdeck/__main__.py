@@ -72,10 +72,18 @@ def main(
         info=info_data,
     )
 
+    # Event listeners and their Event models are registered before actions in order to validate the actions' registered events' names.
+    for event_listener in pyproject.event_listeners:
+        manager.register_event_listener(event_listener())
+
     for action in actions:
         manager.register_action(action)
 
-    manager.run()
+    try:
+        manager.run()
+    except Exception as e:
+        logger.exception("Error in plugin manager")
+        raise
 
 
 # Also run the plugin if this script is ran as a console script.

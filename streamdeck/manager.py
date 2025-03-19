@@ -154,7 +154,7 @@ class PluginManager:
             self.register_event_listener(client)
 
             command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
-            command_sender.send_action_registration(register_event=self._register_event, plugin_registration_uuid=self._registration_uuid)
+            command_sender.send_action_registration(register_event=self._register_event)
 
             for data in self._stream_event_data():
                 # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.

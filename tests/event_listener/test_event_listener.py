@@ -1,17 +1,16 @@
 import threading
 import time
 from collections.abc import Generator
-from queue import Empty
-from typing import ClassVar, List, Optional
-from unittest.mock import MagicMock, Mock, patch
+from typing import Any, ClassVar
+from unittest.mock import Mock, patch
 
 import pytest
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
 
 
-# Mock implementation of EventListener for testing
 class MockEventListener(EventListener):
+    """Mock implementation of EventListener for testing."""
     event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
     def __init__(self):
@@ -33,6 +32,7 @@ class MockEventListener(EventListener):
 
 
 class SlowMockEventListener(EventListener):
+    """Mock implementation of EventListener that yields events with a delay."""
     event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
     def __init__(self, delay: float = 0.1):
@@ -52,10 +52,8 @@ class SlowMockEventListener(EventListener):
 
 
 class ExceptionEventListener(EventListener):
+    """Mock implementation of EventListener that raises an exception."""
     event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
-
-    # def __init__(self):
-    #     self._running = True
 
     def listen(self) -> Generator[str, None, None]:
         self._running = True
@@ -65,7 +63,6 @@ class ExceptionEventListener(EventListener):
 
     def stop(self) -> None:
         pass
-        # self._running = False
 
 
 
@@ -148,7 +145,7 @@ def test_stop():
 
 
 @patch("streamdeck.event_listener.logger")
-def test_listener_exception_handling(mock_logger):
+def test_listener_exception_handling(mock_logger: Mock):
     """Test that exceptions in listeners are properly caught and logged."""
     manager = EventListenerManager()
     listener = ExceptionEventListener()
@@ -156,7 +153,7 @@ def test_listener_exception_handling(mock_logger):
     manager.add_listener(listener)
 
     # Collect events - should get one event before the exception
-    events = []
+    events: list[Any] = []
     for event in manager.event_stream():
         events.append(event)
         if len(events) >= 1:  # We expect 1 event before exception
@@ -166,7 +163,7 @@ def test_listener_exception_handling(mock_logger):
 
     assert "event_before_exception" in events
     # Check that the exception was logged
-    mock_logger.exception.assert_called_with("Error in wrapped listener.")
+    mock_logger.exception.assert_called_with("Unexpected error in wrapped listener %s. Stopping just this listener.", listener)
 
 
 def test_listener_wrapper():

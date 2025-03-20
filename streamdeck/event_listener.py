@@ -88,8 +88,8 @@ class EventListenerManager:
 
         for thread in self.listeners_lookup_by_thread:
             logger.debug("Stopping listener %s.")
+            self.listeners_lookup_by_thread[thread].stop()
             if thread.is_alive():
-                self.listeners_lookup_by_thread[thread].stop()
                 thread.join()
 
             logger.info("All listeners have been stopped.")

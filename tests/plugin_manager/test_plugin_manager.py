@@ -88,7 +88,6 @@ def test_plugin_manager_sends_registration_event(
 
     mock_command_sender.send_action_registration.assert_called_once_with(
         register_event=plugin_manager._register_event,
-        plugin_registration_uuid=plugin_manager._registration_uuid,
     )
 
 

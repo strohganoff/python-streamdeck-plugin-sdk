@@ -31,6 +31,10 @@ class _SENTINAL:
         return event is cls
 
 
+class StopStreaming(Exception):  # noqa: N818
+    """Raised by an EventListener implementation to signal that the entire EventManagerListener should stop streaming events."""
+
+
 class EventListenerManager:
     """Manages event listeners and provides a shared event queue for them to push events into.
 
@@ -65,8 +69,12 @@ class EventListenerManager:
                 if not self.running:
                     break
 
+        except StopStreaming:
+            logger.debug("Event listener requested to stop streaming.")
+            self.event_queue.put(_SENTINAL)
+
         except Exception:
-            logger.exception("Error in wrapped listener.")
+            logger.exception("Unexpected error in wrapped listener %s. Stopping just this listener.", listener)
 
     def stop(self) -> None:
         """Stops the event generation loop and waits for all threads to finish.
@@ -79,10 +87,12 @@ class EventListenerManager:
         self.event_queue.put(_SENTINAL)
 
         for thread in self.listeners_lookup_by_thread:
-            self.listeners_lookup_by_thread[thread].stop()
-            thread.join()
+            logger.debug("Stopping listener %s.")
+            if thread.is_alive():
+                self.listeners_lookup_by_thread[thread].stop()
+                thread.join()
 
-        logger.info("All listeners have been stopped.")
+            logger.info("All listeners have been stopped.")
 
     def event_stream(self) -> Generator[str | bytes, None, None]:
         """Starts all registered listeners, sets the running flag to True, and yields events from the shared queue."""
@@ -96,6 +106,7 @@ class EventListenerManager:
             while True:
                 event = self.event_queue.get()
                 if _SENTINAL.is_sentinal(event):
+                    logger.debug("Sentinal received, stopping event stream.")
                     break  # Exit loop immediately if the sentinal is received
                 yield event
         finally:

@@ -8,10 +8,11 @@ import json
 from logging import getLogger
 from typing import TYPE_CHECKING
 
+from websockets import ConnectionClosedError, WebSocketException
 from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.sync.client import ClientConnection, connect
 
-from streamdeck.event_listener import EventListener
+from streamdeck.event_listener import EventListener, StopStreaming
 from streamdeck.models import events
 
 
@@ -72,14 +73,21 @@ class WebSocketClient(EventListener):
                 message: str | bytes = self._client.recv()
                 yield message
 
-        except ConnectionClosedOK:
-            logger.debug("Connection was closed normally, stopping the client.")
+        except WebSocketException as exc:
+            if isinstance(exc, ConnectionClosedOK):
+                logger.debug("Connection was closed normally, stopping the client.")
+            elif isinstance(exc, ConnectionClosedError):
+                logger.exception("Connection was terminated with an error.")
+            elif isinstance(exc, ConnectionClosed):
+                logger.exception("Connection was already closed.")
+            else:
+                logger.exception("Connection is closed due to an unexpected WebSocket error.")
 
-        except ConnectionClosed:
-            logger.exception("Connection was closed with an error.")
+            raise StopStreaming from None
 
         except Exception:
             logger.exception("Failed to receive messages from websocket server due to unexpected error.")
+            raise
 
     def start(self) -> None:
         """Start the connection to the websocket server."""

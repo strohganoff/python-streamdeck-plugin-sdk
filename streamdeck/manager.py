@@ -166,4 +166,4 @@ class PluginManager:
 
                     processed_handler(data)
 
-
+            logger.info("PluginManager has stopped processing events.")

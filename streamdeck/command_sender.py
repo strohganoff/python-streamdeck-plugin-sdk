@@ -257,7 +257,6 @@ class StreamDeckCommandSender:
     def send_action_registration(
         self,
         register_event: str,
-        plugin_registration_uuid: str,
     ) -> None:
         """Registers a plugin with the Stream Deck software very shortly after the plugin is started.
 
@@ -270,10 +269,8 @@ class StreamDeckCommandSender:
         Args:
             register_event (str): The registration event type, passed in by the Stream Deck software as -registerEvent option.
                 It's value will almost definitely will be "registerPlugin".
-            plugin_registration_uuid (str): Randomly-generated unique ID passed in by StreamDeck as -pluginUUID option,
-                used to send back in the registerPlugin event. Note that this is NOT the manifest.json -configured plugin UUID value.
         """
         self._send_event(
             event=register_event,
-            uuid=plugin_registration_uuid,
+            uuid=self._plugin_registration_uuid,
         )

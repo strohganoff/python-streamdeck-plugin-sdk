@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from unittest.mock import create_autospec
 
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action, ActionRegistry, GlobalAction
 from streamdeck.models import events
 
@@ -17,8 +18,6 @@ from tests.test_utils.fake_event_factories import (
 if TYPE_CHECKING:
     from unittest.mock import Mock
 
-    from polyfactory.factories.pydantic_factory import ModelFactory
-
 
 
 @pytest.fixture
@@ -29,53 +28,54 @@ def mock_event_handler() -> Mock:
     return create_autospec(dummy_handler, spec_set=True)
 
 
-@pytest.mark.parametrize(("event_name","event_factory"), [
-    ("keyDown", KeyDownEventFactory),
-    ("deviceDidConnect", DeviceDidConnectFactory),
-    ("applicationDidLaunch", ApplicationDidLaunchEventFactory)
+@pytest.fixture(params=[
+    KeyDownEventFactory,
+    DeviceDidConnectFactory,
+    ApplicationDidLaunchEventFactory
 ])
+def fake_event_data(request: pytest.FixtureRequest) -> events.EventBase:
+    event_factory = cast(ModelFactory[events.EventBase], request.param)
+    return event_factory.build()
+
+
 def test_global_action_gets_triggered_by_event(
     mock_event_handler: Mock,
-    event_name: str,
-    event_factory: ModelFactory[events.EventBase],
-):
+    fake_event_data: events.EventBase,
+) -> None:
     """Test that a global action's event handlers are triggered by an event.
 
     Global actions should be triggered by any event type that is registered with them,
       regardless of the event's unique identifier properties (or whether they're even present).
     """
-    fake_event_data = event_factory.build()
-
     global_action = GlobalAction()
 
-    global_action.on(event_name)(mock_event_handler)
+    global_action.on(fake_event_data.event)(mock_event_handler)
 
-    for handler in global_action.get_event_handlers(event_name):
+    for handler in global_action.get_event_handlers(fake_event_data.event):
         handler(fake_event_data)
 
     assert mock_event_handler.call_count == 1
     assert fake_event_data in mock_event_handler.call_args.args
 
 
-@pytest.mark.parametrize(("event_name","event_factory"), [
-    ("keyDown", KeyDownEventFactory),
-    ("deviceDidConnect", DeviceDidConnectFactory),
-    ("applicationDidLaunch", ApplicationDidLaunchEventFactory)
-])
-def test_action_gets_triggered_by_event(mock_event_handler: Mock, event_name: str, event_factory: ModelFactory[events.EventBase]):
-    # Create a fake event model instance
-    fake_event_data: events.EventBase = event_factory.build()
+def test_action_gets_triggered_by_event(
+    mock_event_handler: Mock,
+    fake_event_data: events.EventBase,
+) -> None:
+    """Test that an action's event handlers are triggered by an event.
+
+    Actions should only be triggered by events that have the same unique identifier properties as the action.
+    """
     # Extract the action UUID from the fake event data, or use a default value
-    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else "my-fake-action-uuid"
     action_uuid: str = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else "my-fake-action-uuid"
 
     action = Action(uuid=action_uuid)
 
     # Register the mock event handler with the action
-    action.on(event_name)(mock_event_handler)
+    action.on(fake_event_data.event)(mock_event_handler)
 
     # Get the action's event handlers for the event and call them
-    for handler in action.get_event_handlers(event_name):
+    for handler in action.get_event_handlers(fake_event_data.event):
         handler(fake_event_data)
 
     # For some reason, assert_called_once() and assert_called_once_with() are returning False here...
@@ -85,23 +85,18 @@ def test_action_gets_triggered_by_event(mock_event_handler: Mock, event_name: st
 
 
 
-@pytest.mark.parametrize(("event_name","event_factory"), [
-    ("keyDown", KeyDownEventFactory),
-    ("deviceDidConnect", DeviceDidConnectFactory),
-    ("applicationDidLaunch", ApplicationDidLaunchEventFactory)
-])
-def test_global_action_registry_get_action_handlers_filtering(mock_event_handler: Mock, event_name: str, event_factory: ModelFactory[events.EventBase]):
-    # Create a fake event model instance
-    fake_event_data: events.EventBase = event_factory.build()
+def test_global_action_registry_get_action_handlers_filtering(
+    mock_event_handler: Mock,
+    fake_event_data: events.EventBase,
+) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, without an action UUID as global actions aren't associated with a specific action
     global_action = GlobalAction()
 
-    global_action.on(event_name)(mock_event_handler)
+    global_action.on(fake_event_data.event)(mock_event_handler)
 
     # Register the global action with the registry
     registry.register(global_action)
@@ -117,23 +112,18 @@ def test_global_action_registry_get_action_handlers_filtering(mock_event_handler
 
 
 
-@pytest.mark.parametrize(("event_name","event_factory"), [
-    ("keyDown", KeyDownEventFactory),
-    ("deviceDidConnect", DeviceDidConnectFactory),
-    ("applicationDidLaunch", ApplicationDidLaunchEventFactory)
-])
-def test_action_registry_get_action_handlers_filtering(mock_event_handler: Mock, event_name: str, event_factory: ModelFactory[events.EventBase]):
-    # Create a fake event model instance
-    fake_event_data: events.EventBase = event_factory.build()
+def test_action_registry_get_action_handlers_filtering(
+    mock_event_handler: Mock,
+    fake_event_data: events.EventBase,
+) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    # action_uuid: str = fake_event_data.action if fake_event_data.is_action_specific() else None
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, using either the fake event's action UUID or a default value
     action = Action(uuid=action_uuid or "my-fake-action-uuid")
 
-    action.on(event_name)(mock_event_handler)
+    action.on(fake_event_data.event)(mock_event_handler)
 
     # Register the action with the registry
     registry.register(action)
@@ -149,7 +139,7 @@ def test_action_registry_get_action_handlers_filtering(mock_event_handler: Mock,
 
 
 
-def test_multiple_actions_filtering():
+def test_multiple_actions_filtering() -> None:
     registry = ActionRegistry()
     action = Action("my-fake-action-uuid-1")
     global_action = GlobalAction()
@@ -158,12 +148,12 @@ def test_multiple_actions_filtering():
     action_event_handler_called = False
 
     @global_action.on("applicationDidLaunch")
-    def _global_app_did_launch_action_handler(event: events.EventBase):
+    def _global_app_did_launch_action_handler(event: events.EventBase) -> None:
         nonlocal global_action_event_handler_called
         global_action_event_handler_called = True
 
     @action.on("keyDown")
-    def _action_key_down_event_handler(event: events.EventBase):
+    def _action_key_down_event_handler(event: events.EventBase) -> None:
         nonlocal action_event_handler_called
         action_event_handler_called = True
 

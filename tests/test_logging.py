@@ -49,7 +49,7 @@ def fake_streamdeck_log_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> 
     return tmp_path
 
 
-def test_local_logger(fake_plugin_local_log_dir: Path):
+def test_local_logger(fake_plugin_local_log_dir: Path) -> None:
     """Test the configuration of a local plugin-specific logger.
 
     This test verifies that a logger configured for a specific plugin writes logs to the correct local directory.
@@ -86,7 +86,7 @@ def test_local_logger(fake_plugin_local_log_dir: Path):
         # assert fake_name in actual_log_file_output
 
 
-def test_streamdeck_logger(fake_streamdeck_log_dir: Path):
+def test_streamdeck_logger(fake_streamdeck_log_dir: Path) -> None:
     """Test the configuration of a centralized Stream Deck logger.
 
     This test verifies that a logger configured for the Stream Deck writes logs to the correct centralized directory.

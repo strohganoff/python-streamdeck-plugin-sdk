@@ -1,77 +1,36 @@
 from __future__ import annotations
 
 import inspect
-from typing import TYPE_CHECKING, Literal, Protocol, TypeVar, Union
+from typing import TYPE_CHECKING, Protocol, TypeVar, Union
 
-from typing_extensions import TypeAlias, TypeIs  # noqa: UP035
-
-from streamdeck.models.events import EventBase
+from streamdeck.models.events import DEFAULT_EVENT_NAMES, EventBase
 
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeAlias, TypeIs  # noqa: UP035
+
     from streamdeck.command_sender import StreamDeckCommandSender
 
 
-available_event_names: set[EventNameStr] = {
-    "applicationDidLaunch",
-    "applicationDidTerminate",
-    "deviceDidConnect",
-    "deviceDidDisconnect",
-    "dialDown",
-    "dialRotate",
-    "dialUp",
-    "didReceiveGlobalSettings",
-    "didReceiveDeepLink",
-    "didReceiveSettings",
-    "sendToPlugin",  # DidReceivePropertyInspectorMessage event
-    "keyDown",
-    "keyUp",
-    "propertyInspectorDidAppear",
-    "propertyInspectorDidDisappear",
-    "systemDidWakeUp",
-    "titleParametersDidChange",
-    "touchTap",
-    "willAppear",
-    "willDisappear",
-}
 
+EventNameStr: TypeAlias = str  # noqa: UP040
+"""Type alias for the event name string.
 
-# For backwards compatibility with older versions of Python, we can't just use available_event_names as the values of the Literal EventNameStr.
-EventNameStr: TypeAlias = Literal[  # noqa: UP040
-    "applicationDidLaunch",
-    "applicationDidTerminate",
-    "deviceDidConnect",
-    "deviceDidDisconnect",
-    "dialDown",
-    "dialRotate",
-    "dialUp",
-    "didReceiveGlobalSettings",
-    "didReceiveDeepLink",
-    "didReceiveSettings",
-    "sendToPlugin",  # DidReceivePropertyInspectorMessage event
-    "keyDown",
-    "keyUp",
-    "propertyInspectorDidAppear",
-    "propertyInspectorDidDisappear",
-    "systemDidWakeUp",
-    "titleParametersDidChange",
-    "touchTap",
-    "willAppear",
-    "willDisappear"
-]
+We don't define literal string values here, as the list of available event names can be added to dynamically.
+"""
 
 
 def is_valid_event_name(event_name: str) -> TypeIs[EventNameStr]:
     """Check if the event name is one of the available event names."""
-    return event_name in available_event_names
+    return event_name in DEFAULT_EVENT_NAMES
 
 
 ### Event Handler Type Definitions ###
 
 ## Protocols for event handler functions that act on subtypes of EventBase instances in a Generic way.
 
-# A type variable for a subtype of EventBase
 TEvent_contra = TypeVar("TEvent_contra", bound=EventBase, contravariant=True)
+"""Type variable for a subtype of EventBase."""
 
 
 class EventHandlerBasicFunc(Protocol[TEvent_contra]):
@@ -84,8 +43,8 @@ class EventHandlerBindableFunc(Protocol[TEvent_contra]):
     def __call__(self, event_data: TEvent_contra, command_sender: StreamDeckCommandSender) -> None: ...
 
 
-# Type alias for an event handler function that takes an event (of subtype of EventBase), and optionally a command sender.
 EventHandlerFunc = Union[EventHandlerBasicFunc[TEvent_contra], EventHandlerBindableFunc[TEvent_contra]]  # noqa: UP007
+"""Type alias for an event handler function that takes an event (of subtype of EventBase), and optionally a command sender."""
 
 
 ## Protocols for event handler functions that act on EventBase instances.
@@ -97,8 +56,11 @@ class BaseEventHandlerBindableFunc(EventHandlerBindableFunc[EventBase]):
     """Protocol for an event handler function that takes an event (of subtype of EventBase) and a command sender."""
 
 
-# Type alias for a base event handler function that expects an actual EventBase instance (and optionally a command sender) — used for type hinting internal storage of event handlers.
 BaseEventHandlerFunc = Union[BaseEventHandlerBasicFunc, BaseEventHandlerBindableFunc]  # noqa: UP007
+"""Type alias for a base event handler function that takes an actual EventBase instance argument, and optionally a command sender.
+
+This is used for type hinting internal storage of event handlers.
+"""
 
 
 

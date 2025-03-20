@@ -6,3 +6,6 @@
         "tests.data.test_action1",
         "tests.data.test_action2",
     ]
+    "event_listener_modules" = [
+        "tests.data.dummy_event_listener",
+    ]

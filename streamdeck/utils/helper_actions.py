@@ -4,7 +4,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from streamdeck.actions import Action
-from streamdeck.types import available_event_names
+from streamdeck.models.events import DEFAULT_EVENT_NAMES
 
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ def create_logging_action(action_uuid: str) -> Action:
         logger.info("Action %s — event %s", logging_action.__class__, event_data.event)
 
     # Register the above function for every event
-    for event_name in available_event_names:
+    for event_name in DEFAULT_EVENT_NAMES:
         logging_action.on(event_name)(log_event)
 
     return logging_action
@@ -45,7 +45,7 @@ def create_file_writing_action(action_uuid: str, file: TextIOWrapper) -> Action:
         file.flush()
 
     # Register the above function for every event
-    for event_name in available_event_names:
+    for event_name in DEFAULT_EVENT_NAMES:
         file_writing_action.on(event_name)(write_event)
 
     return file_writing_action

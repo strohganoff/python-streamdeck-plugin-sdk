@@ -1,31 +1,27 @@
 from __future__ import annotations
 
 import inspect
-from functools import partial
 from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import Mock, create_autospec
 
 import pytest
-from pprintpp import pprint
 from streamdeck.actions import Action
-from streamdeck.command_sender import StreamDeckCommandSender
-from streamdeck.websocket import WebSocketClient
-
-from tests.test_utils.fake_event_factories import KeyDownEventFactory
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from functools import partial
 
+    from streamdeck.command_sender import StreamDeckCommandSender
     from streamdeck.manager import PluginManager
     from streamdeck.models import events
-    from typing_extensions import TypeAlias  # noqa: UP035
+    from streamdeck.types import (
+        EventHandlerBasicFunc,
+        EventHandlerFunc,
+    )
 
-    EventHandlerFunc: TypeAlias = Callable[[events.EventBase], None] | Callable[[events.EventBase, StreamDeckCommandSender], None]
 
 
-
-def create_event_handler(include_command_sender_param: bool = False) -> EventHandlerFunc:
+def create_event_handler(include_command_sender_param: bool = False) -> EventHandlerFunc[events.EventBase]:
     """Create a dummy event handler function that matches the EventHandlerFunc TypeAlias.
 
     Args:
@@ -35,12 +31,12 @@ def create_event_handler(include_command_sender_param: bool = False) -> EventHan
         Callable[[events.EventBase], None] | Callable[[events.EventBase, StreamDeckCommandSender], None]: A dummy event handler function.
     """
     if not include_command_sender_param:
-        def dummy_handler_without_cmd_sender(event: events.EventBase) -> None:
+        def dummy_handler_without_cmd_sender(event_data: events.EventBase) -> None:
             """Dummy event handler function that matches the EventHandlerFunc TypeAlias without `command_sender` param."""
 
         return dummy_handler_without_cmd_sender
 
-    def dummy_handler_with_cmd_sender(event: events.EventBase, command_sender: StreamDeckCommandSender) -> None:
+    def dummy_handler_with_cmd_sender(event_data: events.EventBase, command_sender: StreamDeckCommandSender) -> None:
         """Dummy event handler function that matches the EventHandlerFunc TypeAlias with `command_sender` param."""
 
     return dummy_handler_with_cmd_sender
@@ -49,39 +45,19 @@ def create_event_handler(include_command_sender_param: bool = False) -> EventHan
 @pytest.fixture(params=[True, False])
 def mock_event_handler(request: pytest.FixtureRequest) -> Mock:
     include_command_sender_param: bool = request.param
-    dummy_handler: EventHandlerFunc = create_event_handler(include_command_sender_param)
+    dummy_handler: EventHandlerFunc[events.EventBase] = create_event_handler(include_command_sender_param)
 
     return create_autospec(dummy_handler, spec_set=True)
-
-
-@pytest.fixture
-def mock_websocket_client_with_fake_events(patch_websocket_client: Mock) -> tuple[Mock, list[events.EventBase]]:
-    """Fixture that mocks the WebSocketClient and provides a list of fake event messages yielded by the mock client.
-
-    Args:
-        patch_websocket_client: Mocked instance of the patched WebSocketClient.
-
-    Returns:
-        tuple: Mocked instance of WebSocketClient, and a list of fake event messages.
-    """
-    # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen() method.
-    fake_event_messages: list[events.EventBase] = [
-        KeyDownEventFactory.build(action="my-fake-action-uuid"),
-    ]
-
-    patch_websocket_client.listen.return_value = [event.model_dump_json() for event in fake_event_messages]
-
-    return patch_websocket_client, fake_event_messages
 
 
 
 def test_inject_command_sender_func(
     plugin_manager: PluginManager,
     mock_event_handler: Mock,
-):
+) -> None:
     """Test that the command_sender is injected into the handler."""
     mock_command_sender = Mock()
-    result_handler = plugin_manager._inject_command_sender(mock_event_handler, mock_command_sender)
+    result_handler: EventHandlerBasicFunc[events.EventBase] = plugin_manager._inject_command_sender(mock_event_handler, mock_command_sender)
 
     resulting_handler_params = inspect.signature(result_handler).parameters
 
@@ -92,7 +68,7 @@ def test_inject_command_sender_func(
         assert result_handler != mock_event_handler
 
         # Check that the `command_sender` parameter is bound to the correct value.
-        resulting_handler_bound_kwargs: dict[str, Any] = cast(partial[Any], result_handler).keywords
+        resulting_handler_bound_kwargs: dict[str, Any] = cast("partial[Any]", result_handler).keywords
         assert resulting_handler_bound_kwargs["command_sender"] == mock_command_sender
 
     # If there isn't a `command_sender` parameter, then the `result_handler` is the original handler unaltered.
@@ -100,27 +76,30 @@ def test_inject_command_sender_func(
         assert result_handler == mock_event_handler
 
 
+@pytest.mark.usefixtures("patch_websocket_client")
 def test_run_manager_events_handled_with_correct_params(
-    mock_websocket_client_with_fake_events: tuple[Mock, list[events.EventBase]],
+    mock_event_listener_manager_with_fake_events: tuple[Mock, list[events.EventBase]],
     plugin_manager: PluginManager,
     mock_command_sender: Mock,
-):
+) -> None:
     """Test that the PluginManager runs and triggers event handlers with the correct parameter binding.
 
     This test will:
       - Register an action with the PluginManager.
       - Create and register mock event handlers with and without the `command_sender` parameter.
-      - Run the PluginManager and let it process the fake event messages generated by the mocked WebSocketClient.
+      - Run the PluginManager and let it process the fake event messages generated by the mocked EventListenerManager.
       - Ensure that mocked event handlers were called with the correct params,
           binding the `command_sender` parameter if defined in the handler's signature.
 
+    NOTE: The WebSocketClient is mocked so as to be essentially ignored in this test.
+
     Args:
-        mock_websocket_client_with_fake_events (tuple[Mock, list[events.EventBase]]): Mocked instance of WebSocketClient, and a list of fake event messages it will yield.
+        mock_event_listener_manager_with_fake_events (tuple[Mock, list[events.EventBase]]): Mocked instance of EventListenerManager, and a list of fake event messages it will yield.
         plugin_manager (PluginManager): Instance of PluginManager with test parameters.
         mock_command_sender (Mock): Patched instance of StreamDeckCommandSender. Used here to ensure that the `command_sender` parameter is bound correctly.
     """
     # As of now, fake_event_messages is a list of one KeyDown event. If this changes, I'll need to update this test.
-    fake_event_message: events.KeyDown = mock_websocket_client_with_fake_events[1][0]
+    fake_event_message: events.KeyDown = mock_event_listener_manager_with_fake_events[1][0]
 
     action = Action(fake_event_message.action)
 
@@ -134,7 +113,8 @@ def test_run_manager_events_handled_with_correct_params(
 
     plugin_manager.register_action(action)
 
-    # Run the PluginManager and let it process the fake event messages generated by the mocked WebSocketClient.
+    # Run the PluginManager and let it process the fake event messages generated by the mocked EventListenerManager.
+    # Since the EventListenerManager.event_stream() method is mocked to return a finite list of fake event messages, it will stop after yielding all of them rather than running indefinitely.
     plugin_manager.run()
 
     # Ensure that mocked event handlers were called with the correct params, binding the `command_sender` parameter if defined in the handler's signature.

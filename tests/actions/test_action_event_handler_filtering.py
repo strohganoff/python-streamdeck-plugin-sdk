@@ -4,9 +4,8 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import create_autospec
 
 import pytest
-from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.actions import Action, ActionRegistry, GlobalAction
-from streamdeck.models import events
+from streamdeck.models.events.common import ContextualEventMixin
 
 from tests.test_utils.fake_event_factories import (
     ApplicationDidLaunchEventFactory,
@@ -17,6 +16,9 @@ from tests.test_utils.fake_event_factories import (
 
 if TYPE_CHECKING:
     from unittest.mock import Mock
+
+    from polyfactory.factories.pydantic_factory import ModelFactory
+    from streamdeck.models import events
 
 
 
@@ -34,7 +36,7 @@ def mock_event_handler() -> Mock:
     ApplicationDidLaunchEventFactory
 ])
 def fake_event_data(request: pytest.FixtureRequest) -> events.EventBase:
-    event_factory = cast(ModelFactory[events.EventBase], request.param)
+    event_factory = cast("ModelFactory[events.EventBase]", request.param)
     return event_factory.build()
 
 
@@ -67,7 +69,7 @@ def test_action_gets_triggered_by_event(
     Actions should only be triggered by events that have the same unique identifier properties as the action.
     """
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else "my-fake-action-uuid"
+    action_uuid: str = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else "my-fake-action-uuid"
 
     action = Action(uuid=action_uuid)
 
@@ -90,7 +92,7 @@ def test_global_action_registry_get_action_handlers_filtering(
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, without an action UUID as global actions aren't associated with a specific action
@@ -117,7 +119,7 @@ def test_action_registry_get_action_handlers_filtering(
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, events.ContextualEventMixin) else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
 
     registry = ActionRegistry()
     # Create an Action instance, using either the fake event's action UUID or a default value

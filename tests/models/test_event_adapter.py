@@ -3,12 +3,9 @@ from typing import Literal
 
 import pytest
 from pydantic import ValidationError
-from streamdeck.models.events import (
-    DEFAULT_EVENT_MODELS,
-    DEFAULT_EVENT_NAMES,
+from streamdeck.models.events import DEFAULT_EVENT_MODELS, DEFAULT_EVENT_NAMES, EventBase, KeyDown
+from streamdeck.models.events.adapter import (
     EventAdapter,
-    EventBase,
-    KeyDown,
 )
 
 from tests.test_utils.fake_event_factories import KeyDownEventFactory

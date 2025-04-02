@@ -7,5 +7,7 @@ from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecific
 
 
 class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+    """Occurs when the user taps the touchscreen (Stream Deck +)."""
     event: Literal["touchTap"]  # type: ignore[override]
     payload: dict[str, Any]
+    """Contextualized information for this event."""

@@ -8,7 +8,7 @@ from typing_extensions import LiteralString, TypeIs  # noqa: UP035
 
 
 def is_literal_str_type(value: object | None) -> TypeIs[LiteralString]:
-    """Check if a type is a Literal type."""
+    """Check if a type is a Literal type with string values."""
     if value is None:
         return False
 

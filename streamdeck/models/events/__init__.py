@@ -1,6 +1,14 @@
+"""Stream Deck Event Models.
+
+These models are used to represent the events that can be received by the Stream Deck SDK plugin.
+The "default" events are those passed from the Stream Deck software itself, but custom events can
+be created by the plugin developer and listened for in the same way.
+
+The events are organized into the same categories as the Stream Deck SDK documentation defines them.
+"""
 from __future__ import annotations
 
-from typing import Final
+from typing import TYPE_CHECKING
 
 from streamdeck.models.events.application import ApplicationDidLaunch, ApplicationDidTerminate
 from streamdeck.models.events.base import EventBase
@@ -18,6 +26,10 @@ from streamdeck.models.events.system import SystemDidWakeUp
 from streamdeck.models.events.title_parameters import TitleParametersDidChange
 from streamdeck.models.events.touch_tap import TouchTap
 from streamdeck.models.events.visibility import WillAppear, WillDisappear
+
+
+if TYPE_CHECKING:
+    from typing import Final
 
 
 DEFAULT_EVENT_MODELS: Final[list[type[EventBase]]] = [

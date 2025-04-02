@@ -5,57 +5,10 @@ from typing import TYPE_CHECKING, Annotated, Union
 from pydantic import Field, TypeAdapter
 
 from streamdeck.models.events import DEFAULT_EVENT_MODELS
-from streamdeck.models.events.application import ApplicationDidLaunch, ApplicationDidTerminate
-from streamdeck.models.events.deep_link import DidReceiveDeepLink
-from streamdeck.models.events.devices import DeviceDidConnect, DeviceDidDisconnect
-from streamdeck.models.events.dials import DialDown, DialRotate, DialUp
-from streamdeck.models.events.keys import KeyDown, KeyUp
-from streamdeck.models.events.property_inspector import (
-    DidReceivePropertyInspectorMessage,
-    PropertyInspectorDidAppear,
-    PropertyInspectorDidDisappear,
-)
-from streamdeck.models.events.settings import DidReceiveGlobalSettings, DidReceiveSettings
-from streamdeck.models.events.system import SystemDidWakeUp
-from streamdeck.models.events.title_parameters import TitleParametersDidChange
-from streamdeck.models.events.touch_tap import TouchTap
-from streamdeck.models.events.visibility import WillAppear, WillDisappear
 
 
 if TYPE_CHECKING:
     from streamdeck.models.events.base import EventBase
-
-
-## Default event models and names.
-
-
-event_adapter: TypeAdapter[EventBase] = TypeAdapter(
-    Annotated[
-        Union[  # noqa: UP007
-            ApplicationDidLaunch,
-            ApplicationDidTerminate,
-            DeviceDidConnect,
-            DeviceDidDisconnect,
-            DialDown,
-            DialRotate,
-            DialUp,
-            DidReceiveDeepLink,
-            KeyUp,
-            KeyDown,
-            DidReceivePropertyInspectorMessage,
-            PropertyInspectorDidAppear,
-            PropertyInspectorDidDisappear,
-            DidReceiveGlobalSettings,
-            DidReceiveSettings,
-            SystemDidWakeUp,
-            TitleParametersDidChange,
-            TouchTap,
-            WillAppear,
-            WillDisappear,
-        ],
-        Field(discriminator="event")
-    ]
-)
 
 
 ## EventAdapter class for handling and extending available event models.

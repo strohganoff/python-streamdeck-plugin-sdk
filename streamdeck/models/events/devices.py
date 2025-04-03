@@ -73,5 +73,3 @@ class DeviceDidConnect(EventBase, DeviceSpecificEventMixin):
 class DeviceDidDisconnect(EventBase, DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is disconnected."""
     event: Literal["deviceDidDisconnect"]  # type: ignore[override]
-    device: str
-    """Unique identifier of the Stream Deck device that this event is associated with."""

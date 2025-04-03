@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
-from typing_extensions import TypedDict
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import DeviceSpecificEventMixin
@@ -37,14 +36,14 @@ class TitleParametersDidChangePayload(BaseModel):
     """Defines the controller type the action is applicable to."""
     coordinates: dict[Literal["column", "row"], int]
     """Coordinates that identify the location of an action."""
-    settings: dict[str, Any]
-    """Settings associated with the action instance."""
-    state: Optional[int]  # noqa: UP007
-    """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
     titleParameters: TitleParameters
     """Defines aesthetic properties that determine how the title should be rendered."""
+    state: Optional[int]  # noqa: UP007
+    """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
+    settings: dict[str, Any]
+    """Settings associated with the action instance."""
 
 
 class TitleParametersDidChange(EventBase, DeviceSpecificEventMixin):

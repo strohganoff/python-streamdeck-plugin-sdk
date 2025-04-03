@@ -7,10 +7,11 @@ from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecific
 
 
 class DidReceivePropertyInspectorMessage(EventBase, ContextualEventMixin):
-    """Occurs when a payload was received from the UI."""
+    """Occurs when a message was received from the UI."""
     event: Literal["sendToPlugin"]  # type: ignore[override]
     payload: dict[str, Any]
     """The data payload received from the UI."""
+
 
 class PropertyInspectorDidAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the property inspector associated with the action becomes visible.

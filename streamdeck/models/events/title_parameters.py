@@ -1,32 +1,37 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
+from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import DeviceSpecificEventMixin
 
 
-class TitleParametersDict(TypedDict):
+FontStyle = Literal["", "Bold Italic", "Bold", "Italic", "Regular"]
+TitleAlignment = Literal["top", "middle", "bottom"]
+
+
+class TitleParameters(BaseModel):
     """Defines aesthetic properties that determine how the title should be rendered."""
     fontFamily: str
     """Font-family the title will be rendered with."""
     fontSize: int
     """Font-size the title will be rendered in."""
-    fontStyle: str
+    fontStyle: FontStyle
     """Typography of the title."""
     fontUnderline: bool
     """Whether the font should be underlined."""
     showTitle: bool
     """Whether the user has opted to show, or hide the title for this action instance."""
-    titleAlignment: Literal["top", "middle", "bottom"]
+    titleAlignment: TitleAlignment
     """Alignment of the title."""
     titleColor: str
     """Color of the title, represented as a hexadecimal value."""
 
 
-class TitleParametersDidChangePayload(TypedDict):
+class TitleParametersDidChangePayload(BaseModel):
     """Contextualized information for this event."""
     controller: Literal["Keypad", "Encoder"]
     """Defines the controller type the action is applicable to."""
@@ -34,11 +39,11 @@ class TitleParametersDidChangePayload(TypedDict):
     """Coordinates that identify the location of an action."""
     settings: dict[str, Any]
     """Settings associated with the action instance."""
-    state: int
+    state: Optional[int]  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
-    titleParameters: TitleParametersDict
+    titleParameters: TitleParameters
     """Defines aesthetic properties that determine how the title should be rendered."""
 
 

@@ -1,6 +1,14 @@
 from typing import Literal
 
+from pydantic import BaseModel
+
 from streamdeck.models.events.base import EventBase
+
+
+class DeepLinkPayload(BaseModel):
+    """Payload containing information about the URL that triggered the event."""
+    url: str
+    """The deep-link URL, with the prefix omitted."""
 
 
 class DidReceiveDeepLink(EventBase):
@@ -11,5 +19,5 @@ class DidReceiveDeepLink(EventBase):
     streamdeck://plugins/message/<PLUGIN_UUID>/{MESSAGE}.
     """
     event: Literal["didReceiveDeepLink"]  # type: ignore[override]
-    payload: dict[Literal["url"], str]
+    payload: DeepLinkPayload
     """Payload containing information about the URL that triggered the event."""

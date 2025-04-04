@@ -74,7 +74,7 @@ class SingleActionPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
     'Encoder' refers to a dial / touchscreen.
     """
-    isInMultiAction: Literal[False]
+    is_in_multi_action: Annotated[Literal[False], Field(alias="isInMultiAction")]
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
@@ -92,7 +92,7 @@ class MultiActionPayload(ConfiguredBaseModel):
 
     Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.
     """
-    isInMultiAction: Literal[True]
+    is_in_multi_action: Annotated[Literal[True], Field(alias="isInMultiAction")]
     """Indicates that this event is part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""

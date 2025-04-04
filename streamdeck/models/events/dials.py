@@ -3,26 +3,27 @@ from __future__ import annotations
 from typing import Literal
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin, PluginDefinedData
+from streamdeck.models.events.common import (
+    ContextualEventMixin,
+    CoordinatesPayloadMixin,
+    DeviceSpecificEventMixin,
+    PluginDefinedData,
+)
 
 
 ## Payload models used in the below DialDown, DialRotate, and DialUp events
 
-class EncoderPayload(ConfiguredBaseModel):
+class EncoderPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     """Contextualized information for a DialDown or DialUp event."""
     controller: Literal["Encoder"]
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
-    coordinates: dict[Literal["column", "row"], int]
-    """Coordinates that identify the location of the action instance on the device."""
     settings: PluginDefinedData
 
 
-class DialRotatePayload(ConfiguredBaseModel):
+class DialRotatePayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     """Contextualized information for a DialRotate event."""
     controller: Literal["Encoder"]
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
-    coordinates: dict[Literal["column", "row"], int]
-    """Coordinates that identify the location of the action instance on the device."""
     pressed: bool
     """Determines whether the dial was pressed whilst the rotation occurred."""
     ticks: int

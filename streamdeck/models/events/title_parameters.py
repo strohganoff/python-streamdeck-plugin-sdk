@@ -5,8 +5,11 @@ from typing import Annotated, Literal, Optional
 from pydantic import Field
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
-from streamdeck.models.events.common import DeviceSpecificEventMixin, PluginDefinedData
-
+from streamdeck.models.events.common import (
+    CoordinatesPayloadMixin,
+    DeviceSpecificEventMixin,
+    PluginDefinedData,
+)
 
 
 FontStyle = Literal["", "Bold Italic", "Bold", "Italic", "Regular"]
@@ -31,12 +34,10 @@ class TitleParameters(ConfiguredBaseModel):
     """Color of the title, represented as a hexadecimal value."""
 
 
-class TitleParametersDidChangePayload(ConfiguredBaseModel):
+class TitleParametersDidChangePayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     """Contextualized information for this event."""
     controller: Literal["Keypad", "Encoder"]
     """Defines the controller type the action is applicable to."""
-    coordinates: dict[Literal["column", "row"], int]
-    """Coordinates that identify the location of an action."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
     title_parameters: Annotated[TitleParameters, Field(alias="titleParameters")]

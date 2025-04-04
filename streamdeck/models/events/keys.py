@@ -5,17 +5,20 @@ from typing import Annotated, Literal, Optional, Union
 from pydantic import Field
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin, PluginDefinedData
+from streamdeck.models.events.common import (
+    ContextualEventMixin,
+    CoordinatesPayloadMixin,
+    DeviceSpecificEventMixin,
+    PluginDefinedData,
+)
 
 
 ## Payload models used in the below KeyDown and KeyUp events
 
-class SingleActionKeyGesturePayload(ConfiguredBaseModel):
+class SingleActionKeyGesturePayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     """Contextualized information for a KeyDown or KeyUp event that is not part of a multi-action."""
     controller: Optional[Literal["Keypad"]] = None  # noqa: UP007
     """The 'Keypad' controller type refers to a standard action on a Stream Deck device, e.g. buttons or a pedal."""
-    coordinates: dict[Literal["column", "row"], int]
-    """Coordinates that identify the location of the action instance on the device."""
     is_in_multi_action: Annotated[Literal[False], Field(alias="isInMultiAction")]
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007

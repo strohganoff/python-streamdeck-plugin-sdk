@@ -27,7 +27,46 @@ PluginDefinedData = dict[str, Any]
 """Data of arbitrary structure that is defined in and relevant to the plugin."""
 
 
-class SingleActionPayload(ConfiguredBaseModel):
+class CoordinatesDict(TypedDict):
+    """Coordinates that identify the location of an action."""
+
+    column: int
+    """Column the action instance is located in, indexed from 0."""
+    row: int
+    """Row the action instance is located on, indexed from 0.
+
+    When the device is DeviceType.StreamDeckPlus the row can be 0 for keys (Keypad),
+    and will always be 0 for dials (Encoder).
+    """
+
+
+class Coordinates(NamedTuple):
+    """Coordinates that identify the location of an action."""
+
+    column: int
+    """Column the action instance is located in, indexed from 0."""
+    row: int
+    """Row the action instance is located on, indexed from 0.
+
+    When the device is DeviceType.StreamDeckPlus the row can be 0 for keys (Keypad),
+    and will always be 0 for dials (Encoder).
+    """
+
+
+class CoordinatesPayloadMixin:
+    """Mixin class for event models that have a coordinates field."""
+    coordinates_obj: Annotated[
+        CoordinatesDict, Field(alias="coordinates", repr=False)
+    ]
+    """Coordinates dictionary that identify the location of the action instance on the device."""
+
+    @property
+    def coordinates(self) -> Coordinates:
+        """Coordinates that identify the location of the action instance on the device."""
+        return Coordinates(**self.coordinates_obj)
+
+
+class SingleActionPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are not part of a multi-action."""
     controller: Literal["Encoder", "Keypad"]
     """Defines the controller type the action is applicable to.
@@ -35,8 +74,6 @@ class SingleActionPayload(ConfiguredBaseModel):
     'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
     'Encoder' refers to a dial / touchscreen.
     """
-    coordinates: dict[Literal["column", "row"], int]
-    """Coordinates that identify the location of the action instance on the device."""
     isInMultiAction: Literal[False]
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007

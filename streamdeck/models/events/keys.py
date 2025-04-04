@@ -16,7 +16,7 @@ class SingleActionKeyGesturePayload(ConfiguredBaseModel):
     """The 'Keypad' controller type refers to a standard action on a Stream Deck device, e.g. buttons or a pedal."""
     coordinates: dict[Literal["column", "row"], int]
     """Coordinates that identify the location of the action instance on the device."""
-    isInMultiAction: Literal[False]
+    is_in_multi_action: Annotated[Literal[False], Field(alias="isInMultiAction")]
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
@@ -28,7 +28,7 @@ class MultiActionKeyGesturePayload(ConfiguredBaseModel):
     """Contextualized information for a KeyDown or KeyUp event that is part of a multi-action."""
     controller: Optional[Literal["Keypad"]] = None  # noqa: UP007
     """The 'Keypad' controller type refers to a standard action on a Stream Deck device, e.g. buttons or a pedal."""
-    isInMultiAction: Literal[True]
+    is_in_multi_action: Annotated[Literal[True], Field(alias="isInMultiAction")]
     """Indicates that this event is part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
@@ -52,5 +52,5 @@ class KeyDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
 class KeyUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user releases a pressed action."""
     event: Literal["keyUp"]  # type: ignore[override]
-    payload: Annotated[Union[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload], Field(discriminator="isInMultiAction")]  # noqa: UP007
+    payload: Annotated[Union[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007
     """Contextualized information for this event."""

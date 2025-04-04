@@ -22,7 +22,7 @@ class WillAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willAppear"]  # type: ignore[override]
-    payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="isInMultiAction")]  # noqa: UP007
+    payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007
 
 
 class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
@@ -31,4 +31,4 @@ class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willDisappear"]  # type: ignore[override]
-    payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="isInMultiAction")]  # noqa: UP007
+        payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007

@@ -6,6 +6,7 @@ from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    CardinalityDiscriminated,
     ContextualEventMixin,
     DeviceSpecificEventMixin,
     MultiActionPayload,
@@ -22,7 +23,7 @@ class WillAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willAppear"]  # type: ignore[override]
-    payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007
+    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]
 
 
 class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
@@ -31,4 +32,4 @@ class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willDisappear"]  # type: ignore[override]
-        payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007
+    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]

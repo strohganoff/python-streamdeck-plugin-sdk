@@ -66,7 +66,31 @@ class CoordinatesPayloadMixin:
         return Coordinates(**self.coordinates_obj)
 
 
-class SingleActionPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
+class SingleActionPayloadMixin:
+    """Mixin class for event models that have a single action payload."""
+
+    is_in_multi_action: Annotated[Literal[False], Field(alias="isInMultiAction")]
+    """Indicates that this event is not part of a multi-action."""
+
+
+class MultiActionPayloadMixin:
+    """Mixin class for event models that have a multi-action payload."""
+
+    is_in_multi_action: Annotated[Literal[True], Field(alias="isInMultiAction")]
+    """Indicates that this event is part of a multi-action."""
+
+
+CardinalityDiscriminated = Annotated[
+    Union[  # noqa: UP007
+        TypeVar("S", bound=SingleActionPayloadMixin),
+        TypeVar("M", bound=MultiActionPayloadMixin),
+    ],
+    Field(discriminator="is_in_multi_action"),
+]
+"""Generic type for a payload that either subclasses SingleActionPayloadMixin or MultiActionPayloadMixin—meaning it can be either a single action or a multi-action."""
+
+
+class SingleActionPayload(ConfiguredBaseModel, CoordinatesPayloadMixin, SingleActionPayloadMixin):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are not part of a multi-action."""
     controller: Literal["Encoder", "Keypad"]
     """Defines the controller type the action is applicable to.
@@ -74,15 +98,13 @@ class SingleActionPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
     'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
     'Encoder' refers to a dial / touchscreen.
     """
-    is_in_multi_action: Annotated[Literal[False], Field(alias="isInMultiAction")]
-    """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
     settings: PluginDefinedData
     """Settings associated with the action instance."""
 
 
-class MultiActionPayload(ConfiguredBaseModel):
+class MultiActionPayload(ConfiguredBaseModel, MultiActionPayloadMixin):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are part of a multi-action.
 
     NOTE: Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.
@@ -92,8 +114,6 @@ class MultiActionPayload(ConfiguredBaseModel):
 
     Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.
     """
-    is_in_multi_action: Annotated[Literal[True], Field(alias="isInMultiAction")]
-    """Indicates that this event is part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
     settings: PluginDefinedData

@@ -6,6 +6,7 @@ from pydantic import Field
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
+    CardinalityDiscriminated,
     ContextualEventMixin,
     DeviceSpecificEventMixin,
     MultiActionPayload,
@@ -17,7 +18,7 @@ from streamdeck.models.events.common import (
 class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
     event: Literal["didReceiveSettings"]  # type: ignore[override]
-    payload: Annotated[Union[SingleActionPayload, MultiActionPayload], Field(discriminator="is_in_multi_action")]  # noqa: UP007
+    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]
     """Contextualized information for this event."""
 
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Literal
 
 from pydantic import Field
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
+    BaseActionPayload,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
-    PluginDefinedData,
 )
 
 
@@ -34,17 +34,13 @@ class TitleParameters(ConfiguredBaseModel):
     """Color of the title, represented as a hexadecimal value."""
 
 
-class TitleParametersDidChangePayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
+class TitleParametersDidChangePayload(BaseActionPayload, CoordinatesPayloadMixin):
     """Contextualized information for this event."""
-    controller: Literal["Keypad", "Encoder"]
-    """Defines the controller type the action is applicable to."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
     title_parameters: Annotated[TitleParameters, Field(alias="titleParameters")]
     """Defines aesthetic properties that determine how the title should be rendered."""
-    state: Optional[int]  # noqa: UP007
-    """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    settings: PluginDefinedData
+
 
 class TitleParametersDidChange(EventBase, DeviceSpecificEventMixin):
     """Occurs when the user updates an action's title settings in the Stream Deck application."""

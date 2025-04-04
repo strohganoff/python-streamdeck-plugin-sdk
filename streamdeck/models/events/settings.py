@@ -1,24 +1,38 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
-
-from pydantic import Field
+from typing import Literal
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
+    BaseActionPayload,
     CardinalityDiscriminated,
     ContextualEventMixin,
+    CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
-    MultiActionPayload,
+    KeypadControllerType,
+    MultiActionPayloadMixin,
     PluginDefinedData,
-    SingleActionPayload,
+    SingleActionPayloadMixin,
 )
+
+
+## Models for didReceiveSettings event and its specific payloads.
+
+class SingleActionSettingsPayload(BaseActionPayload, SingleActionPayloadMixin, CoordinatesPayloadMixin):
+    """Contextualized information for a didReceiveSettings events that are not part of a multi-action."""
+
+
+class MultiActionSettingsPayload(BaseActionPayload[KeypadControllerType], MultiActionPayloadMixin):
+    """Contextualized information for a didReceiveSettings events that are part of a multi-action.
+
+    NOTE: Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.
+    """
 
 
 class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
     event: Literal["didReceiveSettings"]  # type: ignore[override]
-    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]
+    payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
     """Contextualized information for this event."""
 
 

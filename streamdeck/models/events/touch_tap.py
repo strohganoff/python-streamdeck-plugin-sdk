@@ -6,22 +6,21 @@ from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    BasePayload,
     ContextualEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
-    PluginDefinedData,
+    EncoderControllerType,
 )
 
 
-class TouchTapPayload(ConfiguredBaseModel, CoordinatesPayloadMixin):
+class TouchTapPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixin):
     """Contextualized information for a TouchTap event."""
-    controller: Literal["Encoder"]
-    """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
     hold: bool
     """Determines whether the tap was considered 'held'."""
     tap_position: Annotated[tuple[int, int], Field(alias="tapPos")]
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
-    settings: PluginDefinedData
+
 
 class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user taps the touchscreen (Stream Deck +)."""

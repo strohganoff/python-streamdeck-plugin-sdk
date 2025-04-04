@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
-
-from pydantic import Field
+from typing import Literal
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    BaseActionPayload,
     CardinalityDiscriminated,
     ContextualEventMixin,
+    CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
-    MultiActionPayload,
-    SingleActionPayload,
+    KeypadControllerType,
+    MultiActionPayloadMixin,
+    SingleActionPayloadMixin,
 )
+
+
+class SingleActionVisibilityPayload(BaseActionPayload, SingleActionPayloadMixin, CoordinatesPayloadMixin):
+    """Contextualized information for willAppear and willDisappear events that is not part of a multi-action."""
+
+
+class MultiActionVisibilityPayload(BaseActionPayload[KeypadControllerType], MultiActionPayloadMixin):
+    """Contextualized information for willAppear and willDisappear events that is part of a multi-action."""
 
 
 ## Event models for WillAppear and WillDisappear events
@@ -23,7 +32,7 @@ class WillAppear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willAppear"]  # type: ignore[override]
-    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]
+    payload: CardinalityDiscriminated[SingleActionVisibilityPayload, MultiActionVisibilityPayload]
 
 
 class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
@@ -32,4 +41,4 @@ class WillDisappear(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.
     """
     event: Literal["willDisappear"]  # type: ignore[override]
-    payload: CardinalityDiscriminated[SingleActionPayload, MultiActionPayload]
+    payload: CardinalityDiscriminated[SingleActionVisibilityPayload, MultiActionVisibilityPayload]

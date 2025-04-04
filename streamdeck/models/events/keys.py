@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
 from streamdeck.models.events.base import EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
+from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin, PluginDefinedData
 
 
 ## Payload models used in the below KeyDown and KeyUp events
@@ -20,7 +20,7 @@ class SingleActionKeyGesturePayload(BaseModel):
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    settings: dict[str, Any]
+    settings: PluginDefinedData
     """Settings associated with the action instance."""
 
 
@@ -37,8 +37,7 @@ class MultiActionKeyGesturePayload(BaseModel):
 
     Only applicable to actions that have multiple states defined within the manifest.json file, and when this action instance is part of a multi-action.
     """
-    settings: dict[str, Any]
-    """Settings associated with the action instance."""
+    settings: PluginDefinedData
 
 
 ## Event models for KeyDown and KeyUp events

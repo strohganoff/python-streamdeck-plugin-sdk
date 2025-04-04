@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from streamdeck.models.events.base import EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
+from streamdeck.models.events.common import (
+    ContextualEventMixin,
+    DeviceSpecificEventMixin,
+    PluginDefinedData,
+)
 
 
 class DidReceivePropertyInspectorMessage(EventBase, ContextualEventMixin):
     """Occurs when a message was received from the UI."""
     event: Literal["sendToPlugin"]  # type: ignore[override]
-    payload: dict[str, Any]
+    payload: PluginDefinedData
     """The data payload received from the UI."""
 
 

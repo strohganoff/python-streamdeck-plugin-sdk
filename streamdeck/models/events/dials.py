@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel
 
 from streamdeck.models.events.base import EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
+from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin, PluginDefinedData
 
 
 ## Payload models used in the below DialDown, DialRotate, and DialUp events
@@ -16,8 +16,7 @@ class EncoderPayload(BaseModel):
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
     coordinates: dict[Literal["column", "row"], int]
     """Coordinates that identify the location of the action instance on the device."""
-    settings: dict[str, Any]
-    """Settings associated with the action instance."""
+    settings: PluginDefinedData
 
 
 class DialRotatePayload(BaseModel):
@@ -30,7 +29,7 @@ class DialRotatePayload(BaseModel):
     """Determines whether the dial was pressed whilst the rotation occurred."""
     ticks: int
     """Number of ticks the dial was rotated; this can be a positive (clockwise) or negative (counter-clockwise) number."""
-    settings: dict[str, Any]
+    settings: PluginDefinedData
     """Settings associated with the action instance."""
 
 

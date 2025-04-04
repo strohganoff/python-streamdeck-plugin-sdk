@@ -5,7 +5,8 @@ from typing import Annotated, Literal, Optional
 from pydantic import BaseModel, Field
 
 from streamdeck.models.events.base import EventBase
-from streamdeck.models.events.common import DeviceSpecificEventMixin
+from streamdeck.models.events.common import DeviceSpecificEventMixin, PluginDefinedData
+
 
 
 FontStyle = Literal["", "Bold Italic", "Bold", "Italic", "Regular"]
@@ -42,9 +43,7 @@ class TitleParametersDidChangePayload(BaseModel):
     """Defines aesthetic properties that determine how the title should be rendered."""
     state: Optional[int]  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    settings: dict[str, Any]
-    """Settings associated with the action instance."""
-
+    settings: PluginDefinedData
 
 class TitleParametersDidChange(EventBase, DeviceSpecificEventMixin):
     """Occurs when the user updates an action's title settings in the Stream Deck application."""

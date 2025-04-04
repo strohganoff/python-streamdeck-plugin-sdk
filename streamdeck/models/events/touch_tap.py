@@ -5,7 +5,11 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
+from streamdeck.models.events.common import (
+    ContextualEventMixin,
+    DeviceSpecificEventMixin,
+    PluginDefinedData,
+)
 
 
 class TouchTapPayload(BaseModel):
@@ -18,8 +22,7 @@ class TouchTapPayload(BaseModel):
     """Determines whether the tap was considered 'held'."""
     tap_position: Annotated[tuple[int, int], Field(alias="tapPos")]
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
-    settings: dict[str, Any]
-    """Settings associated with the action instance."""
+    settings: PluginDefinedData
 
 class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user taps the touchscreen (Stream Deck +)."""

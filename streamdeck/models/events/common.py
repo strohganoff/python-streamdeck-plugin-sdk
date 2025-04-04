@@ -23,6 +23,10 @@ class DeviceSpecificEventMixin:
 
 ## Payload models and metadata used by multiple event models.
 
+PluginDefinedData = dict[str, Any]
+"""Data of arbitrary structure that is defined in and relevant to the plugin."""
+
+
 class SingleActionPayload(BaseModel):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are not part of a multi-action."""
     controller: Literal["Encoder", "Keypad"]
@@ -37,7 +41,7 @@ class SingleActionPayload(BaseModel):
     """Indicates that this event is not part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    settings: dict[str, Any]
+    settings: PluginDefinedData
     """Settings associated with the action instance."""
 
 
@@ -55,7 +59,7 @@ class MultiActionPayload(BaseModel):
     """Indicates that this event is part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    settings: dict[str, Any]
+    settings: PluginDefinedData
     """Settings associated with the action instance."""
 
 

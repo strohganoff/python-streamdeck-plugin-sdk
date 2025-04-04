@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -9,6 +9,7 @@ from streamdeck.models.events.common import (
     ContextualEventMixin,
     DeviceSpecificEventMixin,
     MultiActionPayload,
+    PluginDefinedData,
     SingleActionPayload,
 )
 
@@ -24,7 +25,7 @@ class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMix
 
 class GlobalSettingsPayload(BaseModel):
     """Additional information about the didReceiveGlobalSettings event that occurred."""
-    settings: dict[str, Any]
+    settings: PluginDefinedData
     """The global settings received from the Stream Deck."""
 
 

@@ -20,12 +20,12 @@ def is_literal_str_type(value: object | None) -> TypeIs[LiteralString]:
     return all(isinstance(literal_value, str) for literal_value in get_args(value))
 
 
-## EventBase implementation models of the Stream Deck Plugin SDK events.
+## EventBase implementation model of the Stream Deck Plugin SDK events.
 
 class EventBase(BaseModel, ABC):
     """Base class for event models that represent Stream Deck Plugin SDK events."""
     # Configure to use the docstrings of the fields as the field descriptions.
-    model_config = ConfigDict(use_attribute_docstrings=True)
+    model_config = ConfigDict(use_attribute_docstrings=True, serialize_by_alias=True)
 
     event: str
     """Name of the event used to identify what occurred.

@@ -58,8 +58,8 @@
     "dependencies" = [
     #     "jmespath >= 1.0.1",  # Upcoming pattern-filtering functionality
         "platformdirs >= 4.3.6",
-        "pydantic >= 2.9.2",
-        "pydantic_core >= 2.23.4",
+        "pydantic >= 2.11",
+        "pydantic_core >= 2.33",
         "tomli >= 2.0.2",
         "websockets >= 13.1",
         "typer >= 0.15.1",

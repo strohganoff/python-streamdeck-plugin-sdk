@@ -32,7 +32,7 @@ class MultiActionKeyGesturePayload(BaseModel):
     """Indicates that this event is part of a multi-action."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""
-    userDesiredState: int
+    user_desired_state: Annotated[int, Field(alias="userDesiredState")]
     """Desired state as specified by the user.
 
     Only applicable to actions that have multiple states defined within the manifest.json file, and when this action instance is part of a multi-action.

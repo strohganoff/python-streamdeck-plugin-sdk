@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
@@ -16,7 +16,7 @@ class TouchTapPayload(BaseModel):
     """Coordinates that identify the location of the action instance on the device."""
     hold: bool
     """Determines whether the tap was considered 'held'."""
-    tapPos: tuple[int, int]  # noqa: N815
+    tap_position: Annotated[tuple[int, int], Field(alias="tapPos")]
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
     settings: dict[str, Any]
     """Settings associated with the action instance."""

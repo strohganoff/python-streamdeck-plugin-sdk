@@ -1,4 +1,4 @@
-from typing import Annotated, Final, Literal
+from typing import Annotated, Final, Literal, NamedTuple
 
 from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
@@ -38,7 +38,13 @@ DEVICE_TYPE_BY_ID: Final[dict[DeviceTypeId, DeviceType]] = {
 }
 
 
-class DeviceSize(TypedDict):
+class DeviceSizeDict(TypedDict):
+    """Number of action slots, excluding dials / touchscreens, available to the device."""
+    columns: int
+    rows: int
+
+
+class DeviceSize(NamedTuple):
     """Number of action slots, excluding dials / touchscreens, available to the device."""
     columns: int
     rows: int
@@ -48,25 +54,34 @@ class DeviceInfo(BaseModel):
     """Information about the newly connected device."""
     name: str
     """Name of the device, as specified by the user in the Stream Deck application."""
-    size: DeviceSize
-    """Number of action slots, excluding dials / touchscreens, available to the device."""
-    _type: Annotated[DeviceTypeId, Field(alias="type")]
+    type_id: Annotated[DeviceTypeId, Field(alias="type", repr=False)]
     """The type (id) of the device that was connected."""
+    size_obj: Annotated[DeviceSizeDict, Field(alias="size", repr=False)]
+    """Number of action slots, excluding dials / touchscreens, available to the device."""
 
     @property
     def type(self) -> DeviceType:
         """The type (product name) of the device that was connected."""
-        if self._type not in DEVICE_TYPE_BY_ID:
-            msg = f"Unknown device type id: {self._type}"
+        if self.type_id not in DEVICE_TYPE_BY_ID:
+            msg = f"Unknown device type id: {self.type_id}"
             raise ValueError(msg)
 
-        return DEVICE_TYPE_BY_ID[self._type]
+        return DEVICE_TYPE_BY_ID[self.type_id]
+
+    @property
+    def size(self) -> DeviceSize:
+        """Number of action slots, excluding dials / touchscreens, available to the device."""
+        return DeviceSize(**self.size_obj)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the device info."""
+        return f"DeviceInfo(name={self.name}, type={self.type}, size={self.size})"
 
 
 class DeviceDidConnect(EventBase, DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is connected."""
     event: Literal["deviceDidConnect"]  # type: ignore[override]
-    deviceInfo: DeviceInfo
+    device_info: Annotated[DeviceInfo, Field(alias="deviceInfo")]
     """Information about the newly connected device."""
 
 

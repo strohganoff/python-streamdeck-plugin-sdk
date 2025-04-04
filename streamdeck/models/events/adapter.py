@@ -11,7 +11,6 @@ if TYPE_CHECKING:
     from streamdeck.models.events.base import EventBase
 
 
-## EventAdapter class for handling and extending available event models.
 
 class EventAdapter:
     """TypeAdapter-encompassing class for handling and extending available event models."""

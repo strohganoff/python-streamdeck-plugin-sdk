@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import DeviceSpecificEventMixin
@@ -14,19 +14,19 @@ TitleAlignment = Literal["top", "middle", "bottom"]
 
 class TitleParameters(BaseModel):
     """Defines aesthetic properties that determine how the title should be rendered."""
-    fontFamily: str
+    font_family: Annotated[str, Field(alias="fontFamily")]
     """Font-family the title will be rendered with."""
-    fontSize: int
+    font_size: Annotated[int, Field(alias="fontSize")]
     """Font-size the title will be rendered in."""
-    fontStyle: FontStyle
+    font_style: Annotated[FontStyle, Field(alias="fontStyle")]
     """Typography of the title."""
-    fontUnderline: bool
+    font_underline: Annotated[bool, Field(alias="fontUnderline")]
     """Whether the font should be underlined."""
-    showTitle: bool
+    show_title: Annotated[bool, Field(alias="showTitle")]
     """Whether the user has opted to show, or hide the title for this action instance."""
-    titleAlignment: TitleAlignment
+    title_alignment: Annotated[str, Field(alias="titleAlignment")]
     """Alignment of the title."""
-    titleColor: str
+    title_color: Annotated[str, Field(alias="titleColor")]
     """Color of the title, represented as a hexadecimal value."""
 
 
@@ -38,7 +38,7 @@ class TitleParametersDidChangePayload(BaseModel):
     """Coordinates that identify the location of an action."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
-    titleParameters: TitleParameters
+    title_parameters: Annotated[TitleParameters, Field(alias="titleParameters")]
     """Defines aesthetic properties that determine how the title should be rendered."""
     state: Optional[int]  # noqa: UP007
     """Current state of the action; only applicable to actions that have multiple states defined within the manifest.json file."""

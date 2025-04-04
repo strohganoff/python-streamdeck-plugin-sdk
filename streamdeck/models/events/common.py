@@ -21,7 +21,7 @@ class DeviceSpecificEventMixin:
     """Unique identifier of the Stream Deck device that this event is associated with."""
 
 
-## Payload models used by multiple event models.
+## Payload models and metadata used by multiple event models.
 
 class SingleActionPayload(BaseModel):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are not part of a multi-action."""

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from streamdeck.models.events.base import ConfiguredBaseModel
 
 
 ## Mixin classes for common event model fields.
@@ -27,7 +27,7 @@ PluginDefinedData = dict[str, Any]
 """Data of arbitrary structure that is defined in and relevant to the plugin."""
 
 
-class SingleActionPayload(BaseModel):
+class SingleActionPayload(ConfiguredBaseModel):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are not part of a multi-action."""
     controller: Literal["Encoder", "Keypad"]
     """Defines the controller type the action is applicable to.
@@ -45,7 +45,7 @@ class SingleActionPayload(BaseModel):
     """Settings associated with the action instance."""
 
 
-class MultiActionPayload(BaseModel):
+class MultiActionPayload(ConfiguredBaseModel):
     """Contextualized information for a willAppear, willDisappear, and didReceiveSettings events that are part of a multi-action.
 
     NOTE: Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.

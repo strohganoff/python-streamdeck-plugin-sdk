@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
-from streamdeck.models.events.base import EventBase
+from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import DeviceSpecificEventMixin, PluginDefinedData
 
 
@@ -13,7 +13,7 @@ FontStyle = Literal["", "Bold Italic", "Bold", "Italic", "Regular"]
 TitleAlignment = Literal["top", "middle", "bottom"]
 
 
-class TitleParameters(BaseModel):
+class TitleParameters(ConfiguredBaseModel):
     """Defines aesthetic properties that determine how the title should be rendered."""
     font_family: Annotated[str, Field(alias="fontFamily")]
     """Font-family the title will be rendered with."""
@@ -31,7 +31,7 @@ class TitleParameters(BaseModel):
     """Color of the title, represented as a hexadecimal value."""
 
 
-class TitleParametersDidChangePayload(BaseModel):
+class TitleParametersDidChangePayload(ConfiguredBaseModel):
     """Contextualized information for this event."""
     controller: Literal["Keypad", "Encoder"]
     """Defines the controller type the action is applicable to."""

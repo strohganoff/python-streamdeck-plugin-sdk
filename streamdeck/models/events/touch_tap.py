@@ -12,7 +12,7 @@ from streamdeck.models.events.common import (
 )
 
 
-class TouchTapPayload(BaseModel):
+class TouchTapPayload(ConfiguredBaseModel):
     """Contextualized information for a TouchTap event."""
     controller: Literal["Encoder"]
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""

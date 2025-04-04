@@ -1,9 +1,9 @@
 from typing import Annotated, Final, Literal, NamedTuple
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from typing_extensions import TypedDict
 
-from streamdeck.models.events.base import EventBase
+from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import DeviceSpecificEventMixin
 
 
@@ -50,7 +50,7 @@ class DeviceSize(NamedTuple):
     rows: int
 
 
-class DeviceInfo(BaseModel):
+class DeviceInfo(ConfiguredBaseModel):
     """Information about the newly connected device."""
     name: str
     """Name of the device, as specified by the user in the Stream Deck application."""

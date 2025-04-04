@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
-
-from streamdeck.models.events.base import EventBase
+from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 
 
-class ApplicationPayload(BaseModel):
+class ApplicationPayload(ConfiguredBaseModel):
     """Payload containing the name of the application that triggered the event."""
     application: str
     """Name of the application that triggered the event."""

@@ -2,15 +2,13 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
-
-from streamdeck.models.events.base import EventBase
+from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin, PluginDefinedData
 
 
 ## Payload models used in the below DialDown, DialRotate, and DialUp events
 
-class EncoderPayload(BaseModel):
+class EncoderPayload(ConfiguredBaseModel):
     """Contextualized information for a DialDown or DialUp event."""
     controller: Literal["Encoder"]
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
@@ -19,7 +17,7 @@ class EncoderPayload(BaseModel):
     settings: PluginDefinedData
 
 
-class DialRotatePayload(BaseModel):
+class DialRotatePayload(ConfiguredBaseModel):
     """Contextualized information for a DialRotate event."""
     controller: Literal["Encoder"]
     """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""

@@ -1,11 +1,9 @@
 from typing import Literal
 
-from pydantic import BaseModel
-
-from streamdeck.models.events.base import EventBase
+from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 
 
-class DeepLinkPayload(BaseModel):
+class DeepLinkPayload(ConfiguredBaseModel):
     """Payload containing information about the URL that triggered the event."""
     url: str
     """The deep-link URL, with the prefix omitted."""

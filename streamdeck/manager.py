@@ -9,7 +9,8 @@ from pydantic import ValidationError
 from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_listener import EventListener, EventListenerManager
-from streamdeck.models.events import ContextualEventMixin, EventAdapter
+from streamdeck.models.events.adapter import EventAdapter
+from streamdeck.models.events.common import ContextualEventMixin
 from streamdeck.types import (
     EventHandlerBasicFunc,
     EventHandlerFunc,

@@ -17,7 +17,7 @@ def action(request: pytest.FixtureRequest) -> ActionBase:
 
     We have to initialize the classes here to ensure fresh instances are used to avoid sharing data between tests.
     """
-    action_class, init_args = cast(tuple[type[ActionBase], tuple[Any]], request.param)
+    action_class, init_args = cast("tuple[type[ActionBase], tuple[Any]]", request.param)
     return action_class(*init_args)
 
 

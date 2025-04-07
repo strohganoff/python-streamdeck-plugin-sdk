@@ -13,7 +13,7 @@ from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
 from websockets.sync.client import ClientConnection, connect
 
 from streamdeck.event_listener import EventListener, StopStreaming
-from streamdeck.models import events
+from streamdeck.models.events import DEFAULT_EVENT_MODELS, EventBase
 
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ class WebSocketClient(EventListener):
     """A client for connecting to the Stream Deck device's WebSocket server and sending/receiving events."""
     _client: ClientConnection | None
 
-    event_models: ClassVar[list[type[events.EventBase]]] = events.DEFAULT_EVENT_MODELS
+    event_models: ClassVar[list[type[EventBase]]] = DEFAULT_EVENT_MODELS
 
     def __init__(self, port: int):
         """Initialize a WebSocketClient instance.

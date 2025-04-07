@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from streamdeck.actions import Action, ActionRegistry
-from streamdeck.models import events
 
 from tests.test_utils.fake_event_factories import (
     DialDownEventFactory,
     DialUpEventFactory,
     KeyUpEventFactory,
 )
+
+
+if TYPE_CHECKING:
+    from streamdeck.models import events
 
 
 def test_register_action() -> None:

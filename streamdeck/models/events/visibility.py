@@ -4,7 +4,7 @@ from typing import Literal
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
-    BaseActionPayload,
+    BasePayload,
     CardinalityDiscriminated,
     ContextualEventMixin,
     CoordinatesPayloadMixin,
@@ -12,14 +12,24 @@ from streamdeck.models.events.common import (
     KeypadControllerType,
     MultiActionPayloadMixin,
     SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
 )
 
 
-class SingleActionVisibilityPayload(BaseActionPayload, SingleActionPayloadMixin, CoordinatesPayloadMixin):
+class SingleActionVisibilityPayload(
+    BasePayload,
+    SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
+    CoordinatesPayloadMixin,
+):
     """Contextualized information for willAppear and willDisappear events that is not part of a multi-action."""
 
 
-class MultiActionVisibilityPayload(BaseActionPayload[KeypadControllerType], MultiActionPayloadMixin):
+class MultiActionVisibilityPayload(
+    BasePayload[KeypadControllerType],
+    MultiActionPayloadMixin,
+    StatefulActionPayloadMixin,
+):
     """Contextualized information for willAppear and willDisappear events that is part of a multi-action."""
 
 

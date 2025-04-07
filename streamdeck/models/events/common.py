@@ -28,6 +28,10 @@ class DeviceSpecificEventMixin:
 ## Payload models and metadata used by multiple event models.
 
 
+PluginDefinedData = dict[str, Any]
+"""Data of arbitrary structure that is defined in and relevant to the plugin."""
+
+
 EncoderControllerType = Literal["Encoder"]
 """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
 KeypadControllerType = Literal["Keypad"]
@@ -38,8 +42,16 @@ ControllerType = Literal[EncoderControllerType, KeypadControllerType]
 CT = TypeVar("CT", bound=ControllerType, default=ControllerType)
 
 
-PluginDefinedData = dict[str, Any]
-"""Data of arbitrary structure that is defined in and relevant to the plugin."""
+class BasePayload(ConfiguredBaseModel, Generic[CT], ABC):
+    """Base class for all complex payload models."""
+    controller: CT
+    """Defines the controller type the action is applicable to.
+
+    'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
+    'Encoder' refers to a dial / touchscreen on a 'Stream Deck +' device.
+    """
+    settings: PluginDefinedData
+    """Settings associated with the action instance."""
 
 
 class CoordinatesDict(TypedDict):
@@ -81,21 +93,8 @@ class CoordinatesPayloadMixin:
         return Coordinates(**self.coordinates_obj)
 
 
-class BasePayload(ConfiguredBaseModel, Generic[CT], ABC):
-    """Base class for all complex payload models."""
-    controller: CT
-    """Defines the controller type the action is applicable to.
-
-    'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
-    'Encoder' refers to a dial / touchscreen on a 'Stream Deck +' device.
-    """
-    settings: PluginDefinedData
-    """Settings associated with the action instance."""
-
-
-class BaseActionPayload(BasePayload[CT], ABC):
-    """Base class for payloads of action events."""
-
+class StatefulActionPayloadMixin:
+    """Mixin class for payload models that have an optional state field."""
     state: Optional[int] = None  # noqa: UP007
     """Current state of the action.
 

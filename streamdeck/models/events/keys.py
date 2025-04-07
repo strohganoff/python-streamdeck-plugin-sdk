@@ -6,7 +6,7 @@ from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
-    BaseActionPayload,
+    BasePayload,
     CardinalityDiscriminated,
     ContextualEventMixin,
     CoordinatesPayloadMixin,
@@ -14,6 +14,7 @@ from streamdeck.models.events.common import (
     KeypadControllerType,
     MultiActionPayloadMixin,
     SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
 )
 
 
@@ -23,11 +24,20 @@ from streamdeck.models.events.common import (
 OptionalKeyControllerTypeField = Annotated[KeypadControllerType, Field(default=None)]
 
 
-class SingleActionKeyGesturePayload(BaseActionPayload[OptionalKeyControllerTypeField], SingleActionPayloadMixin, CoordinatesPayloadMixin):
+class SingleActionKeyGesturePayload(
+    BasePayload[OptionalKeyControllerTypeField],
+    SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
+    CoordinatesPayloadMixin,
+):
     """Contextualized information for a KeyDown or KeyUp event that is not part of a multi-action."""
 
 
-class MultiActionKeyGesturePayload(BaseActionPayload[OptionalKeyControllerTypeField], MultiActionPayloadMixin):
+class MultiActionKeyGesturePayload(
+    BasePayload[OptionalKeyControllerTypeField],
+    MultiActionPayloadMixin,
+    StatefulActionPayloadMixin,
+):
     """Contextualized information for a KeyDown or KeyUp event that is part of a multi-action."""
     user_desired_state: Annotated[int, Field(alias="userDesiredState")]
     """Desired state as specified by the user.

@@ -6,9 +6,10 @@ from pydantic import Field
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
-    BaseActionPayload,
+    BasePayload,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
+    StatefulActionPayloadMixin,
 )
 
 
@@ -34,7 +35,11 @@ class TitleParameters(ConfiguredBaseModel):
     """Color of the title, represented as a hexadecimal value."""
 
 
-class TitleParametersDidChangePayload(BaseActionPayload, CoordinatesPayloadMixin):
+class TitleParametersDidChangePayload(
+    BasePayload,
+    CoordinatesPayloadMixin,
+    StatefulActionPayloadMixin,
+):
     """Contextualized information for this event."""
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""

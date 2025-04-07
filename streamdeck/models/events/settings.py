@@ -4,7 +4,7 @@ from typing import Literal
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
-    BaseActionPayload,
+    BasePayload,
     CardinalityDiscriminated,
     ContextualEventMixin,
     CoordinatesPayloadMixin,
@@ -13,16 +13,27 @@ from streamdeck.models.events.common import (
     MultiActionPayloadMixin,
     PluginDefinedData,
     SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
 )
 
 
 ## Models for didReceiveSettings event and its specific payloads.
 
-class SingleActionSettingsPayload(BaseActionPayload, SingleActionPayloadMixin, CoordinatesPayloadMixin):
+
+class SingleActionSettingsPayload(
+    BasePayload,
+    SingleActionPayloadMixin,
+    StatefulActionPayloadMixin,
+    CoordinatesPayloadMixin,
+):
     """Contextualized information for a didReceiveSettings events that are not part of a multi-action."""
 
 
-class MultiActionSettingsPayload(BaseActionPayload[KeypadControllerType], MultiActionPayloadMixin):
+class MultiActionSettingsPayload(
+    BasePayload[KeypadControllerType],
+    MultiActionPayloadMixin,
+    StatefulActionPayloadMixin,
+):
     """Contextualized information for a didReceiveSettings events that are part of a multi-action.
 
     NOTE: Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.

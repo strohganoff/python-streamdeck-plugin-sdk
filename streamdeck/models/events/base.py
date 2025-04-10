@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Literal, get_args, get_type_hints
+from typing import Any, Literal, get_args, get_origin, get_type_hints
 
 from pydantic import BaseModel, ConfigDict
 from typing_extensions import (  # noqa: UP035
     LiteralString,
-    TypeIs,
+    TypeGuard,
     override,
 )
 
@@ -33,12 +33,12 @@ class ConfiguredBaseModel(BaseModel, ABC):
         return super().model_dump_json(**kwargs)
 
 
-def is_literal_str_type(value: object | None) -> TypeIs[LiteralString]:
+def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
     """Check if a type is a Literal type with string values."""
     if value is None:
         return False
 
-    event_field_base_type = getattr(value, "__origin__", None)
+    event_field_base_type = get_origin(value)
 
     if event_field_base_type is not Literal:
         return False
@@ -50,8 +50,6 @@ def is_literal_str_type(value: object | None) -> TypeIs[LiteralString]:
 
 class EventBase(ConfiguredBaseModel, ABC):
     """Base class for event models that represent Stream Deck Plugin SDK events."""
-    # Configure to use the docstrings of the fields as the field descriptions.
-    model_config = ConfigDict(use_attribute_docstrings=True, serialize_by_alias=True)
 
     event: str
     """Name of the event used to identify what occurred.
@@ -63,25 +61,25 @@ class EventBase(ConfiguredBaseModel, ABC):
         """Validate that the event field is a Literal[str] type."""
         super().__init_subclass__(**kwargs)
 
-        model_event_type = cls.get_event_type_annotations()
+        model_event_type = cls.__event_type__()
 
         if not is_literal_str_type(model_event_type):
             msg = f"The event field annotation must be a Literal[str] type. Given type: {model_event_type}"
             raise TypeError(msg)
 
     @classmethod
-    def get_event_type_annotations(cls) -> type[object]:
+    def __event_type__(cls) -> type[object]:
         """Get the type annotations of the subclass model's event field."""
         return get_type_hints(cls)["event"]
 
     @classmethod
-    def get_model_event_name(cls) -> tuple[str, ...]:
+    def get_model_event_names(cls) -> tuple[str, ...]:
         """Get the value of the subclass model's event field Literal annotation."""
-        model_event_type = cls.get_event_type_annotations()
+        model_event_type = cls.__event_type__()
 
         # Ensure that the event field annotation is a Literal type.
         if not is_literal_str_type(model_event_type):
-            msg = "The `event` field annotation of an Event model must be a Literal[str] type."
+            msg = f"The event field annotation of an Event model must be a Literal[str] type. Given type: {model_event_type}"
             raise TypeError(msg)
 
         return get_args(model_event_type)

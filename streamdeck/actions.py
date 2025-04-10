@@ -42,10 +42,6 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        # if event_name not in DEFAULT_EVENT_NAMES:
-        #     msg = f"Provided event name for action handler does not exist: {event_name}"
-        #     raise KeyError(msg)
-
         def _wrapper(func: EventHandlerFunc[TEvent_contra]) -> EventHandlerFunc[TEvent_contra]:
             # Cast to BaseEventHandlerFunc so that the storage type is consistent.
             self._events[event_name].add(cast("BaseEventHandlerFunc", func))
@@ -66,10 +62,6 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        # if event_name not in DEFAULT_EVENT_NAMES:
-        #     msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
-        #     raise KeyError(msg)
-
         if event_name not in self._events:
             return
 

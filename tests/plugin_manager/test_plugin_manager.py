@@ -54,7 +54,7 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
 
 def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -> None:
     """Test that an event listener can be registered in the PluginManager."""
-    mock_event_model_class = Mock(get_model_event_name=lambda: ["fake_event_name"])
+    mock_event_model_class = Mock(get_model_event_names=lambda: ["fake_event_name"])
     listener = Mock(event_models=[mock_event_model_class])
 
     assert len(plugin_manager._event_listener_manager.listeners_lookup_by_thread) == 0

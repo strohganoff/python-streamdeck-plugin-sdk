@@ -29,7 +29,9 @@ class EventAdapter:
     def add_model(self, model: type[EventBase]) -> None:
         """Add a model to the adapter, and add the event name of the model to the set of registered event names."""
         self._models.append(model)
-        self._event_names.update(model.get_model_event_name())
+        # Models can have multiple event names defined in the Literal args of the event field,
+        # so `get_model_event_names()` returns a tuple of all event names, even if there is only one.
+        self._event_names.update(model.get_model_event_names())
 
     def event_name_exists(self, event_name: str) -> bool:
         """Check if an event name has been registered with the adapter."""

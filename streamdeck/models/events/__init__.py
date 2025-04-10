@@ -60,7 +60,7 @@ def _get_default_event_names() -> set[str]:
     default_event_names: set[str] = set()
 
     for event_model in DEFAULT_EVENT_MODELS:
-        default_event_names.update(event_model.get_model_event_name())
+        default_event_names.update(event_model.get_model_event_names())
 
     return default_event_names
 

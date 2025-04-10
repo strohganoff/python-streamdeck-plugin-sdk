@@ -28,22 +28,19 @@ class DialRotatePayload(EncoderPayload):
 
 ## Event models for DialDown, DialRotate, and DialUp events
 
-class DialDown(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+class DialDown(EventBase[Literal["dialDown"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user presses a dial (Stream Deck +)."""
-    event: Literal["dialDown"]  # type: ignore[override]
     payload: EncoderPayload
     """Contextualized information for this event."""
 
 
-class DialRotate(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+class DialRotate(EventBase[Literal["dialRotate"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user rotates a dial (Stream Deck +)."""
-    event: Literal["dialRotate"]  # type: ignore[override]
     payload: DialRotatePayload
     """Contextualized information for this event."""
 
 
-class DialUp(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+class DialUp(EventBase[Literal["dialUp"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user releases a pressed dial (Stream Deck +)."""
-    event: Literal["dialUp"]  # type: ignore[override]
     payload: EncoderPayload
     """Contextualized information for this event."""

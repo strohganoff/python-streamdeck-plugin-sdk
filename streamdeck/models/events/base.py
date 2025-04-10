@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Literal, get_args, get_origin, get_type_hints
+from typing import Any, Generic, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict
+from pydantic._internal._generics import get_origin as get_model_origin
 from typing_extensions import (  # noqa: UP035
     LiteralString,
     TypeGuard,
+    TypeVar,
     override,
 )
 
@@ -34,8 +36,11 @@ class ConfiguredBaseModel(BaseModel, ABC):
 
 
 def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
-    """Check if a type is a Literal type with string values."""
+    """Check if a type is a concrete Literal type with string args."""
     if value is None:
+        return False
+
+    if isinstance(value, TypeVar):
         return False
 
     event_field_base_type = get_origin(value)
@@ -48,10 +53,13 @@ def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
 
 ## EventBase implementation model of the Stream Deck Plugin SDK events.
 
-class EventBase(ConfiguredBaseModel, ABC):
+EventName_co = TypeVar("EventName_co", bound=str, default=str, covariant=True)
+
+
+class EventBase(ConfiguredBaseModel, ABC, Generic[EventName_co]):
     """Base class for event models that represent Stream Deck Plugin SDK events."""
 
-    event: str
+    event: EventName_co
     """Name of the event used to identify what occurred.
 
     Subclass models must define this field as a Literal type with the event name string that the model represents.
@@ -60,6 +68,11 @@ class EventBase(ConfiguredBaseModel, ABC):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Validate that the event field is a Literal[str] type."""
         super().__init_subclass__(**kwargs)
+
+        # This is a GenericAlias (likely used in the subclass definition, i.e. `class ConcreteEvent(EventBase[Literal["event_name"]]):`) which is technically a subclass.
+        # We can safely ignore this case, as we only want to validate the concrete subclass itself (`ConscreteEvent`).
+        if get_model_origin(cls) is None:
+            return
 
         model_event_type = cls.__event_type__()
 
@@ -70,7 +83,7 @@ class EventBase(ConfiguredBaseModel, ABC):
     @classmethod
     def __event_type__(cls) -> type[object]:
         """Get the type annotations of the subclass model's event field."""
-        return get_type_hints(cls)["event"]
+        return cls.model_fields["event"].annotation  # type: ignore[index]
 
     @classmethod
     def get_model_event_names(cls) -> tuple[str, ...]:

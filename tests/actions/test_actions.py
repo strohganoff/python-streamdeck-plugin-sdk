@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any, cast
 import pytest
 from streamdeck.actions import Action, ActionBase, GlobalAction
 from streamdeck.models.events import DEFAULT_EVENT_NAMES
-from streamdeck.types import LiteralStrGenericAlias
 
 
 if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 @pytest.fixture(params=[[Action, ("test.uuid.for.action",)], [GlobalAction, ()]])

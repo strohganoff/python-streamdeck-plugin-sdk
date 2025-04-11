@@ -3,9 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Protocol, TypeVar, Union
 
-from typing_extensions import LiteralString  # noqa: UP035
-
-from streamdeck.models.events import DEFAULT_EVENT_NAMES, EventBase
+from streamdeck.models.events import EventBase
 
 
 if TYPE_CHECKING:
@@ -20,12 +18,6 @@ EventNameStr: TypeAlias = str  # noqa: UP040
 
 We don't define literal string values here, as the list of available event names can be added to dynamically.
 """
-
-
-# This type alias is used to handle static type checking accurately while still conveying that
-# a value is expected to be a Literal with string type args.
-LiteralStrGenericAlias: TypeAlias = LiteralString  # noqa: UP040
-"""Type alias for a generic literal string type."""
 
 
 ### Event Handler Type Definitions ###

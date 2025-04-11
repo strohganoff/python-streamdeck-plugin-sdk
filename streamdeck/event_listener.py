@@ -6,8 +6,6 @@ from logging import getLogger
 from queue import Queue
 from typing import TYPE_CHECKING
 
-from streamdeck.types import LiteralStrGenericAlias
-
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -16,6 +14,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
     from streamdeck.models.events import EventBase
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 

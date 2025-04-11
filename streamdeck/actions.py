@@ -6,14 +6,13 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
-from streamdeck.types import BaseEventHandlerFunc, LiteralStrGenericAlias
-
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
     from streamdeck.models.events import EventBase
-    from streamdeck.types import EventHandlerFunc, EventNameStr, TEvent_contra
+    from streamdeck.models.events.base import LiteralStrGenericAlias
+    from streamdeck.types import BaseEventHandlerFunc, EventHandlerFunc, EventNameStr, TEvent_contra
 
 
 logger = getLogger("streamdeck.actions")

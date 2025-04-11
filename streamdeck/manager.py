@@ -14,7 +14,6 @@ from streamdeck.models.events.common import ContextualEventMixin
 from streamdeck.types import (
     EventHandlerBasicFunc,
     EventHandlerFunc,
-    LiteralStrGenericAlias,
     TEvent_contra,
     is_bindable_handler,
 )
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from streamdeck.models.events import EventBase
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.

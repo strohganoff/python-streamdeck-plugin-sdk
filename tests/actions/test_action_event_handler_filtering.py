@@ -6,7 +6,6 @@ from unittest.mock import create_autospec
 import pytest
 from streamdeck.actions import Action, ActionRegistry, GlobalAction
 from streamdeck.models.events.common import ContextualEventMixin
-from streamdeck.types import LiteralStrGenericAlias
 
 from tests.test_utils.fake_event_factories import (
     ApplicationDidLaunchEventFactory,
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
 
     from polyfactory.factories.pydantic_factory import ModelFactory
     from streamdeck.models import events
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 

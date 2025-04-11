@@ -5,11 +5,10 @@ from typing import TYPE_CHECKING, Annotated, Union
 from pydantic import Field, TypeAdapter
 
 from streamdeck.models.events import DEFAULT_EVENT_MODELS
-from streamdeck.types import LiteralStrGenericAlias
 
 
 if TYPE_CHECKING:
-    from streamdeck.models.events.base import EventBase
+    from streamdeck.models.events.base import EventBase, LiteralStrGenericAlias
 
 
 class EventAdapter:

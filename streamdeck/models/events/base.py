@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Generic, Literal, get_args, get_origin
+from typing import Annotated, Any, Generic, Literal, get_args, get_origin
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, GetPydanticSchema
 from pydantic._internal._generics import get_origin as get_model_origin
+from pydantic_core import core_schema
 from typing_extensions import (  # noqa: UP035
     LiteralString,
+    TypeAlias,
     TypeGuard,
     TypeVar,
     override,
@@ -35,6 +37,30 @@ class ConfiguredBaseModel(BaseModel, ABC):
         return super().model_dump_json(**kwargs)
 
 
+# We do this to get the typing module's _LiteralGenericAlias type, which is not formally exported.
+LiteralGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
+"""A generic alias for a Literal type."""
+
+_pydantic_str_schema = core_schema.str_schema()
+
+PydanticLiteralStrGenericAlias: TypeAlias = Annotated[  # type: ignore[valid-type]  # noqa: UP040
+    LiteralGenericAlias,
+    GetPydanticSchema(lambda _ts, handler: handler(_pydantic_str_schema))
+]
+"""A Pydantic-compatible generic alias for a Literal type.
+
+Pydantic will treat a field of this type as a string schema, while static type checkers
+will still treat it as a LiteralGenericAlias type.
+
+Even if a subclass of EventBase uses a Literal with multiple string values,
+an event message will only ever have one of those values in the event field,
+and so we don't need to handle this with a more complex Pydantic schema.
+"""
+
+LiteralEventName_co = TypeVar("LiteralEventName_co", bound=PydanticLiteralStrGenericAlias, default=PydanticLiteralStrGenericAlias, covariant=True)
+"""Type variable for a Literal type with string args."""
+
+
 def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
     """Check if a type is a concrete Literal type with string args."""
     if value is None:
@@ -53,13 +79,10 @@ def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
 
 ## EventBase implementation model of the Stream Deck Plugin SDK events.
 
-EventName_co = TypeVar("EventName_co", bound=str, default=str, covariant=True)
-
-
-class EventBase(ConfiguredBaseModel, ABC, Generic[EventName_co]):
+class EventBase(ConfiguredBaseModel, ABC, Generic[LiteralEventName_co]):
     """Base class for event models that represent Stream Deck Plugin SDK events."""
 
-    event: EventName_co
+    event: LiteralEventName_co
     """Name of the event used to identify what occurred.
 
     Subclass models must define this field as a Literal type with the event name string that the model represents.

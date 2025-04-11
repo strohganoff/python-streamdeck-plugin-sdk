@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Any, cast
 import pytest
 from streamdeck.actions import Action, ActionBase, GlobalAction
 from streamdeck.models.events import DEFAULT_EVENT_NAMES
+from streamdeck.types import LiteralStrGenericAlias
 
 
 if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
 
 
-@pytest.fixture(params=[[Action, ("test.uuid.for.action",)], [GlobalAction, []]])
+@pytest.fixture(params=[[Action, ("test.uuid.for.action",)], [GlobalAction, ()]])
 def action(request: pytest.FixtureRequest) -> ActionBase:
     """Fixture for initializing the Action and GlobalAction classes to parameterize the tests.
 
@@ -25,7 +26,7 @@ def action(request: pytest.FixtureRequest) -> ActionBase:
 def test_action_register_event_handler(action: ActionBase, event_name: str) -> None:
     """Test that an event handler can be registered for each valid event name."""
     @action.on(event_name)
-    def handler(event: EventBase) -> None:
+    def handler(event_data: EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     # Ensure the handler is registered for the correct event name
@@ -37,10 +38,10 @@ def test_action_get_event_handlers(action: ActionBase) -> None:
     """Test that the correct event handlers are retrieved for each event name."""
     # Each iteration will add to the action's event handlers, thus we're checking that
     # even with multiple event names, the handlers are correctly retrieved.
-    for i, event_name in enumerate(DEFAULT_EVENT_NAMES):
+    for _, event_name in enumerate(DEFAULT_EVENT_NAMES):
         # Register a handler for the given event name
         @action.on(event_name)
-        def handler(event: EventBase) -> None:
+        def handler(event_data: EventBase[LiteralStrGenericAlias]) -> None:
             pass
 
         # Retrieve the handlers using the generator
@@ -73,11 +74,11 @@ def test_action_get_event_handlers_invalid_event_name(action: ActionBase) -> Non
 def test_action_register_multiple_handlers_for_event(action: ActionBase) -> None:
     """Test that multiple handlers can be registered for the same event on the same action."""
     @action.on("keyDown")
-    def handler_one(event: EventBase) -> None:
+    def handler_one(event_data: EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     @action.on("keyDown")
-    def handler_two(event: EventBase) -> None:
+    def handler_two(event_data: EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     handlers = list(action.get_event_handlers("keyDown"))

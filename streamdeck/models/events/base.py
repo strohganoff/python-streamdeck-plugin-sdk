@@ -4,7 +4,7 @@ from abc import ABC
 from typing import Annotated, Any, Generic, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, GetPydanticSchema
-from pydantic._internal._generics import get_origin as get_model_origin
+from pydantic._internal._generics import get_origin as get_model_origin  # type: ignore[import]
 from pydantic_core import core_schema
 from typing_extensions import (  # noqa: UP035
     LiteralString,
@@ -38,19 +38,22 @@ class ConfiguredBaseModel(BaseModel, ABC):
 
 
 # We do this to get the typing module's _LiteralGenericAlias type, which is not formally exported.
-LiteralGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
-"""A generic alias for a Literal type."""
+_LiteralGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
+"""A generic alias for a Literal type used for internal mechanisms of this module.
+
+This is opposed to the streamdeck.types.LiteralStrGenericAlias which is used for typing.
+"""
 
 _pydantic_str_schema = core_schema.str_schema()
 
 PydanticLiteralStrGenericAlias: TypeAlias = Annotated[  # type: ignore[valid-type]  # noqa: UP040
-    LiteralGenericAlias,
+    _LiteralGenericAlias,
     GetPydanticSchema(lambda _ts, handler: handler(_pydantic_str_schema))
 ]
 """A Pydantic-compatible generic alias for a Literal type.
 
 Pydantic will treat a field of this type as a string schema, while static type checkers
-will still treat it as a LiteralGenericAlias type.
+will still treat it as a _LiteralGenericAlias type.
 
 Even if a subclass of EventBase uses a Literal with multiple string values,
 an event message will only ever have one of those values in the event field,
@@ -61,7 +64,7 @@ LiteralEventName_co = TypeVar("LiteralEventName_co", bound=PydanticLiteralStrGen
 """Type variable for a Literal type with string args."""
 
 
-def is_literal_str_type(value: object | None) -> TypeGuard[LiteralString]:
+def is_literal_str_generic_alias_type(value: object | None) -> TypeGuard[LiteralString]:
     """Check if a type is a concrete Literal type with string args."""
     if value is None:
         return False
@@ -99,7 +102,7 @@ class EventBase(ConfiguredBaseModel, ABC, Generic[LiteralEventName_co]):
 
         model_event_type = cls.__event_type__()
 
-        if not is_literal_str_type(model_event_type):
+        if not is_literal_str_generic_alias_type(model_event_type):
             msg = f"The event field annotation must be a Literal[str] type. Given type: {model_event_type}"
             raise TypeError(msg)
 
@@ -114,7 +117,7 @@ class EventBase(ConfiguredBaseModel, ABC, Generic[LiteralEventName_co]):
         model_event_type = cls.__event_type__()
 
         # Ensure that the event field annotation is a Literal type.
-        if not is_literal_str_type(model_event_type):
+        if not is_literal_str_generic_alias_type(model_event_type):
             msg = f"The event field annotation of an Event model must be a Literal[str] type. Given type: {model_event_type}"
             raise TypeError(msg)
 

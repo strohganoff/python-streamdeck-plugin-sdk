@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from streamdeck.actions import Action, ActionRegistry
+from streamdeck.types import LiteralStrGenericAlias
 
 from tests.test_utils.fake_event_factories import (
     DialDownEventFactory,
@@ -46,7 +47,7 @@ def test_get_action_handlers_with_handlers() -> None:
     action = Action("my-fake-action-uuid")
 
     @action.on("dialDown")
-    def dial_down_handler(event: events.EventBase) -> None:
+    def dial_down_handler(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     registry.register(action)
@@ -66,11 +67,11 @@ def test_get_action_handlers_multiple_actions() -> None:
     action2 = Action("fake-action-uuid-2")
 
     @action1.on("keyUp")
-    def key_up_handler1(event) -> None:
+    def key_up_handler1(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     @action2.on("keyUp")
-    def key_up_handler2(event) -> None:
+    def key_up_handler2(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
         pass
 
     registry.register(action1)

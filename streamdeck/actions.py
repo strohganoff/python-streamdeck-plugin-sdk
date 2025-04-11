@@ -6,7 +6,7 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
-from streamdeck.types import BaseEventHandlerFunc
+from streamdeck.types import BaseEventHandlerFunc, LiteralStrGenericAlias
 
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ class ActionBase(ABC):
 
         return _wrapper
 
-    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase], None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
         """Get all event handlers for a specific event.
 
         Args:
@@ -112,7 +112,7 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase], None, None]:
+    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:

@@ -14,6 +14,7 @@ from tests.test_utils.fake_event_factories import KeyDownEventFactory
 if TYPE_CHECKING:
     import pytest_mock
     from streamdeck.models import events
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 @pytest.fixture
@@ -103,7 +104,7 @@ def mock_event_listener_manager_with_fake_events(patch_event_listener_manager: M
     """
     print("MOCK EVENT LISTENER MANAGER")
     # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen() method.
-    fake_event_messages: list[events.EventBase] = [
+    fake_event_messages: list[events.EventBase[LiteralStrGenericAlias]] = [
         KeyDownEventFactory.build(action="my-fake-action-uuid"),
     ]
 

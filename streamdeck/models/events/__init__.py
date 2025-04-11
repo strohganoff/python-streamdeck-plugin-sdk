@@ -31,7 +31,7 @@ from streamdeck.models.events.visibility import WillAppear, WillDisappear
 if TYPE_CHECKING:
     from typing import Final
 
-    from streamdeck.types import LiteralStrGenericAlias
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 DEFAULT_EVENT_MODELS: Final[list[type[EventBase[LiteralStrGenericAlias]]]] = [

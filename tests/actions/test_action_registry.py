@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from streamdeck.actions import Action, ActionRegistry
-from streamdeck.types import LiteralStrGenericAlias
 
 from tests.test_utils.fake_event_factories import (
     DialDownEventFactory,
@@ -15,6 +14,7 @@ from tests.test_utils.fake_event_factories import (
 
 if TYPE_CHECKING:
     from streamdeck.models import events
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 def test_register_action() -> None:

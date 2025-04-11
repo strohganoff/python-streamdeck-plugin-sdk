@@ -38,17 +38,22 @@ class ConfiguredBaseModel(BaseModel, ABC):
 
 
 # We do this to get the typing module's _LiteralGenericAlias type, which is not formally exported.
-_LiteralGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
+_LiteralStrGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
 """A generic alias for a Literal type used for internal mechanisms of this module.
 
-This is opposed to the streamdeck.types.LiteralStrGenericAlias which is used for typing.
+This is opposed to LiteralStrGenericAlias which is used for typing.
 """
 
+
+# Set this variable here to call the function just once.
 _pydantic_str_schema = core_schema.str_schema()
 
+GetPydanticStrSchema = GetPydanticSchema(lambda _ts, handler: handler(_pydantic_str_schema))
+"""A function that returns a Pydantic schema for a string type."""
+
 PydanticLiteralStrGenericAlias: TypeAlias = Annotated[  # type: ignore[valid-type]  # noqa: UP040
-    _LiteralGenericAlias,
-    GetPydanticSchema(lambda _ts, handler: handler(_pydantic_str_schema))
+    _LiteralStrGenericAlias,
+    GetPydanticStrSchema,
 ]
 """A Pydantic-compatible generic alias for a Literal type.
 
@@ -60,11 +65,22 @@ an event message will only ever have one of those values in the event field,
 and so we don't need to handle this with a more complex Pydantic schema.
 """
 
+
+# This type alias is used to handle static type checking accurately while still conveying that
+# a value is expected to be a Literal with string type args.
+LiteralStrGenericAlias: TypeAlias = Annotated[  # noqa: UP040
+    LiteralString,
+    GetPydanticStrSchema,
+]
+"""Type alias for a generic literal string type that is compatible with Pydantic."""
+
+
+# covariant=True is used to allow subclasses of EventBase to be used in place of the base class.
 LiteralEventName_co = TypeVar("LiteralEventName_co", bound=PydanticLiteralStrGenericAlias, default=PydanticLiteralStrGenericAlias, covariant=True)
 """Type variable for a Literal type with string args."""
 
 
-def is_literal_str_generic_alias_type(value: object | None) -> TypeGuard[LiteralString]:
+def is_literal_str_generic_alias_type(value: object | None) -> TypeGuard[LiteralStrGenericAlias]:
     """Check if a type is a concrete Literal type with string args."""
     if value is None:
         return False

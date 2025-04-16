@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Annotated, Any, Generic, Literal, NamedTuple, Optional, Union
+from typing import Annotated, Generic, Literal, NamedTuple, Optional, Union
 
-from pydantic import Field
+from pydantic import Field, JsonValue
 from typing_extensions import TypedDict, TypeVar
 
 from streamdeck.models.events.base import ConfiguredBaseModel
@@ -28,8 +28,11 @@ class DeviceSpecificEventMixin:
 ## Payload models and metadata used by multiple event models.
 
 
-PluginDefinedData = dict[str, Any]
-"""Data of arbitrary structure that is defined in and relevant to the plugin."""
+PluginDefinedData = dict[str, JsonValue]
+"""Data of arbitrary structure that is defined in and relevant to the plugin.
+
+The root of the data structure will always be a dict of string keys, while the values can be any JSON-compatible type.
+"""
 
 
 EncoderControllerType = Literal["Encoder"]
@@ -116,10 +119,14 @@ class MultiActionPayloadMixin:
     """Indicates that this event is part of a multi-action."""
 
 
+# These need to be covariant, as the Mixin classes are never meant to be instantiated themselves, only inherited from.
+SingleActionPayload_co = TypeVar("SingleActionPayload_co", bound=SingleActionPayloadMixin, covariant=True)
+MultiActionPayload_co = TypeVar("MultiActionPayload_co", bound=MultiActionPayloadMixin, covariant=True)
+
 CardinalityDiscriminated = Annotated[
     Union[  # noqa: UP007
-        TypeVar("S", bound=SingleActionPayloadMixin),
-        TypeVar("M", bound=MultiActionPayloadMixin),
+        SingleActionPayload_co,
+        MultiActionPayload_co,
     ],
     Field(discriminator="is_in_multi_action"),
 ]

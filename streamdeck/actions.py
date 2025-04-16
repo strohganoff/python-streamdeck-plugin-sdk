@@ -6,14 +6,13 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
-from streamdeck.types import BaseEventHandlerFunc
-
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
 
     from streamdeck.models.events import EventBase
-    from streamdeck.types import EventHandlerFunc, EventNameStr, TEvent_contra
+    from streamdeck.models.events.base import LiteralStrGenericAlias
+    from streamdeck.types import BaseEventHandlerFunc, EventHandlerFunc, EventNameStr, TEvent_contra
 
 
 logger = getLogger("streamdeck.actions")
@@ -42,10 +41,6 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        # if event_name not in DEFAULT_EVENT_NAMES:
-        #     msg = f"Provided event name for action handler does not exist: {event_name}"
-        #     raise KeyError(msg)
-
         def _wrapper(func: EventHandlerFunc[TEvent_contra]) -> EventHandlerFunc[TEvent_contra]:
             # Cast to BaseEventHandlerFunc so that the storage type is consistent.
             self._events[event_name].add(cast("BaseEventHandlerFunc", func))
@@ -54,7 +49,7 @@ class ActionBase(ABC):
 
         return _wrapper
 
-    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase], None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
         """Get all event handlers for a specific event.
 
         Args:
@@ -66,10 +61,6 @@ class ActionBase(ABC):
         Raises:
             KeyError: If the provided event name is not available.
         """
-        # if event_name not in DEFAULT_EVENT_NAMES:
-        #     msg = f"Provided event name for pulling handlers from action does not exist: {event_name}"
-        #     raise KeyError(msg)
-
         if event_name not in self._events:
             return
 
@@ -120,7 +111,7 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase], None, None]:
+    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from typing import TYPE_CHECKING, Protocol, TypeVar, Union
 
-from streamdeck.models.events import DEFAULT_EVENT_NAMES, EventBase
+from streamdeck.models.events import EventBase
 
 
 if TYPE_CHECKING:
@@ -18,11 +18,6 @@ EventNameStr: TypeAlias = str  # noqa: UP040
 
 We don't define literal string values here, as the list of available event names can be added to dynamically.
 """
-
-
-def is_valid_event_name(event_name: str) -> TypeIs[EventNameStr]:
-    """Check if the event name is one of the available event names."""
-    return event_name in DEFAULT_EVENT_NAMES
 
 
 ### Event Handler Type Definitions ###

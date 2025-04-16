@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from streamdeck.models.events import EventBase
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
@@ -120,7 +121,7 @@ class PluginManager:
 
         return handler
 
-    def _stream_event_data(self) -> Generator[EventBase, None, None]:
+    def _stream_event_data(self) -> Generator[EventBase[LiteralStrGenericAlias], None, None]:
         """Stream event data from the event listeners.
 
         Validate and model the incoming event data before yielding it.
@@ -130,7 +131,7 @@ class PluginManager:
         """
         for message in self._event_listener_manager.event_stream():
             try:
-                data: EventBase = self._event_adapter.validate_json(message)
+                data: EventBase[LiteralStrGenericAlias] = self._event_adapter.validate_json(message)
             except ValidationError:
                 logger.exception("Error modeling event data.")
                 continue

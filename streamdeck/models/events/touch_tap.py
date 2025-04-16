@@ -22,8 +22,7 @@ class TouchTapPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixi
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
 
 
-class TouchTap(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+class TouchTap(EventBase[Literal["touchTap"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user taps the touchscreen (Stream Deck +)."""
-    event: Literal["touchTap"]  # type: ignore[override]
     payload: TouchTapPayload
     """Contextualized information for this event."""

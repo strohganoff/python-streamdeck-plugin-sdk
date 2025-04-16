@@ -11,15 +11,13 @@ class ApplicationPayload(ConfiguredBaseModel):
     """Name of the application that triggered the event."""
 
 
-class ApplicationDidLaunch(EventBase):
+class ApplicationDidLaunch(EventBase[Literal["applicationDidLaunch"]]):
     """Occurs when a monitored application is launched."""
-    event: Literal["applicationDidLaunch"]  # type: ignore[override]
     payload: ApplicationPayload
     """Payload containing the name of the application that triggered the event."""
 
 
-class ApplicationDidTerminate(EventBase):
+class ApplicationDidTerminate(EventBase[Literal["applicationDidTerminate"]]):
     """Occurs when a monitored application terminates."""
-    event: Literal["applicationDidTerminate"]  # type: ignore[override]
     payload: ApplicationPayload
     """Payload containing the name of the application that triggered the event."""

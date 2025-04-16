@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeIs
 
     from streamdeck.models.events import EventBase
+    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 
@@ -119,7 +120,7 @@ class EventListener(ABC):
     Event listeners are classes that listen for events and simply yield them as they come.
     The EventListenerManager will handle the threading and pushing the events yielded into a shared queue.
     """
-    event_models: ClassVar[list[type[EventBase]]]
+    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]]
     """A list of event models that the listener can yield. Read in by the PluginManager to model the incoming event data off of.
 
     The plugin-developer must define this list in their subclass.

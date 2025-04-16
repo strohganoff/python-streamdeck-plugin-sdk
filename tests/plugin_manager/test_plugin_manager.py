@@ -10,6 +10,7 @@ from streamdeck.models.events import (  #, event_adapter
     DEFAULT_EVENT_NAMES,
     EventBase,
 )
+from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 @pytest.fixture
@@ -54,7 +55,7 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
 
 def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -> None:
     """Test that an event listener can be registered in the PluginManager."""
-    mock_event_model_class = Mock(get_model_event_name=lambda: ["fake_event_name"])
+    mock_event_model_class = Mock(get_model_event_names=lambda: ["fake_event_name"])
     listener = Mock(event_models=[mock_event_model_class])
 
     assert len(plugin_manager._event_listener_manager.listeners_lookup_by_thread) == 0
@@ -115,7 +116,7 @@ def test_plugin_manager_adds_websocket_event_listener(
 @pytest.mark.integration
 @pytest.mark.usefixtures("patch_websocket_client")
 def test_plugin_manager_process_event(
-    mock_event_listener_manager_with_fake_events: tuple[Mock, list[EventBase]],
+    mock_event_listener_manager_with_fake_events: tuple[Mock, list[EventBase[LiteralStrGenericAlias]]],
     _spy_action_registry_get_action_handlers: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.
     _spy_event_adapter_validate_json: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.
     plugin_manager: PluginManager,   # This fixture must come after patch_event_listener_manager and spy-fixtures to ensure things are mocked and spied correctly.

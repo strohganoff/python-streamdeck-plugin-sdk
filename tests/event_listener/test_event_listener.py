@@ -7,11 +7,12 @@ from unittest.mock import Mock, patch
 import pytest
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
+from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 class MockEventListener(EventListener):
     """Mock implementation of EventListener for testing."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
 
     def __init__(self):
         self._running = True
@@ -33,7 +34,7 @@ class MockEventListener(EventListener):
 
 class SlowMockEventListener(EventListener):
     """Mock implementation of EventListener that yields events with a delay."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
 
     def __init__(self, delay: float = 0.1):
         self._running = True
@@ -53,7 +54,7 @@ class SlowMockEventListener(EventListener):
 
 class ExceptionEventListener(EventListener):
     """Mock implementation of EventListener that raises an exception."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
 
     def listen(self) -> Generator[str, None, None]:
         self._running = True
@@ -91,9 +92,9 @@ def test_event_stream_basic():
     manager.add_listener(listener)
 
     # Collect the first few events
-    events = []
+    events : list[EventNameStr] = []
     for event in manager.event_stream():
-        events.append(event)
+        events.append(event)  # type: ignore[arg-type]
         if len(events) >= 3:  # We expect 3 events from MockEventListener
             manager.stop()
             break
@@ -112,9 +113,9 @@ def test_event_stream_multiple_listeners():
     manager.add_listener(listener2)
 
     # Collect all events
-    events = []
+    events: list[EventNameStr] = []
     for event in manager.event_stream():
-        events.append(event)
+        events.append(event)  # type: ignore[arg-type]
         if len(events) >= 6:  # We expect 6 events total (3 from each listener)
             manager.stop()
             break

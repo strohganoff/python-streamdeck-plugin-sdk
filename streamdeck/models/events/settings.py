@@ -40,9 +40,8 @@ class MultiActionSettingsPayload(
     """
 
 
-class DidReceiveSettings(EventBase, ContextualEventMixin, DeviceSpecificEventMixin):
+class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
-    event: Literal["didReceiveSettings"]  # type: ignore[override]
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
     """Contextualized information for this event."""
 
@@ -55,8 +54,7 @@ class GlobalSettingsPayload(ConfiguredBaseModel):
     """The global settings received from the Stream Deck."""
 
 
-class DidReceiveGlobalSettings(EventBase):
+class DidReceiveGlobalSettings(EventBase[Literal["didReceiveGlobalSettings"]]):
     """Occurs when the plugin receives the global settings from the Stream Deck."""
-    event: Literal["didReceiveGlobalSettings"]  # type: ignore[override]
     payload: GlobalSettingsPayload
     """Additional information about the event that occurred."""

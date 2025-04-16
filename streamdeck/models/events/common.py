@@ -116,10 +116,14 @@ class MultiActionPayloadMixin:
     """Indicates that this event is part of a multi-action."""
 
 
+# These need to be covariant, as the Mixin classes are never meant to be instantiated themselves, only inherited from.
+SingleActionPayload_co = TypeVar("SingleActionPayload_co", bound=SingleActionPayloadMixin, covariant=True)
+MultiActionPayload_co = TypeVar("MultiActionPayload_co", bound=MultiActionPayloadMixin, covariant=True)
+
 CardinalityDiscriminated = Annotated[
     Union[  # noqa: UP007
-        TypeVar("S", bound=SingleActionPayloadMixin),
-        TypeVar("M", bound=MultiActionPayloadMixin),
+        SingleActionPayload_co,
+        MultiActionPayload_co,
     ],
     Field(discriminator="is_in_multi_action"),
 ]

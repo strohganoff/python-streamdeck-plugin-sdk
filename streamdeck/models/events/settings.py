@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
     BasePayload,
@@ -40,7 +38,7 @@ class MultiActionSettingsPayload(
     """
 
 
-class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class DidReceiveSettings(EventBase["didReceiveSettings"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
     """Contextualized information for this event."""
@@ -54,7 +52,7 @@ class GlobalSettingsPayload(ConfiguredBaseModel):
     """The global settings received from the Stream Deck."""
 
 
-class DidReceiveGlobalSettings(EventBase[Literal["didReceiveGlobalSettings"]]):
+class DidReceiveGlobalSettings(EventBase["didReceiveGlobalSettings"]):
     """Occurs when the plugin receives the global settings from the Stream Deck."""
     payload: GlobalSettingsPayload
     """Additional information about the event that occurred."""

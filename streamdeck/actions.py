@@ -49,7 +49,7 @@ class ActionBase(ABC):
 
         return _wrapper
 
-    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc[EventBase], None, None]:
         """Get all event handlers for a specific event.
 
         Args:
@@ -66,13 +66,14 @@ class ActionBase(ABC):
 
         yield from self._events[event_name]
 
-    def get_registered_event_names(self) -> list[str]:
+    def get_registered_event_names(self) -> list[EventNameStr]:
         """Get all event names for which event handlers are registered.
 
         Returns:
             list[str]: The list of event names for which event handlers are registered.
         """
         return list(self._events.keys())
+
 
 class GlobalAction(ActionBase):
     """Represents an action that is performed at the plugin level, meaning it isn't associated with a specific device or action."""
@@ -111,7 +112,7 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase[LiteralStrGenericAlias]], None, None]:
+    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc[EventBase], None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:

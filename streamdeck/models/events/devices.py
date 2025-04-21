@@ -78,11 +78,11 @@ class DeviceInfo(ConfiguredBaseModel):
         return f"DeviceInfo(name={self.name}, type={self.type}, size={self.size})"
 
 
-class DeviceDidConnect(EventBase[Literal["deviceDidConnect"]], DeviceSpecificEventMixin):
+class DeviceDidConnect(EventBase["deviceDidConnect"], DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is connected."""
     device_info: Annotated[DeviceInfo, Field(alias="deviceInfo")]
     """Information about the newly connected device."""
 
 
-class DeviceDidDisconnect(EventBase[Literal["deviceDidDisconnect"]], DeviceSpecificEventMixin):
+class DeviceDidDisconnect(EventBase["deviceDidDisconnect"], DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is disconnected."""

@@ -31,10 +31,8 @@ from streamdeck.models.events.visibility import WillAppear, WillDisappear
 if TYPE_CHECKING:
     from typing import Final
 
-    from streamdeck.models.events.base import LiteralStrGenericAlias
 
-
-DEFAULT_EVENT_MODELS: Final[list[type[EventBase[LiteralStrGenericAlias]]]] = [
+DEFAULT_EVENT_MODELS: Final[list[type[EventBase]]] = [
     ApplicationDidLaunch,
     ApplicationDidTerminate,
     DeviceDidConnect,

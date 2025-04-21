@@ -1,18 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Annotated, Any, Generic, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, GetPydanticSchema
-from pydantic._internal._generics import get_origin as get_model_origin  # type: ignore[import]
-from pydantic_core import core_schema
-from typing_extensions import (  # noqa: UP035
-    LiteralString,
-    TypeAlias,
-    TypeGuard,
-    TypeVar,
-    override,
-)
+from pydantic import BaseModel, ConfigDict, create_model
+from typing_extensions import LiteralString, override  # noqa: UP035
 
 
 class ConfiguredBaseModel(BaseModel, ABC):
@@ -37,104 +29,122 @@ class ConfiguredBaseModel(BaseModel, ABC):
         return super().model_dump_json(**kwargs)
 
 
-# We do this to get the typing module's _LiteralGenericAlias type, which is not formally exported.
-_LiteralStrGenericAlias: TypeAlias = type(Literal["whatever"])  # type: ignore[valid-type]  # noqa: UP040
-"""A generic alias for a Literal type used for internal mechanisms of this module.
+if TYPE_CHECKING:
+    # Because we can't override a BaseModel's metaclass __getitem__ method without angering Pydantic during runtime,
+    # we define this stub here to satisfy static type checkers that introspect the metaclass method annotations
+    # to determine expected types in the class subscriptions.
 
-This is opposed to LiteralStrGenericAlias which is used for typing.
-"""
+    from pydantic._internal._model_construction import ModelMetaclass  # type: ignore[import]
 
+    class EventMeta(ModelMetaclass):
+        """Metaclass for EventBase stub to satisfy static type checkers."""
+        @classmethod
+        def __getitem__(cls, event_names: LiteralString | tuple[LiteralString, ...]) -> type[EventBase]: ...
 
-# Set this variable here to call the function just once.
-_pydantic_str_schema = core_schema.str_schema()
+    class EventBase(BaseModel, metaclass=EventMeta):
+        """Base class for all event models."""
+        event: LiteralString
+        """Name of the event used to identify what occurred.
 
-GetPydanticStrSchema = GetPydanticSchema(lambda _ts, handler: handler(_pydantic_str_schema))
-"""A function that returns a Pydantic schema for a string type."""
+        Subclass models must define this field as a Literal type with the event name string that the model represents.
+        """
 
-PydanticLiteralStrGenericAlias: TypeAlias = Annotated[  # type: ignore[valid-type]  # noqa: UP040
-    _LiteralStrGenericAlias,
-    GetPydanticStrSchema,
-]
-"""A Pydantic-compatible generic alias for a Literal type.
+        @classmethod
+        def get_model_event_names(cls) -> tuple[str, ...]:
+            """Return the event names for the event model."""
+            ...
 
-Pydantic will treat a field of this type as a string schema, while static type checkers
-will still treat it as a _LiteralGenericAlias type.
+else:
+    class EventBase(ConfiguredBaseModel, ABC):
+        """Base class for all event models."""
+        _subtypes: ClassVar[dict[str, type[EventBase]]] = {}
+        __args__: ClassVar[tuple[str, ...]]
 
-Even if a subclass of EventBase uses a Literal with multiple string values,
-an event message will only ever have one of those values in the event field,
-and so we don't need to handle this with a more complex Pydantic schema.
-"""
+        event: str
+        """Name of the event used to identify what occurred.
 
+        Subclass models must define this field as a Literal type with the event name string that the model represents.
+        """
 
-# This type alias is used to handle static type checking accurately while still conveying that
-# a value is expected to be a Literal with string type args.
-LiteralStrGenericAlias: TypeAlias = Annotated[  # noqa: UP040
-    LiteralString,
-    GetPydanticStrSchema,
-]
-"""Type alias for a generic literal string type that is compatible with Pydantic."""
+        def __new__(cls, *args: Any, **kwargs: Any) -> EventBase:
+            """Create a new instance of the event model.
 
+            This method is called when the model is instantiated.
+            It validates that the event name is a string and not empty.
+            """
+            if cls is EventBase:
+                raise TypeError("Can't instantiate abstract class EventBase directly.")
+            if EventBase in cls.__bases__:
+                raise TypeError(f"Can't instantiate abstract subscripted EventBase class {cls.__name__} directly.")
+            return super().__new__(cls)
 
-# covariant=True is used to allow subclasses of EventBase to be used in place of the base class.
-LiteralEventName_co = TypeVar("LiteralEventName_co", bound=PydanticLiteralStrGenericAlias, default=PydanticLiteralStrGenericAlias, covariant=True)
-"""Type variable for a Literal type with string args."""
+        @override
+        @classmethod
+        def __class_getitem__(cls: type[EventBase], event_names: LiteralString | tuple[LiteralString, ...]) -> type[EventBase]: # type: ignore[override]
+            """Create a subclass alias of EventBase with the given event names.
 
+            This method is called when the class is subscripted.
+            If the event names are not already registered, a new subclass is created.
+            Validations are performed to ensure that the event names are strings and not empty, and that the subscripted class is not a subclass of EventBase.
+            """
+            if cls is not EventBase: # type: ignore[misc]
+                raise TypeError(f"Subclasses of EventBase are not subscriptable — '{cls.__name__}'")  # noqa: TRY003, EM102
 
-def is_literal_str_generic_alias_type(value: object | None) -> TypeGuard[LiteralStrGenericAlias]:
-    """Check if a type is a concrete Literal type with string args."""
-    if value is None:
-        return False
+            # Whether event_names is a string or tuple of strings, validate that it/they is/are a string
+            if not isinstance(event_names, tuple):
+                event_names = (event_names,)
 
-    if isinstance(value, TypeVar):
-        return False
+            # Validate that all event names are strings
+            if any(not isinstance(name, str) for name in event_names): # type: ignore[misc]
+                raise TypeError(f"Event names must be strings, not {type(event_names).__name__}; args: {event_names}")  # noqa: TRY003, EM102
 
-    event_field_base_type = get_origin(value)
+            subtype_name = f"{cls.__name__}[{event_names}]"
 
-    if event_field_base_type is not Literal:
-        return False
+            return cls.__new_subscripted_base__(subtype_name, event_names)
 
-    return all(isinstance(literal_value, str) for literal_value in get_args(value))
+        @classmethod
+        def __new_subscripted_base__(cls: type[EventBase], new_name: str, event_name_args: tuple[str, ...]) -> type[EventBase]:
+            """Dynamically create a new Singleton subclass of EventBase with the given event names for the event field.
 
+            Only create a new subscripted subclass if it doesn't already exist in the _subtypes dictionary, otherwise return the existing subclass.
+            The new subclasses created here will be ignored in the __init_subclass__ method.
+            """
+            if new_name not in cls._subtypes:
+                # Pass in the _is_base_subtype kwarg to __init_subclass__ to indicate that this is a base subtype of EventBase, and should be ignored.
+                cls._subtypes[new_name] = create_model(
+                    new_name,
+                    __base__=cls,
+                    __args__=(tuple[str, ...], event_name_args),
+                    event=(Literal[event_name_args], ...),
+                    __cls_kwargs__={"_is_base_subtype": True},
+                )
 
-## EventBase implementation model of the Stream Deck Plugin SDK events.
+            return cls._subtypes[new_name]
 
-class EventBase(ConfiguredBaseModel, ABC, Generic[LiteralEventName_co]):
-    """Base class for event models that represent Stream Deck Plugin SDK events."""
+        @classmethod
+        def __init_subclass__(cls, _is_base_subtype: bool = False) -> None:
+            """Validate a child class of EventBase (not a subscripted base subclass) is subclassing from a subscripted EventBase."""
+            if _is_base_subtype:
+                # This is a subscripted subclass of EventBase, so we don't need to do anything.
+                return
 
-    event: LiteralEventName_co
-    """Name of the event used to identify what occurred.
+            if EventBase in cls.__bases__:
+                # Normally, only subscripted subclasses of EventBase (filtered out above) will have (un-subscripted) EventBase in their __bases__.
+                # If we get here, it means that this is a subclass of EventBase that is not subscripted, which is not allowed.
+                msg = f"Child classes of EventBase cannot subclass from non-subscripted EventBase. '{cls.__name__}' must subclass from a subscripted EventBase."
+                raise TypeError(msg)
 
-    Subclass models must define this field as a Literal type with the event name string that the model represents.
-    """
+        def __str__(self) -> str:
+            """Return a string representation of the event model in the format 'EventName(event=event_name, field_name=field_value, etc.)'."""
+            field_key_value_strs: list[str] = [f"{field_name}={getattr(self, field_name)}" for field_name in type(self).model_fields]
+            return f"{self.__class__.__name__}({', '.join(field_key_value_strs)})"
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Validate that the event field is a Literal[str] type."""
-        super().__init_subclass__(**kwargs)
+        @classmethod
+        def __event_type__(cls) -> type[object] | None:
+            """Return the event type for the event model."""
+            return cls.model_fields["event"].annotation
 
-        # This is a GenericAlias (likely used in the subclass definition, i.e. `class ConcreteEvent(EventBase[Literal["event_name"]]):`) which is technically a subclass.
-        # We can safely ignore this case, as we only want to validate the concrete subclass itself (`ConscreteEvent`).
-        if get_model_origin(cls) is None:
-            return
-
-        model_event_type = cls.__event_type__()
-
-        if not is_literal_str_generic_alias_type(model_event_type):
-            msg = f"The event field annotation must be a Literal[str] type. Given type: {model_event_type}"
-            raise TypeError(msg)
-
-    @classmethod
-    def __event_type__(cls) -> type[object]:
-        """Get the type annotations of the subclass model's event field."""
-        return cls.model_fields["event"].annotation  # type: ignore[index]
-
-    @classmethod
-    def get_model_event_names(cls) -> tuple[str, ...]:
-        """Get the value of the subclass model's event field Literal annotation."""
-        model_event_type = cls.__event_type__()
-
-        # Ensure that the event field annotation is a Literal type.
-        if not is_literal_str_generic_alias_type(model_event_type):
-            msg = f"The event field annotation of an Event model must be a Literal[str] type. Given type: {model_event_type}"
-            raise TypeError(msg)
-
-        return get_args(model_event_type)
+        @classmethod
+        def get_model_event_names(cls) -> tuple[str, ...]:
+            """Return the event names for the event model."""
+            return cls.__args__

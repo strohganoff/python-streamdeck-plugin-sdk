@@ -292,7 +292,7 @@ The SDK allows you to create custom event listeners and events by extending the 
 
 To create a custom event listener:
 
-1. Create new event model that inherits from `EventBase`.
+1. Create new event model that inherits from `EventBase["eventName"]`.
 2. Create a new class that inherits from `EventListener`.
     a. Implement the required `listen` and `stop` methods. The `listen` method should yield results as a json string that matches the new event model.
     b. List the new event classes in the `event_models` class variable of the new `EventListener` class.
@@ -307,11 +307,15 @@ from streamdeck.event_listener import EventListener
 from streamdeck.models.events import EventBase
 
 
-class MyCustomEvent(EventBase):
-    event: Literal["somethingHappened"]
-    ... # Define additional data attributes here
+class MyCustomEvent(EventBase["somethingHappened"]):
+    # The 'event' field's type annotation is internally set as Literal["somethingHappened"]
+    # Define additional data attributes here
+    result: str
+
 
 class MyCustomEventListener(EventListener):
+    event_models = [MyCustomEvent]
+    
     def listen(self) -> Generator[str | bytes, None, None]:
         ...
         # Listen/poll for something here in a loop, and yield the result.
@@ -320,7 +324,7 @@ class MyCustomEventListener(EventListener):
         # while self._running is True:
         #     result = module.check_status()
         #     if result is not None:
-        #         yield json.dumps({"event": "somethingHappend", "result": result})
+        #         yield json.dumps({"event": "somethingHappened", "result": result})
         #     time.sleep(1)
 
     def stop(self) -> None:
@@ -344,7 +348,7 @@ To use your custom event listener, add it to your `pyproject.toml` file:
     ]
 ```
 
-The `event_listeners` list should contain strings in module format for each module you want to use.
+The `event_listener_modules` list should contain strings in module format for each module you want to use.
 
 
 ## Creating and Packaging Plugins

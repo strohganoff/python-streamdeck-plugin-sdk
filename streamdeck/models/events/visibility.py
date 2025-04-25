@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
     BasePayload,
@@ -35,7 +33,7 @@ class MultiActionVisibilityPayload(
 
 ## Event models for WillAppear and WillDisappear events
 
-class WillAppear(EventBase[Literal["willAppear"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class WillAppear(EventBase["willAppear"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when an action appears on the Stream Deck due to the user navigating to another page, profile, folder, etc.
 
     This also occurs during startup if the action is on the "front page".
@@ -44,7 +42,7 @@ class WillAppear(EventBase[Literal["willAppear"]], ContextualEventMixin, DeviceS
     payload: CardinalityDiscriminated[SingleActionVisibilityPayload, MultiActionVisibilityPayload]
 
 
-class WillDisappear(EventBase[Literal["willDisappear"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class WillDisappear(EventBase["willDisappear"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when an action disappears from the Stream Deck due to the user navigating to another page, profile, folder, etc.
 
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.

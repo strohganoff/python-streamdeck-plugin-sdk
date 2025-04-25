@@ -14,7 +14,6 @@ from tests.test_utils.fake_event_factories import (
 
 if TYPE_CHECKING:
     from streamdeck.models import events
-    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 def test_register_action() -> None:
@@ -47,7 +46,7 @@ def test_get_action_handlers_with_handlers() -> None:
     action = Action("my-fake-action-uuid")
 
     @action.on("dialDown")
-    def dial_down_handler(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
+    def dial_down_handler(event_data: events.EventBase) -> None:
         pass
 
     registry.register(action)
@@ -67,11 +66,11 @@ def test_get_action_handlers_multiple_actions() -> None:
     action2 = Action("fake-action-uuid-2")
 
     @action1.on("keyUp")
-    def key_up_handler1(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
+    def key_up_handler1(event_data: events.EventBase) -> None:
         pass
 
     @action2.on("keyUp")
-    def key_up_handler2(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
+    def key_up_handler2(event_data: events.EventBase) -> None:
         pass
 
     registry.register(action1)

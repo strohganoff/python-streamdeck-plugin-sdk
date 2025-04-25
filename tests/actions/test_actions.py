@@ -9,7 +9,6 @@ from streamdeck.models.events import DEFAULT_EVENT_NAMES
 
 if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
-    from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 @pytest.fixture(params=[[Action, ("test.uuid.for.action",)], [GlobalAction, ()]])
@@ -26,7 +25,7 @@ def action(request: pytest.FixtureRequest) -> ActionBase:
 def test_action_register_event_handler(action: ActionBase, event_name: str) -> None:
     """Test that an event handler can be registered for each valid event name."""
     @action.on(event_name)
-    def handler(event_data: EventBase[LiteralStrGenericAlias]) -> None:
+    def handler(event_data: EventBase) -> None:
         pass
 
     # Ensure the handler is registered for the correct event name
@@ -41,7 +40,7 @@ def test_action_get_event_handlers(action: ActionBase) -> None:
     for _, event_name in enumerate(DEFAULT_EVENT_NAMES):
         # Register a handler for the given event name
         @action.on(event_name)
-        def handler(event_data: EventBase[LiteralStrGenericAlias]) -> None:
+        def handler(event_data: EventBase) -> None:
             pass
 
         # Retrieve the handlers using the generator
@@ -74,11 +73,11 @@ def test_action_get_event_handlers_invalid_event_name(action: ActionBase) -> Non
 def test_action_register_multiple_handlers_for_event(action: ActionBase) -> None:
     """Test that multiple handlers can be registered for the same event on the same action."""
     @action.on("keyDown")
-    def handler_one(event_data: EventBase[LiteralStrGenericAlias]) -> None:
+    def handler_one(event_data: EventBase) -> None:
         pass
 
     @action.on("keyDown")
-    def handler_two(event_data: EventBase[LiteralStrGenericAlias]) -> None:
+    def handler_two(event_data: EventBase) -> None:
         pass
 
     handlers = list(action.get_event_handlers("keyDown"))

@@ -19,8 +19,6 @@ if TYPE_CHECKING:
 
     from polyfactory.factories.pydantic_factory import ModelFactory
     from streamdeck.models import events
-    from streamdeck.models.events.base import LiteralStrGenericAlias
-
 
 
 @pytest.fixture
@@ -36,14 +34,14 @@ def mock_event_handler() -> Mock:
     DeviceDidConnectFactory,
     ApplicationDidLaunchEventFactory
 ])
-def fake_event_data(request: pytest.FixtureRequest) -> events.EventBase[LiteralStrGenericAlias]:
-    event_factory = cast("ModelFactory[events.EventBase[LiteralStrGenericAlias]]", request.param)
+def fake_event_data(request: pytest.FixtureRequest) -> events.EventBase:
+    event_factory = cast("ModelFactory[events.EventBase]", request.param)
     return event_factory.build()
 
 
 def test_global_action_gets_triggered_by_event(
     mock_event_handler: Mock,
-    fake_event_data: events.EventBase[LiteralStrGenericAlias],
+    fake_event_data: events.EventBase,
 ) -> None:
     """Test that a global action's event handlers are triggered by an event.
 
@@ -63,7 +61,7 @@ def test_global_action_gets_triggered_by_event(
 
 def test_action_gets_triggered_by_event(
     mock_event_handler: Mock,
-    fake_event_data: events.EventBase[LiteralStrGenericAlias],
+    fake_event_data: events.EventBase,
 ) -> None:
     """Test that an action's event handlers are triggered by an event.
 
@@ -90,7 +88,7 @@ def test_action_gets_triggered_by_event(
 
 def test_global_action_registry_get_action_handlers_filtering(
     mock_event_handler: Mock,
-    fake_event_data: events.EventBase[LiteralStrGenericAlias],
+    fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
@@ -117,7 +115,7 @@ def test_global_action_registry_get_action_handlers_filtering(
 
 def test_action_registry_get_action_handlers_filtering(
     mock_event_handler: Mock,
-    fake_event_data: events.EventBase[LiteralStrGenericAlias],
+    fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
@@ -151,12 +149,12 @@ def test_multiple_actions_filtering() -> None:
     action_event_handler_called = False
 
     @global_action.on("applicationDidLaunch")
-    def _global_app_did_launch_action_handler(event: events.EventBase[LiteralStrGenericAlias]) -> None:
+    def _global_app_did_launch_action_handler(event: events.EventBase) -> None:
         nonlocal global_action_event_handler_called
         global_action_event_handler_called = True
 
     @action.on("keyDown")
-    def _action_key_down_event_handler(event: events.EventBase[LiteralStrGenericAlias]) -> None:
+    def _action_key_down_event_handler(event: events.EventBase) -> None:
         nonlocal action_event_handler_called
         action_event_handler_called = True
 

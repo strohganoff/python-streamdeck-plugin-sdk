@@ -7,12 +7,11 @@ from unittest.mock import Mock, patch
 import pytest
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
-from streamdeck.models.events.base import LiteralStrGenericAlias
 
 
 class MockEventListener(EventListener):
     """Mock implementation of EventListener for testing."""
-    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
     def __init__(self):
         self._running = True
@@ -34,7 +33,7 @@ class MockEventListener(EventListener):
 
 class SlowMockEventListener(EventListener):
     """Mock implementation of EventListener that yields events with a delay."""
-    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
     def __init__(self, delay: float = 0.1):
         self._running = True
@@ -54,7 +53,7 @@ class SlowMockEventListener(EventListener):
 
 class ExceptionEventListener(EventListener):
     """Mock implementation of EventListener that raises an exception."""
-    event_models: ClassVar[list[type[EventBase[LiteralStrGenericAlias]]]] = [ApplicationDidLaunch]
+    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
     def listen(self) -> Generator[str, None, None]:
         self._running = True

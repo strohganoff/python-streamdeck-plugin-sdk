@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
@@ -22,7 +22,7 @@ class TouchTapPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixi
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
 
 
-class TouchTap(EventBase[Literal["touchTap"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class TouchTap(EventBase["touchTap"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user taps the touchscreen (Stream Deck +)."""
     payload: TouchTapPayload
     """Contextualized information for this event."""

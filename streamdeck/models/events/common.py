@@ -3,36 +3,38 @@ from __future__ import annotations
 from abc import ABC
 from typing import Annotated, Generic, Literal, NamedTuple, Optional, Union
 
-from pydantic import Field, JsonValue
+from pydantic import Field
 from typing_extensions import TypedDict, TypeVar
 
 from streamdeck.models.events.base import ConfiguredBaseModel
+from streamdeck.types import (  # noqa: TC001
+    ActionInstanceUUIDStr,
+    DeviceUUIDStr,
+    EventNameStr,
+    PluginDefinedData,
+)
 
 
 ## Mixin classes for common event model fields.
 
 class ContextualEventMixin:
     """Mixin class for event models that have action and context fields."""
-    action: str
+    action: EventNameStr
     """Unique identifier of the action"""
-    context: str
+    context: ActionInstanceUUIDStr
     """Identifies the instance of an action that caused the event, i.e. the specific key or dial."""
 
 
 class DeviceSpecificEventMixin:
     """Mixin class for event models that have a device field."""
-    device: str
+    device: DeviceUUIDStr
     """Unique identifier of the Stream Deck device that this event is associated with."""
 
 
 ## Payload models and metadata used by multiple event models.
 
 
-PluginDefinedData = dict[str, JsonValue]
-"""Data of arbitrary structure that is defined in and relevant to the plugin.
 
-The root of the data structure will always be a dict of string keys, while the values can be any JSON-compatible type.
-"""
 
 
 EncoderControllerType = Literal["Encoder"]

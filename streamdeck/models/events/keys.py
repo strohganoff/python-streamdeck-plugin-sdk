@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import Field
 
@@ -48,13 +48,13 @@ class MultiActionKeyGesturePayload(
 
 ## Event models for KeyDown and KeyUp events
 
-class KeyDown(EventBase[Literal["keyDown"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class KeyDown(EventBase["keyDown"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user presses a action down."""
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""
 
 
-class KeyUp(EventBase[Literal["keyUp"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class KeyUp(EventBase["keyUp"], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user releases a pressed action."""
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""

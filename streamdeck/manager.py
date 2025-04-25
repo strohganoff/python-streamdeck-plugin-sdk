@@ -1,22 +1,18 @@
 from __future__ import annotations
 
 import functools
+import inspect
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
+from typing_extensions import TypeGuard  # noqa: UP035
 
 from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
-from streamdeck.types import (
-    EventHandlerBasicFunc,
-    EventHandlerFunc,
-    TEvent_contra,
-    is_bindable_handler,
-)
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
 
@@ -25,13 +21,41 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Any, Literal
 
+    from streamdeck.actions import (
+        EventHandlerFunc,
+        EventModel_contra,
+        InjectableParams,
+    )
     from streamdeck.models.events import EventBase
-    from streamdeck.models.events.base import LiteralStrGenericAlias
+
+
+    BindableEventHandlerFunc = EventHandlerFunc[EventModel_contra, [StreamDeckCommandSender]]
+    """Type alias for a bindable event handler function that takes an event (of subtype of EventBase) and a command_sender parameter that is to be injected."""
+    BoundEventHandlerFunc = EventHandlerFunc[EventModel_contra, []]
+    """Type alias for a bound event handler function that takes an event (of subtype of EventBase) and no other parameters.
+
+    Typically used for event handlers that have already had parameters injected.
+    """
+
 
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
 logger = getLogger("streamdeck.manager")
 
+
+def is_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BindableEventHandlerFunc[EventModel_contra]]:
+    """Check if the handler is prebound with the `command_sender` parameter."""
+    # Check dynamically if the `command_sender`'s name is in the handler's arguments.
+    return "command_sender" in inspect.signature(handler).parameters
+
+
+def is_not_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BoundEventHandlerFunc[EventModel_contra]]:
+    """Check if the handler only accepts the event_data parameter.
+
+    If this function returns False after the is_bindable_handler check is True, then the function has invalid parameters, and will subsequently need to be handled in the calling code.
+    """
+    handler_params = inspect.signature(handler).parameters
+    return len(handler_params) == 1 and "event_data" in handler_params
 
 
 class PluginManager:
@@ -106,7 +130,7 @@ class PluginManager:
         for event_model in listener.event_models:
             self._event_adapter.add_model(event_model)
 
-    def _inject_command_sender(self, handler: EventHandlerFunc[TEvent_contra], command_sender: StreamDeckCommandSender) -> EventHandlerBasicFunc[TEvent_contra]:
+    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
         """Inject command_sender into handler if it accepts it as a parameter.
 
         Args:
@@ -117,11 +141,16 @@ class PluginManager:
             The handler with command_sender injected if needed
         """
         if is_bindable_handler(handler):
+            # If the handler accepts command_sender, inject it and return the handler.
             return functools.partial(handler, command_sender=command_sender)
+
+        if not is_not_bindable_handler(handler):
+            # If the handler is neither bindable nor not bindable, raise an error.
+            raise TypeError(f"Invalid event handler function signature: {handler}")  # noqa: TRY003, EM102
 
         return handler
 
-    def _stream_event_data(self) -> Generator[EventBase[LiteralStrGenericAlias], None, None]:
+    def _stream_event_data(self) -> Generator[EventBase, None, None]:
         """Stream event data from the event listeners.
 
         Validate and model the incoming event data before yielding it.
@@ -131,7 +160,7 @@ class PluginManager:
         """
         for message in self._event_listener_manager.event_stream():
             try:
-                data: EventBase[LiteralStrGenericAlias] = self._event_adapter.validate_json(message)
+                data: EventBase = self._event_adapter.validate_json(message)
             except ValidationError:
                 logger.exception("Error modeling event data.")
                 continue

@@ -1,66 +1,33 @@
+# ruff: noqa: UP040
 from __future__ import annotations
 
-import inspect
-from typing import TYPE_CHECKING, Protocol, TypeVar, Union
+from typing import TYPE_CHECKING
 
-from streamdeck.models.events import EventBase
+from pydantic import JsonValue
 
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias, TypeIs  # noqa: UP035
-
-    from streamdeck.command_sender import StreamDeckCommandSender
+    from typing_extensions import TypeAlias  # noqa: UP035
 
 
 
-EventNameStr: TypeAlias = str  # noqa: UP040
+EventNameStr: TypeAlias = str
 """Type alias for the event name string.
 
 We don't define literal string values here, as the list of available event names can be added to dynamically.
 """
 
+DeviceUUIDStr: TypeAlias = str
+"""Unique identifier string of a Stream Deck device that an event is associated with."""
 
-### Event Handler Type Definitions ###
+ActionUUIDStr: TypeAlias = str
+"""Unique identifier string of a Stream Deck action that an event is associated with."""
 
-## Protocols for event handler functions that act on subtypes of EventBase instances in a Generic way.
+ActionInstanceUUIDStr: TypeAlias = str
+"""Unique identifier string of a specific instance of an action that an event is associated with (e.g. a specific key or dial that the action is assigned to)."""
 
-TEvent_contra = TypeVar("TEvent_contra", bound=EventBase, contravariant=True)
-"""Type variable for a subtype of EventBase."""
+PluginDefinedData: TypeAlias = dict[str, JsonValue]
+"""Key-value pair data of arbitrary structure that is defined in and relevant to the plugin.
 
-
-class EventHandlerBasicFunc(Protocol[TEvent_contra]):
-    """Protocol for a basic event handler function that takes just an event (of subtype of EventBase)."""
-    def __call__(self, event_data: TEvent_contra) -> None: ...
-
-
-class EventHandlerBindableFunc(Protocol[TEvent_contra]):
-    """Protocol for an event handler function that takes an event (of subtype of EventBase) and a command sender."""
-    def __call__(self, event_data: TEvent_contra, command_sender: StreamDeckCommandSender) -> None: ...
-
-
-EventHandlerFunc = Union[EventHandlerBasicFunc[TEvent_contra], EventHandlerBindableFunc[TEvent_contra]]  # noqa: UP007
-"""Type alias for an event handler function that takes an event (of subtype of EventBase), and optionally a command sender."""
-
-
-## Protocols for event handler functions that act on EventBase instances.
-
-class BaseEventHandlerBasicFunc(EventHandlerBasicFunc[EventBase]):
-    """Protocol for a basic event handler function that takes just an EventBase."""
-
-class BaseEventHandlerBindableFunc(EventHandlerBindableFunc[EventBase]):
-    """Protocol for an event handler function that takes an event (of subtype of EventBase) and a command sender."""
-
-
-BaseEventHandlerFunc = Union[BaseEventHandlerBasicFunc, BaseEventHandlerBindableFunc]  # noqa: UP007
-"""Type alias for a base event handler function that takes an actual EventBase instance argument, and optionally a command sender.
-
-This is used for type hinting internal storage of event handlers.
+The root of the data structure will always be a dict of string keys, while the values can be any JSON-compatible type.
 """
-
-
-
-# def is_bindable_handler(handler: EventHandlerFunc[TEvent_contra] | BaseEventHandlerFunc) -> TypeIs[EventHandlerBindableFunc[TEvent_contra] | BaseEventHandlerBindableFunc]:
-def is_bindable_handler(handler: EventHandlerBasicFunc[TEvent_contra] | EventHandlerBindableFunc[TEvent_contra]) -> TypeIs[EventHandlerBindableFunc[TEvent_contra]]:
-    """Check if the handler is prebound with the `command_sender` parameter."""
-    # Check dynamically if the `command_sender`'s name is in the handler's arguments.
-    return "command_sender" in inspect.signature(handler).parameters

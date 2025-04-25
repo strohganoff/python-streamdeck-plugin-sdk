@@ -12,9 +12,8 @@ if TYPE_CHECKING:
     from typing import Any, ClassVar
 
 
-class DummyEvent(EventBase):
+class DummyEvent(EventBase["dummy"]):
     """A dummy event for testing purposes."""
-    event: Literal["dummy"]  # type: ignore[assignment]
     something: int
 
 

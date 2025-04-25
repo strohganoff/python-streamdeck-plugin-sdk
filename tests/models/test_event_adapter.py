@@ -30,8 +30,7 @@ def test_add_model() -> None:
     adapter = EventAdapter()
 
     # Create a fake event model
-    class DummyEvent(EventBase):
-        event: Literal["dummyEvent"]
+    class DummyEvent(EventBase["dummyEvent"]):
         payload: dict[str, str]
 
     # Add the custom model
@@ -104,8 +103,7 @@ def test_adding_custom_event_allows_validation() -> None:
     adapter = EventAdapter()
 
     # Create a fake event model
-    class DummyEvent(EventBase):
-        event: Literal["dummyEvent"]
+    class DummyEvent(EventBase["dummyEvent"]):
         action: str
         context: str
         device: str

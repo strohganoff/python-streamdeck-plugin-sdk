@@ -11,18 +11,14 @@ from streamdeck.actions import Action
 if TYPE_CHECKING:
     from functools import partial
 
+    from streamdeck.actions import EventHandlerFunc
     from streamdeck.command_sender import StreamDeckCommandSender
     from streamdeck.manager import PluginManager
     from streamdeck.models import events
-    from streamdeck.models.events.base import LiteralStrGenericAlias
-    from streamdeck.types import (
-        EventHandlerBasicFunc,
-        EventHandlerFunc,
-    )
 
 
 
-def create_event_handler(include_command_sender_param: bool = False) -> EventHandlerFunc[events.EventBase]:
+def create_event_handler(include_command_sender_param: bool = False) -> EventHandlerFunc:
     """Create a dummy event handler function that matches the EventHandlerFunc TypeAlias.
 
     Args:
@@ -32,12 +28,12 @@ def create_event_handler(include_command_sender_param: bool = False) -> EventHan
         Callable[[events.EventBase], None] | Callable[[events.EventBase, StreamDeckCommandSender], None]: A dummy event handler function.
     """
     if not include_command_sender_param:
-        def dummy_handler_without_cmd_sender(event_data: events.EventBase[LiteralStrGenericAlias]) -> None:
+        def dummy_handler_without_cmd_sender(event_data: events.EventBase) -> None:
             """Dummy event handler function that matches the EventHandlerFunc TypeAlias without `command_sender` param."""
 
         return dummy_handler_without_cmd_sender
 
-    def dummy_handler_with_cmd_sender(event_data: events.EventBase[LiteralStrGenericAlias], command_sender: StreamDeckCommandSender) -> None:
+    def dummy_handler_with_cmd_sender(event_data: events.EventBase, command_sender: StreamDeckCommandSender) -> None:
         """Dummy event handler function that matches the EventHandlerFunc TypeAlias with `command_sender` param."""
 
     return dummy_handler_with_cmd_sender
@@ -46,7 +42,7 @@ def create_event_handler(include_command_sender_param: bool = False) -> EventHan
 @pytest.fixture(params=[True, False])
 def mock_event_handler(request: pytest.FixtureRequest) -> Mock:
     include_command_sender_param: bool = request.param
-    dummy_handler: EventHandlerFunc[events.EventBase[LiteralStrGenericAlias]] = create_event_handler(include_command_sender_param)
+    dummy_handler: EventHandlerFunc = create_event_handler(include_command_sender_param)
 
     return create_autospec(dummy_handler, spec_set=True)
 
@@ -58,7 +54,7 @@ def test_inject_command_sender_func(
 ) -> None:
     """Test that the command_sender is injected into the handler."""
     mock_command_sender = Mock()
-    result_handler: EventHandlerBasicFunc[events.EventBase[LiteralStrGenericAlias]] = plugin_manager._inject_command_sender(mock_event_handler, mock_command_sender)
+    result_handler: EventHandlerFunc = plugin_manager._inject_command_sender(mock_event_handler, mock_command_sender)
 
     resulting_handler_params = inspect.signature(result_handler).parameters
 
@@ -79,7 +75,7 @@ def test_inject_command_sender_func(
 
 @pytest.mark.usefixtures("patch_websocket_client")
 def test_run_manager_events_handled_with_correct_params(
-    mock_event_listener_manager_with_fake_events: tuple[Mock, list[events.EventBase[LiteralStrGenericAlias]]],
+    mock_event_listener_manager_with_fake_events: tuple[Mock, list[events.EventBase]],
     plugin_manager: PluginManager,
     mock_command_sender: Mock,
 ) -> None:

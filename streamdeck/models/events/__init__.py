@@ -31,6 +31,9 @@ from streamdeck.models.events.visibility import WillAppear, WillDisappear
 if TYPE_CHECKING:
     from typing import Final
 
+    from streamdeck.types import EventNameStr
+
+
 
 DEFAULT_EVENT_MODELS: Final[list[type[EventBase]]] = [
     ApplicationDidLaunch,
@@ -56,8 +59,8 @@ DEFAULT_EVENT_MODELS: Final[list[type[EventBase]]] = [
 ]
 
 
-def _get_default_event_names() -> set[str]:
-    default_event_names: set[str] = set()
+def _get_default_event_names() -> set[EventNameStr]:
+    default_event_names: set[EventNameStr] = set()
 
     for event_model in DEFAULT_EVENT_MODELS:
         default_event_names.update(event_model.get_model_event_names())
@@ -65,7 +68,7 @@ def _get_default_event_names() -> set[str]:
     return default_event_names
 
 
-DEFAULT_EVENT_NAMES: Final[set[str]] = _get_default_event_names()
+DEFAULT_EVENT_NAMES: Final[set[EventNameStr]] = _get_default_event_names()
 
 
 

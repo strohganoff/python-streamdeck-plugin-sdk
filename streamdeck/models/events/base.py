@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Literal
+from weakref import WeakValueDictionary
 
 from pydantic import BaseModel, ConfigDict, create_model
-from typing_extensions import LiteralString, override  # noqa: UP035
+from typing_extensions import LiteralString, TypedDict, override  # noqa: UP035
+
+
+if TYPE_CHECKING:
+    from typing import Any, ClassVar
+
 
 
 class ConfiguredBaseModel(BaseModel, ABC):
@@ -29,12 +35,27 @@ class ConfiguredBaseModel(BaseModel, ABC):
         return super().model_dump_json(**kwargs)
 
 
+class EventMetadataDict(TypedDict):
+    """Metadata for specialized EventBase submodels.
+
+    Similar to the __pydantic_generic_metadata__ attribute, but for use in the EventBase class——which isn't actually generic.
+    """
+    origin: type[EventBase]
+    """Origin class of the specialized EventBase submodel."""
+    args: tuple[str, ...]
+    """Event names for the specialized EventBase submodel."""
+
+
 if TYPE_CHECKING:
     # Because we can't override a BaseModel's metaclass __getitem__ method without angering Pydantic during runtime,
     # we define this stub here to satisfy static type checkers that introspect the metaclass method annotations
     # to determine expected types in the class subscriptions.
 
+    from collections.abc import Callable
+
     from pydantic._internal._model_construction import ModelMetaclass  # type: ignore[import]
+
+    from streamdeck.types import EventNameStr
 
     class EventMeta(ModelMetaclass):
         """Metaclass for EventBase stub to satisfy static type checkers."""
@@ -42,23 +63,61 @@ if TYPE_CHECKING:
         def __getitem__(cls, event_names: LiteralString | tuple[LiteralString, ...]) -> type[EventBase]: ...
 
     class EventBase(BaseModel, metaclass=EventMeta):
-        """Base class for all event models."""
-        event: LiteralString
+        """Base class for all event models.
+
+        EventBase itself should not be instantiated, nor should it be subclassed directly.
+        Instead, use a subscripted subclass of EventBase, e.g. `EventBase["eventName"]`, to subclass from.
+
+        Examples:
+        ```
+        class KeyDown(EventBase["keyDown"]):
+            # 'event' field's type annotation is internally set here as `Literal["keyDown"]`
+            ...
+
+        class TestEvent(EventBase["test", "testing"]):
+            # 'event' field's type annotation is internally set here as `Literal["test", "testing"]`
+            ...
+
+        ```
+        """
+        event: EventNameStr
         """Name of the event used to identify what occurred.
 
         Subclass models must define this field as a Literal type with the event name string that the model represents.
         """
+        __event_metadata__: ClassVar[EventMetadataDict]
+        """Metadata for specialized EventBase submodels."""
+        __event_type__: ClassVar[Callable[[], type[object] | None]]
+        """Return the event type for the event model."""
 
         @classmethod
-        def get_model_event_names(cls) -> tuple[str, ...]:
+        def get_model_event_names(cls) -> tuple[EventNameStr, ...]:
             """Return the event names for the event model."""
             ...
 
 else:
     class EventBase(ConfiguredBaseModel, ABC):
-        """Base class for all event models."""
-        _subtypes: ClassVar[dict[str, type[EventBase]]] = {}
-        __args__: ClassVar[tuple[str, ...]]
+        """Base class for all event models.
+
+        EventBase itself should not be instantiated, nor should it be subclassed directly.
+        Instead, use a subscripted subclass of EventBase, e.g. `EventBase["eventName"]`, to subclass from.
+
+        Examples:
+        ```
+        class KeyDown(EventBase["keyDown"]):
+            # 'event' field's type annotation is internally set here as `Literal["keyDown"]`
+            ...
+
+        class TestEvent(EventBase["test", "testing"]):
+            # 'event' field's type annotation is internally set here as `Literal["test", "testing"]`
+            ...
+
+        ```
+        """
+        # A weak reference dictionary to store subscripted subclasses of EventBase. Weak references are used to minimize memory usage.
+        _cached_specialized_submodels: ClassVar[WeakValueDictionary[str, type[EventBase]]] = WeakValueDictionary()
+        __event_metadata__: ClassVar[EventMetadataDict]
+        """Metadata for specialized EventBase submodels."""
 
         event: str
         """Name of the event used to identify what occurred.
@@ -106,25 +165,30 @@ else:
         def __new_subscripted_base__(cls: type[EventBase], new_name: str, event_name_args: tuple[str, ...]) -> type[EventBase]:
             """Dynamically create a new Singleton subclass of EventBase with the given event names for the event field.
 
-            Only create a new subscripted subclass if it doesn't already exist in the _subtypes dictionary, otherwise return the existing subclass.
+            Only create a new subscripted subclass if it doesn't already exist in the _cached_specialized_submodels dictionary, otherwise return the existing subclass.
             The new subclasses created here will be ignored in the __init_subclass__ method.
             """
-            if new_name not in cls._subtypes:
-                # Pass in the _is_base_subtype kwarg to __init_subclass__ to indicate that this is a base subtype of EventBase, and should be ignored.
-                cls._subtypes[new_name] = create_model(
+            if new_name not in cls._cached_specialized_submodels:
+                # Make sure not to pass in a value `_cached_specialized_submodels` in the create_model() call, in order to avoid shadowing the class variable.
+                cls._cached_specialized_submodels[new_name] = create_model(
                     new_name,
                     __base__=cls,
-                    __args__=(tuple[str, ...], event_name_args),
+                    __event_metadata__=(EventMetadataDict, {"origin": cls, "args": event_name_args}),
                     event=(Literal[event_name_args], ...),
-                    __cls_kwargs__={"_is_base_subtype": True},
+                    __cls_kwargs__={"_is_specialized_base": True},  # This gets passed to __init_subclass__ as a kwarg to indicate that this is a specialized (subscripted) subclass of EventBase.
                 )
 
-            return cls._subtypes[new_name]
+            return cls._cached_specialized_submodels[new_name]
 
         @classmethod
-        def __init_subclass__(cls, _is_base_subtype: bool = False) -> None:
-            """Validate a child class of EventBase (not a subscripted base subclass) is subclassing from a subscripted EventBase."""
-            if _is_base_subtype:
+        def __init_subclass__(cls, _is_specialized_base: bool = False) -> None:
+            """Validate a child class of EventBase (not a subscripted base subclass) is subclassing from a subscripted EventBase.
+
+            Args:
+                _is_specialized_base: Whether this is a specialized submodel of EventBase (i.e., a subscripted subclass).
+                    This should only be True for the subscripted subclasses created in __class_getitem__.
+            """
+            if _is_specialized_base:
                 # This is a subscripted subclass of EventBase, so we don't need to do anything.
                 return
 
@@ -147,4 +211,4 @@ else:
         @classmethod
         def get_model_event_names(cls) -> tuple[str, ...]:
             """Return the event names for the event model."""
-            return cls.__args__
+            return cls.__event_metadata__["args"]

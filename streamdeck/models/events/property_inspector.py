@@ -4,8 +4,8 @@ from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
     ContextualEventMixin,
     DeviceSpecificEventMixin,
-    PluginDefinedData,
 )
+from streamdeck.types import PluginDefinedData  # noqa: TC001
 
 
 class DidReceivePropertyInspectorMessage(EventBase["sendToPlugin"], ContextualEventMixin):

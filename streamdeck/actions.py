@@ -11,16 +11,11 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Generator
     from typing import Protocol
 
-    from typing_extensions import ParamSpec, TypeAlias, TypeVar  # noqa: UP035
+    from typing_extensions import ParamSpec, TypeVar
 
     from streamdeck.models.events import EventBase
+    from streamdeck.types import ActionUUIDStr, EventNameStr
 
-
-    EventNameStr: TypeAlias = str  # noqa: UP040
-    """Type alias for the event name string.
-
-    We don't define literal string values here, as the list of available event names can be added to dynamically.
-    """
 
 
     EventModel_contra = TypeVar("EventModel_contra", bound=EventBase, default=EventBase, contravariant=True)
@@ -39,11 +34,7 @@ class ActionBase(ABC):
     """Base class for all actions."""
 
     def __init__(self) -> None:
-        """Initialize an Action instance.
-
-        Args:
-            uuid (str): The unique identifier for the action.
-        """
+        """Initialize an Action instance."""
         self._events: dict[EventNameStr, set[EventHandlerFunc]] = defaultdict(set)
 
     def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc[EventModel_contra, InjectableParams]], EventHandlerFunc[EventModel_contra, InjectableParams]]:
@@ -59,8 +50,8 @@ class ActionBase(ABC):
             KeyError: If the provided event name is not available.
         """
         def _wrapper(func: EventHandlerFunc[EventModel_contra, InjectableParams]) -> EventHandlerFunc[EventModel_contra, InjectableParams]:
-            # Cast to EventHandler with default type arguments so that the storage type is consistent.
-            self._events[event_name].add(cast("EventHandler", func))
+            # Cast to EventHandlerFunc with default type arguments so that the storage type is consistent.
+            self._events[event_name].add(cast("EventHandlerFunc", func))
             return func
 
         return _wrapper
@@ -98,7 +89,7 @@ class GlobalAction(ActionBase):
 class Action(ActionBase):
     """Represents an action that can be performed for a specific action, with event handlers for specific event types."""
 
-    def __init__(self, uuid: str) -> None:
+    def __init__(self, uuid: ActionUUIDStr) -> None:
         """Initialize an Action instance.
 
         Args:
@@ -128,7 +119,7 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: str | None = None) -> Generator[EventHandlerFunc, None, None]:
+    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:

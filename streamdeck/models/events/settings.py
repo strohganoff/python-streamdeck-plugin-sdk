@@ -9,10 +9,10 @@ from streamdeck.models.events.common import (
     DeviceSpecificEventMixin,
     KeypadControllerType,
     MultiActionPayloadMixin,
-    PluginDefinedData,
     SingleActionPayloadMixin,
     StatefulActionPayloadMixin,
 )
+from streamdeck.types import PluginDefinedData  # noqa: TC001
 
 
 ## Models for didReceiveSettings event and its specific payloads.

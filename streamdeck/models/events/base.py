@@ -55,6 +55,8 @@ if TYPE_CHECKING:
 
     from pydantic._internal._model_construction import ModelMetaclass  # type: ignore[import]
 
+    from streamdeck.types import EventNameStr
+
     class EventMeta(ModelMetaclass):
         """Metaclass for EventBase stub to satisfy static type checkers."""
         @classmethod
@@ -78,7 +80,7 @@ if TYPE_CHECKING:
 
         ```
         """
-        event: LiteralString
+        event: EventNameStr
         """Name of the event used to identify what occurred.
 
         Subclass models must define this field as a Literal type with the event name string that the model represents.
@@ -89,7 +91,7 @@ if TYPE_CHECKING:
         """Return the event type for the event model."""
 
         @classmethod
-        def get_model_event_names(cls) -> tuple[str, ...]:
+        def get_model_event_names(cls) -> tuple[EventNameStr, ...]:
             """Return the event names for the event model."""
             ...
 

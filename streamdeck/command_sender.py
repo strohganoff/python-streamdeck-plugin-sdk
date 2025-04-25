@@ -7,6 +7,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Literal
 
+    from streamdeck.types import (
+        ActionInstanceUUIDStr,
+        ActionUUIDStr,
+        DeviceUUIDStr,
+        EventNameStr,
+        PluginDefinedData,
+    )
     from streamdeck.websocket import WebSocketClient
 
 
@@ -16,30 +23,31 @@ logger = getLogger("streamdeck.command_sender")
 
 class StreamDeckCommandSender:
     """Class for sending command event messages to the Stream Deck software through a WebSocket client."""
+
     def __init__(self, client: WebSocketClient, plugin_registration_uuid: str):
         self._client = client
         self._plugin_registration_uuid = plugin_registration_uuid
 
-    def _send_event(self, event: str, **kwargs: Any) -> None:
+    def _send_event(self, event: EventNameStr, **kwargs: Any) -> None:
         self._client.send_event({
             "event": event,
             **kwargs,
         })
 
-    def set_settings(self, context: str, payload: dict[str, Any]) -> None:
+    def set_settings(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
         self._send_event(
             event="setSettings",
             context=context,
             payload=payload,
         )
 
-    def get_settings(self, context: str) -> None:
+    def get_settings(self, context: ActionInstanceUUIDStr) -> None:
         self._send_event(
             event="getSettings",
             context=context,
         )
 
-    def set_global_settings(self, payload: dict[str, Any]) -> None:
+    def set_global_settings(self, payload: PluginDefinedData) -> None:
         self._send_event(
             event="setGlobalSettings",
             context=self._plugin_registration_uuid,
@@ -52,14 +60,14 @@ class StreamDeckCommandSender:
             context=self._plugin_registration_uuid,
         )
 
-    def open_url(self, context: str, url: str) -> None:
+    def open_url(self, context: ActionInstanceUUIDStr, url: str) -> None:
         self._send_event(
             event="openUrl",
             context=context,
             payload={"url": url},
         )
 
-    def log_message(self, context: str, message: str) -> None:
+    def log_message(self, context: ActionInstanceUUIDStr, message: str) -> None:
         self._send_event(
             event="logMessage",
             context=context,
@@ -68,10 +76,10 @@ class StreamDeckCommandSender:
 
     def set_title(
         self,
-        context: str,
+        context: ActionInstanceUUIDStr,
         state: int | None = None,
-        target: str | None = None,
-        title: str | None = None
+        target: Literal["hardware", "software", "both"] | None = None,
+        title: str | None = None,
     ) -> None:
         payload = {}
 
@@ -90,10 +98,10 @@ class StreamDeckCommandSender:
 
     def set_image(
         self,
-        context: str,
-        image: str,                                         # base64 encoded image,
-        target: Literal["hardware", "software", "both"],    # software, hardware, or both,
-        state: int,                                         # 0-based integer
+        context: ActionInstanceUUIDStr,
+        image: str,  # base64 encoded image,
+        target: Literal["hardware", "software", "both"],
+        state: int,
     ) -> None:
         """...
 
@@ -117,14 +125,26 @@ class StreamDeckCommandSender:
             },
         )
 
-    def set_feedback(self, context: str, payload: dict[str, Any]) -> None:
+    def set_feedback(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
+        """Set's the feedback of an existing layout associated with an action instance.
+
+        Args:
+          context (str): Defines the context of the command, e.g. which action instance the command is intended for.
+          payload (PluginDefinedData): Additional information supplied as part of the command.
+        """
         self._send_event(
             event="setFeedback",
             context=context,
             payload=payload,
         )
 
-    def set_feedback_layout(self, context: str, layout: str) -> None:
+    def set_feedback_layout(self, context: ActionInstanceUUIDStr, layout: str) -> None:
+        """Sets the layout associated with an action instance.
+
+        Args:
+          context (str): Defines the context of the command, e.g. which action instance the command is intended for.
+          layout (str): Name of a pre-defined layout, or relative path to a custom one.
+        """
         self._send_event(
             event="setFeedbackLayout",
             context=context,
@@ -133,7 +153,7 @@ class StreamDeckCommandSender:
 
     def set_trigger_description(
         self,
-        context: str,
+        context: ActionInstanceUUIDStr,
         rotate: str | None = None,
         push: str | None = None,
         touch: str | None = None,
@@ -170,21 +190,21 @@ class StreamDeckCommandSender:
             },
         )
 
-    def show_alert(self, context: str) -> None:
+    def show_alert(self, context: ActionInstanceUUIDStr) -> None:
         """Temporarily show an alert icon on the image displayed by an instance of an action."""
         self._send_event(
             event="showAlert",
             context=context,
         )
 
-    def show_ok(self, context: str) -> None:
+    def show_ok(self, context: ActionInstanceUUIDStr) -> None:
         """Temporarily show an OK checkmark icon on the image displayed by an instance of an action."""
         self._send_event(
             event="showOk",
             context=context,
         )
 
-    def set_state(self, context: str, state: int) -> None:
+    def set_state(self, context: ActionInstanceUUIDStr, state: int) -> None:
         self._send_event(
             event="setState",
             context=context,
@@ -193,8 +213,8 @@ class StreamDeckCommandSender:
 
     def switch_to_profile(
         self,
-        context: str,
-        device: str,
+        context: ActionInstanceUUIDStr,
+        device: DeviceUUIDStr,
         profile: str | None = None,
         page: int = 0,
     ) -> None:
@@ -211,7 +231,7 @@ class StreamDeckCommandSender:
             page (int):  Page to show when switching to the profile; indexed from 0.
         """
         # TODO: Should validation happen that ensures the specified profile is declared in manifest.yaml?
-        payload = {}
+        payload: dict[str, str | int | None] = {}
 
         if profile is not None:
             payload = {
@@ -226,7 +246,9 @@ class StreamDeckCommandSender:
             payload=payload,
         )
 
-    def send_to_property_inspector(self, context: str, payload: dict[str, Any]) -> None:
+    def send_to_property_inspector(
+        self, context: ActionInstanceUUIDStr, payload: PluginDefinedData
+    ) -> None:
         self._send_event(
             event="sendToPropertyInspector",
             context=context,
@@ -234,10 +256,7 @@ class StreamDeckCommandSender:
         )
 
     def send_to_plugin(
-        self,
-        context: str,
-        action: str,
-        payload: dict[str, Any]
+        self, context: ActionInstanceUUIDStr, action: ActionUUIDStr, payload: PluginDefinedData
     ) -> None:
         """Send a payload to another plugin.
 

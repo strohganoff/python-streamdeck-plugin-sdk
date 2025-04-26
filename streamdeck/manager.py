@@ -174,6 +174,22 @@ class PluginManager:
 
             yield data
 
+    # TODO: rather than an explicit 'command_sender' arg, this will eventually be handled by dynamically binded args.
+    def _dispatch_event(self, event: EventBase, command_sender: StreamDeckCommandSender) -> None:
+        """Dispatch an event to the appropriate action handlers.
+
+        Args:
+            event (EventBase): The event data model for the event to dispatch.
+        """
+        # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
+        event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
+
+        for event_handler in self._action_registry.get_action_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
+            processed_handler = self._inject_command_sender(event_handler, command_sender)
+            # TODO: from contextual event occurrences, save metadata to the action's properties.
+
+            processed_handler(event)
+
     def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
@@ -188,13 +204,6 @@ class PluginManager:
             command_sender.send_action_registration(register_event=self._register_event)
 
             for data in self._stream_event_data():
-                # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
-                event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
-
-                for event_handler in self._action_registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
-                    processed_handler = self._inject_command_sender(event_handler, command_sender)
-                    # TODO: from contextual event occurences, save metadata to the action's properties.
-
-                    processed_handler(data)
+                self._dispatch_event(data, command_sender)
 
             logger.info("PluginManager has stopped processing events.")

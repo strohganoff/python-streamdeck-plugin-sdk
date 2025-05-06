@@ -73,7 +73,7 @@ class PluginManager:
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
 
-    def _ensure_action_has_valid_events(self, action: SupportsEventHandlers) -> None:
+    def _ensure_catalog_has_valid_events(self, action: SupportsEventHandlers) -> None:
         """Ensure that the event handler catalog's registered events are valid.
 
         Args:
@@ -85,14 +85,14 @@ class PluginManager:
                 logger.error(msg)
                 raise KeyError(msg)
 
-    def register_handler(self, action: ActionBase) -> None:
+    def register_action(self, action: ActionBase) -> None:
         """Register an action with the PluginManager, and configure its logger.
 
         Args:
             action (Action): The action to register.
         """
         # First, validate that the action's registered events are valid.
-        self._ensure_action_has_valid_events(action)
+        self._ensure_catalog_has_valid_events(action)
 
         # Next, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
         action_component_name = action.uuid.split(".")[-1] if isinstance(action, Action) else "global"

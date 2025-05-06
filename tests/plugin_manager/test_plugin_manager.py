@@ -46,7 +46,7 @@ def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
     assert len(plugin_manager._handlers_registry._plugin_actions) == 0
 
     action = Action("my-fake-action-uuid")
-    plugin_manager.register_handler(action)
+    plugin_manager.register_action(action)
 
     assert len(plugin_manager._handlers_registry._plugin_actions) == 1
     assert plugin_manager._handlers_registry._plugin_actions[0] == action

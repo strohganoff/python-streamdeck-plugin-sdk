@@ -130,26 +130,6 @@ class PluginManager:
         for event_model in listener.event_models:
             self._event_adapter.add_model(event_model)
 
-    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
-        """Inject command_sender into handler if it accepts it as a parameter.
-
-        Args:
-            handler: The event handler function
-            command_sender: The StreamDeckCommandSender instance
-
-        Returns:
-            The handler with command_sender injected if needed
-        """
-        if is_bindable_handler(handler):
-            # If the handler accepts command_sender, inject it and return the handler.
-            return functools.partial(handler, command_sender=command_sender)
-
-        if not is_not_bindable_handler(handler):
-            # If the handler is neither bindable nor not bindable, raise an error.
-            raise TypeError(f"Invalid event handler function signature: {handler}")  # noqa: TRY003, EM102
-
-        return handler
-
     def _stream_event_data(self) -> Generator[EventBase, None, None]:
         """Stream event data from the event listeners.
 
@@ -173,6 +153,29 @@ class PluginManager:
                 continue
 
             yield data
+
+    # def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], device: DeviceUUIDStr | None, action: ActionUUIDStr | None, action_instance: ActionInstanceUUIDStr | None) -> BoundEventHandlerFunc[EventModel_contra]:
+    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
+        """Inject command_sender into handler if it accepts it as a parameter.
+
+        Args:
+            handler: The event handler function
+            command_sender: The StreamDeckCommandSender instance
+
+        Returns:
+            The handler with command_sender injected if needed
+        """
+        if is_bindable_handler(handler):
+            # If the handler accepts command_sender, inject it and return the handler.
+            return functools.partial(handler, command_sender=command_sender)
+
+        if not is_not_bindable_handler(handler):
+            # If the handler is neither bindable nor not bindable, raise an error.
+            raise TypeError(f"Invalid event handler function signature: {handler}")
+
+        return handler
+
+        # return self._injector.bind_injectable(handler, device, action, action_instance)
 
     # TODO: rather than an explicit 'command_sender' arg, this will eventually be handled by dynamically binded args.
     def _dispatch_event(self, event: EventBase, command_sender: StreamDeckCommandSender) -> None:

@@ -1,5 +1,8 @@
+from polyfactory import Use
 from polyfactory.factories.pydantic_factory import ModelFactory
 from streamdeck.models import events
+from streamdeck.models.events.settings import SingleActionSettingsPayload
+from streamdeck.models.events.visibility import SingleActionVisibilityPayload
 
 
 class DialDownEventFactory(ModelFactory[events.DialDown]):
@@ -40,3 +43,29 @@ class DeviceDidConnectFactory(ModelFactory[events.DeviceDidConnect]):
 
     DeviceDidConnectEvent's have `device` unique identifier property.
     """
+
+
+ControllerTypeFactory = Use(ModelFactory.__random__.choice, ["Keypad", "Encoder"])
+
+
+class DidReceiveSettingsFactory(ModelFactory[events.DidReceiveSettings]):
+
+    class SingleActionSettingsPayloadFactory(ModelFactory[SingleActionSettingsPayload]):
+        __set_as_default_factory_for_type__ = True
+
+        controller = ControllerTypeFactory
+
+
+class WillAppearFactory(ModelFactory[events.WillAppear]):
+    """Polyfactory factory for creating fake willAppear event message based on our Pydantic model.
+
+    WillAppearEvent's have the unique identifier properties:
+        `device`: Identifies the Stream Deck device that this event is associated with.
+        `action`: Identifies the action that caused the event.
+        `context`: Identifies the *instance* of an action that caused the event.
+    """
+
+    class SingleActionVisibilityPayloadFactory(ModelFactory[SingleActionVisibilityPayload]):
+        __set_as_default_factory_for_type__ = True
+
+        controller = ControllerTypeFactory

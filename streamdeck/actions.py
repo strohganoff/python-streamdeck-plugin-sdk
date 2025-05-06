@@ -32,10 +32,12 @@ logger = getLogger("streamdeck.actions")
 
 class ActionBase(ABC):
     """Base class for all actions."""
+    _events: dict[EventNameStr, set[EventHandlerFunc]]
+    """Dictionary mapping event names to sets of event handler functions."""
 
     def __init__(self) -> None:
         """Initialize an Action instance."""
-        self._events: dict[EventNameStr, set[EventHandlerFunc]] = defaultdict(set)
+        self._events = defaultdict(set)
 
     def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc[EventModel_contra, InjectableParams]], EventHandlerFunc[EventModel_contra, InjectableParams]]:
         """Register an event handler for a specific event.
@@ -88,6 +90,8 @@ class GlobalAction(ActionBase):
 
 class Action(ActionBase):
     """Represents an action that can be performed for a specific action, with event handlers for specific event types."""
+    uuid: ActionUUIDStr
+    """The unique identifier for the action."""
 
     def __init__(self, uuid: ActionUUIDStr) -> None:
         """Initialize an Action instance.
@@ -106,10 +110,12 @@ class Action(ActionBase):
 
 class ActionRegistry:
     """Manages the registration and retrieval of actions and their event handlers."""
+    _plugin_actions: list[ActionBase]
+    """List of registered actions."""
 
     def __init__(self) -> None:
         """Initialize an ActionRegistry instance."""
-        self._plugin_actions: list[ActionBase] = []
+        self._plugin_actions = []
 
     def register(self, action: ActionBase) -> None:
         """Register an action with the registry.
@@ -119,7 +125,7 @@ class ActionRegistry:
         """
         self._plugin_actions.append(action)
 
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
         """Get all event handlers for a specific event from all registered actions.
 
         Args:

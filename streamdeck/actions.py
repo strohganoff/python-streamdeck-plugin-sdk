@@ -6,24 +6,18 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
+from streamdeck.event_handlers.protocol import (
+    EventHandlerFunc,
+    EventModel_contra,
+    InjectableParams,
+)
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
-    from typing import Protocol
 
-    from typing_extensions import ParamSpec, TypeVar
-
-    from streamdeck.models.events import EventBase
     from streamdeck.types import ActionUUIDStr, EventNameStr
 
-
-
-    EventModel_contra = TypeVar("EventModel_contra", bound=EventBase, default=EventBase, contravariant=True)
-    InjectableParams = ParamSpec("InjectableParams", default=...)
-
-    class EventHandlerFunc(Protocol[EventModel_contra, InjectableParams]):
-        """Protocol for an event handler function that takes an event (of subtype of EventBase) and other parameters that are injectable."""
-        def __call__(self, event_data: EventModel_contra, *args: InjectableParams.args, **kwargs: InjectableParams.kwargs) -> None: ...
 
 
 

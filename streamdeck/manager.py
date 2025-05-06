@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import functools
-import inspect
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
-from typing_extensions import TypeGuard  # noqa: UP035
 
 from streamdeck.actions import Action, ActionBase, HandlersRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
+from streamdeck.event_handlers.protocol import (
+    is_bindable_handler,
+    is_not_bindable_handler,
+)
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
@@ -21,7 +23,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Any, Literal
 
-    from streamdeck.actions import (
+    from streamdeck.event_handlers.protocol import (
+        BindableEventHandlerFunc,
+        BoundEventHandlerFunc,
         EventHandlerFunc,
         EventModel_contra,
         InjectableParams,
@@ -29,33 +33,9 @@ if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
 
 
-    BindableEventHandlerFunc = EventHandlerFunc[EventModel_contra, [StreamDeckCommandSender]]
-    """Type alias for a bindable event handler function that takes an event (of subtype of EventBase) and a command_sender parameter that is to be injected."""
-    BoundEventHandlerFunc = EventHandlerFunc[EventModel_contra, []]
-    """Type alias for a bound event handler function that takes an event (of subtype of EventBase) and no other parameters.
-
-    Typically used for event handlers that have already had parameters injected.
-    """
-
-
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
 logger = getLogger("streamdeck.manager")
-
-
-def is_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BindableEventHandlerFunc[EventModel_contra]]:
-    """Check if the handler is prebound with the `command_sender` parameter."""
-    # Check dynamically if the `command_sender`'s name is in the handler's arguments.
-    return "command_sender" in inspect.signature(handler).parameters
-
-
-def is_not_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BoundEventHandlerFunc[EventModel_contra]]:
-    """Check if the handler only accepts the event_data parameter.
-
-    If this function returns False after the is_bindable_handler check is True, then the function has invalid parameters, and will subsequently need to be handled in the calling code.
-    """
-    handler_params = inspect.signature(handler).parameters
-    return len(handler_params) == 1 and "event_data" in handler_params
 
 
 class PluginManager:

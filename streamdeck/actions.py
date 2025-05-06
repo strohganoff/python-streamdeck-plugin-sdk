@@ -10,6 +10,7 @@ from streamdeck.event_handlers.protocol import (
     EventHandlerFunc,
     EventModel_contra,
     InjectableParams,
+    SupportsEventHandlers,
 )
 
 
@@ -20,11 +21,10 @@ if TYPE_CHECKING:
 
 
 
-
 logger = getLogger("streamdeck.actions")
 
 
-class ActionBase(ABC):
+class ActionBase(ABC, SupportsEventHandlers):
     """Base class for all actions."""
     _events: dict[EventNameStr, set[EventHandlerFunc]]
     """Dictionary mapping event names to sets of event handler functions."""
@@ -104,14 +104,14 @@ class Action(ActionBase):
 
 class HandlersRegistry:
     """Manages the registration and retrieval of actions and their event handlers."""
-    _plugin_actions: list[ActionBase]
+    _plugin_actions: list[SupportsEventHandlers]
     """List of registered actions."""
 
     def __init__(self) -> None:
         """Initialize an HandlersRegistry instance."""
         self._plugin_actions = []
 
-    def register(self, action: ActionBase) -> None:
+    def register(self, action: SupportsEventHandlers) -> None:
         """Register an action with the registry.
 
         Args:

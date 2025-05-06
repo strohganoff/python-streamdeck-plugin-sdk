@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from streamdeck.actions import Action, ActionBase, HandlersRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_handlers.protocol import (
+    SupportsEventHandlers,
     is_bindable_handler,
     is_not_bindable_handler,
 )
@@ -72,8 +73,8 @@ class PluginManager:
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
 
-    def _ensure_action_has_valid_events(self, action: ActionBase) -> None:
-        """Ensure that the action's registered events are valid.
+    def _ensure_action_has_valid_events(self, action: SupportsEventHandlers) -> None:
+        """Ensure that the event handler catalog's registered events are valid.
 
         Args:
             action (Action): The action to validate.

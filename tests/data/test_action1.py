@@ -1,5 +1,5 @@
-from streamdeck.actions import Action
 from streamdeck.command_sender import StreamDeckCommandSender
+from streamdeck.event_handlers.actions import Action
 from streamdeck.models.events import KeyDown, WillAppear
 
 

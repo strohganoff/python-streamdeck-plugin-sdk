@@ -1,11 +1,11 @@
 from . import (
-    actions,
     command_sender,
     manager,
     models,
     utils,
     websocket,
 )
+from .event_handlers import actions
 
 
 __all__ = [

@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import functools
-import inspect
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
-from typing_extensions import TypeGuard  # noqa: UP035
 
-from streamdeck.actions import Action, ActionBase, ActionRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
+from streamdeck.event_handlers.actions import Action, ActionBase
+from streamdeck.event_handlers.protocol import (
+    SupportsEventHandlers,
+    is_bindable_handler,
+    is_not_bindable_handler,
+)
+from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
@@ -21,7 +25,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from typing import Any, Literal
 
-    from streamdeck.actions import (
+    from streamdeck.event_handlers.protocol import (
+        BindableEventHandlerFunc,
+        BoundEventHandlerFunc,
         EventHandlerFunc,
         EventModel_contra,
         InjectableParams,
@@ -29,33 +35,9 @@ if TYPE_CHECKING:
     from streamdeck.models.events import EventBase
 
 
-    BindableEventHandlerFunc = EventHandlerFunc[EventModel_contra, [StreamDeckCommandSender]]
-    """Type alias for a bindable event handler function that takes an event (of subtype of EventBase) and a command_sender parameter that is to be injected."""
-    BoundEventHandlerFunc = EventHandlerFunc[EventModel_contra, []]
-    """Type alias for a bound event handler function that takes an event (of subtype of EventBase) and no other parameters.
-
-    Typically used for event handlers that have already had parameters injected.
-    """
-
-
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
 logger = getLogger("streamdeck.manager")
-
-
-def is_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BindableEventHandlerFunc[EventModel_contra]]:
-    """Check if the handler is prebound with the `command_sender` parameter."""
-    # Check dynamically if the `command_sender`'s name is in the handler's arguments.
-    return "command_sender" in inspect.signature(handler).parameters
-
-
-def is_not_bindable_handler(handler: EventHandlerFunc[EventModel_contra, InjectableParams]) -> TypeGuard[BoundEventHandlerFunc[EventModel_contra]]:
-    """Check if the handler only accepts the event_data parameter.
-
-    If this function returns False after the is_bindable_handler check is True, then the function has invalid parameters, and will subsequently need to be handled in the calling code.
-    """
-    handler_params = inspect.signature(handler).parameters
-    return len(handler_params) == 1 and "event_data" in handler_params
 
 
 class PluginManager:
@@ -88,12 +70,12 @@ class PluginManager:
         self._register_event = register_event
         self._info = info
 
-        self._action_registry = ActionRegistry()
+        self._handlers_registry = HandlersRegistry()
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
 
-    def _ensure_action_has_valid_events(self, action: ActionBase) -> None:
-        """Ensure that the action's registered events are valid.
+    def _ensure_catalog_has_valid_events(self, action: SupportsEventHandlers) -> None:
+        """Ensure that the event handler catalog's registered events are valid.
 
         Args:
             action (Action): The action to validate.
@@ -111,13 +93,13 @@ class PluginManager:
             action (Action): The action to register.
         """
         # First, validate that the action's registered events are valid.
-        self._ensure_action_has_valid_events(action)
+        self._ensure_catalog_has_valid_events(action)
 
         # Next, configure a logger for the action, giving it the last part of its uuid as name (if it has one).
         action_component_name = action.uuid.split(".")[-1] if isinstance(action, Action) else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
-        self._action_registry.register(action)
+        self._handlers_registry.register(action)
 
     def register_event_listener(self, listener: EventListener) -> None:
         """Register an event listener with the PluginManager, and add its event models to the event adapter.
@@ -129,26 +111,6 @@ class PluginManager:
 
         for event_model in listener.event_models:
             self._event_adapter.add_model(event_model)
-
-    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
-        """Inject command_sender into handler if it accepts it as a parameter.
-
-        Args:
-            handler: The event handler function
-            command_sender: The StreamDeckCommandSender instance
-
-        Returns:
-            The handler with command_sender injected if needed
-        """
-        if is_bindable_handler(handler):
-            # If the handler accepts command_sender, inject it and return the handler.
-            return functools.partial(handler, command_sender=command_sender)
-
-        if not is_not_bindable_handler(handler):
-            # If the handler is neither bindable nor not bindable, raise an error.
-            raise TypeError(f"Invalid event handler function signature: {handler}")  # noqa: TRY003, EM102
-
-        return handler
 
     def _stream_event_data(self) -> Generator[EventBase, None, None]:
         """Stream event data from the event listeners.
@@ -174,6 +136,45 @@ class PluginManager:
 
             yield data
 
+    # def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], device: DeviceUUIDStr | None, action: ActionUUIDStr | None, action_instance: ActionInstanceUUIDStr | None) -> BoundEventHandlerFunc[EventModel_contra]:
+    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
+        """Inject command_sender into handler if it accepts it as a parameter.
+
+        Args:
+            handler: The event handler function
+            command_sender: The StreamDeckCommandSender instance
+
+        Returns:
+            The handler with command_sender injected if needed
+        """
+        if is_bindable_handler(handler):
+            # If the handler accepts command_sender, inject it and return the handler.
+            return functools.partial(handler, command_sender=command_sender)
+
+        if not is_not_bindable_handler(handler):
+            # If the handler is neither bindable nor not bindable, raise an error.
+            raise TypeError(f"Invalid event handler function signature: {handler}")
+
+        return handler
+
+        # return self._injector.bind_injectable(handler, device, action, action_instance)
+
+    # TODO: rather than an explicit 'command_sender' arg, this will eventually be handled by dynamically binded args.
+    def _dispatch_event(self, event: EventBase, command_sender: StreamDeckCommandSender) -> None:
+        """Dispatch an event to the appropriate action handlers.
+
+        Args:
+            event (EventBase): The event data model for the event to dispatch.
+        """
+        # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
+        event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
+
+        for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
+            processed_handler = self._inject_command_sender(event_handler, command_sender)
+            # TODO: from contextual event occurrences, save metadata to the action's properties.
+
+            processed_handler(event)
+
     def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
@@ -188,13 +189,6 @@ class PluginManager:
             command_sender.send_action_registration(register_event=self._register_event)
 
             for data in self._stream_event_data():
-                # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
-                event_action_uuid = data.action if isinstance(data, ContextualEventMixin) else None
-
-                for event_handler in self._action_registry.get_action_handlers(event_name=data.event, event_action_uuid=event_action_uuid):
-                    processed_handler = self._inject_command_sender(event_handler, command_sender)
-                    # TODO: from contextual event occurences, save metadata to the action's properties.
-
-                    processed_handler(data)
+                self._dispatch_event(data, command_sender)
 
             logger.info("PluginManager has stopped processing events.")

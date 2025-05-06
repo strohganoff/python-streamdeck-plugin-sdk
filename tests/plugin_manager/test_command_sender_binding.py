@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import Mock, create_autospec
 
 import pytest
-from streamdeck.actions import Action
+from streamdeck.event_handlers.actions import Action
 
 
 if TYPE_CHECKING:
     from functools import partial
 
-    from streamdeck.actions import EventHandlerFunc
     from streamdeck.command_sender import StreamDeckCommandSender
+    from streamdeck.event_handlers.protocol import EventHandlerFunc
     from streamdeck.manager import PluginManager
     from streamdeck.models import events
 

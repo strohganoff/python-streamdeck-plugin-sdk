@@ -6,36 +6,32 @@ from functools import cached_property
 from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
+from streamdeck.event_handlers.protocol import (
+    EventHandlerFunc,
+    EventModel_contra,
+    InjectableParams,
+    SupportsEventHandlers,
+)
+
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
-    from typing import Protocol
 
-    from typing_extensions import ParamSpec, TypeVar
-
-    from streamdeck.models.events import EventBase
     from streamdeck.types import ActionUUIDStr, EventNameStr
-
-
-
-    EventModel_contra = TypeVar("EventModel_contra", bound=EventBase, default=EventBase, contravariant=True)
-    InjectableParams = ParamSpec("InjectableParams", default=...)
-
-    class EventHandlerFunc(Protocol[EventModel_contra, InjectableParams]):
-        """Protocol for an event handler function that takes an event (of subtype of EventBase) and other parameters that are injectable."""
-        def __call__(self, event_data: EventModel_contra, *args: InjectableParams.args, **kwargs: InjectableParams.kwargs) -> None: ...
 
 
 
 logger = getLogger("streamdeck.actions")
 
 
-class ActionBase(ABC):
+class ActionBase(ABC, SupportsEventHandlers):
     """Base class for all actions."""
+    _events: dict[EventNameStr, set[EventHandlerFunc]]
+    """Dictionary mapping event names to sets of event handler functions."""
 
     def __init__(self) -> None:
         """Initialize an Action instance."""
-        self._events: dict[EventNameStr, set[EventHandlerFunc]] = defaultdict(set)
+        self._events = defaultdict(set)
 
     def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc[EventModel_contra, InjectableParams]], EventHandlerFunc[EventModel_contra, InjectableParams]]:
         """Register an event handler for a specific event.
@@ -88,6 +84,8 @@ class GlobalAction(ActionBase):
 
 class Action(ActionBase):
     """Represents an action that can be performed for a specific action, with event handlers for specific event types."""
+    uuid: ActionUUIDStr
+    """The unique identifier for the action."""
 
     def __init__(self, uuid: ActionUUIDStr) -> None:
         """Initialize an Action instance.
@@ -104,37 +102,3 @@ class Action(ActionBase):
         return self.uuid.split(".")[-1]
 
 
-class ActionRegistry:
-    """Manages the registration and retrieval of actions and their event handlers."""
-
-    def __init__(self) -> None:
-        """Initialize an ActionRegistry instance."""
-        self._plugin_actions: list[ActionBase] = []
-
-    def register(self, action: ActionBase) -> None:
-        """Register an action with the registry.
-
-        Args:
-            action (Action): The action to register.
-        """
-        self._plugin_actions.append(action)
-
-    def get_action_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
-        """Get all event handlers for a specific event from all registered actions.
-
-        Args:
-            event_name (EventName): The name of the event to retrieve handlers for.
-            event_action_uuid (str | None): The action UUID to get handlers for.
-                If None (i.e., the event is not action-specific), get all handlers for the event.
-
-        Yields:
-            EventHandlerFunc: The event handler functions for the specified event.
-        """
-        for action in self._plugin_actions:
-            # If the event is action-specific (i.e is not a GlobalAction and has a UUID attribute),
-            # only get handlers for that action, as we don't want to trigger
-            # and pass this event to handlers for other actions.
-            if event_action_uuid is not None and (isinstance(action, Action) and action.uuid != event_action_uuid):
-                continue
-
-            yield from action.get_event_handlers(event_name)

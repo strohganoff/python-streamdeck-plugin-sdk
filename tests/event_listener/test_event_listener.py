@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 import threading
 import time
-from collections.abc import Generator
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
+
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from typing import Any, ClassVar
+
+    from streamdeck.types import EventNameStr
 
 
 class MockEventListener(EventListener):

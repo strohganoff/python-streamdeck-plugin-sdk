@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 from typing_extensions import TypeGuard  # noqa: UP035
 
-from streamdeck.actions import Action, ActionBase, ActionRegistry
+from streamdeck.actions import Action, ActionBase, HandlersRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
@@ -88,7 +88,7 @@ class PluginManager:
         self._register_event = register_event
         self._info = info
 
-        self._action_registry = ActionRegistry()
+        self._handlers_registry = HandlersRegistry()
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
 
@@ -104,7 +104,7 @@ class PluginManager:
                 logger.error(msg)
                 raise KeyError(msg)
 
-    def register_action(self, action: ActionBase) -> None:
+    def register_handler(self, action: ActionBase) -> None:
         """Register an action with the PluginManager, and configure its logger.
 
         Args:
@@ -117,7 +117,7 @@ class PluginManager:
         action_component_name = action.uuid.split(".")[-1] if isinstance(action, Action) else "global"
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
-        self._action_registry.register(action)
+        self._handlers_registry.register(action)
 
     def register_event_listener(self, listener: EventListener) -> None:
         """Register an event listener with the PluginManager, and add its event models to the event adapter.
@@ -187,7 +187,7 @@ class PluginManager:
         # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
         event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
 
-        for event_handler in self._action_registry.get_action_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
+        for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
             processed_handler = self._inject_command_sender(event_handler, command_sender)
             # TODO: from contextual event occurrences, save metadata to the action's properties.
 

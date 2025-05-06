@@ -108,13 +108,13 @@ class Action(ActionBase):
         return self.uuid.split(".")[-1]
 
 
-class ActionRegistry:
+class HandlersRegistry:
     """Manages the registration and retrieval of actions and their event handlers."""
     _plugin_actions: list[ActionBase]
     """List of registered actions."""
 
     def __init__(self) -> None:
-        """Initialize an ActionRegistry instance."""
+        """Initialize an HandlersRegistry instance."""
         self._plugin_actions = []
 
     def register(self, action: ActionBase) -> None:

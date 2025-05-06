@@ -13,10 +13,10 @@ from streamdeck.models.events import (  #, event_adapter
 
 
 @pytest.fixture
-def _spy_action_registry_get_action_handlers(
+def _spy_handlers_registry_get_event_handlers(
     mocker: pytest_mock.MockerFixture, plugin_manager: PluginManager
 ) -> None:
-    """Fixture that wraps and spies on the get_action_handlers method of the action_registry.
+    """Fixture that wraps and spies on the get_event_handlers method of the handlers_registry.
 
     Args:
         mocker: pytest-mock's mocker fixture.
@@ -25,7 +25,7 @@ def _spy_action_registry_get_action_handlers(
     Returns:
         None
     """
-    mocker.spy(plugin_manager._action_registry, "get_action_handlers")
+    mocker.spy(plugin_manager._handlers_registry, "get_event_handlers")
 
 
 @pytest.fixture
@@ -43,13 +43,13 @@ def _spy_event_adapter_validate_json(mocker: pytest_mock.MockerFixture) -> None:
 
 def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
     """Test that an action can be registered in the PluginManager."""
-    assert len(plugin_manager._action_registry._plugin_actions) == 0
+    assert len(plugin_manager._handlers_registry._plugin_actions) == 0
 
     action = Action("my-fake-action-uuid")
-    plugin_manager.register_action(action)
+    plugin_manager.register_handler(action)
 
-    assert len(plugin_manager._action_registry._plugin_actions) == 1
-    assert plugin_manager._action_registry._plugin_actions[0] == action
+    assert len(plugin_manager._handlers_registry._plugin_actions) == 1
+    assert plugin_manager._handlers_registry._plugin_actions[0] == action
 
 
 def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -> None:
@@ -116,11 +116,11 @@ def test_plugin_manager_adds_websocket_event_listener(
 @pytest.mark.usefixtures("patch_websocket_client")
 def test_plugin_manager_process_event(
     mock_event_listener_manager_with_fake_events: tuple[Mock, list[EventBase]],
-    _spy_action_registry_get_action_handlers: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.
+    _spy_handlers_registry_get_event_handlers: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.
     _spy_event_adapter_validate_json: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.
     plugin_manager: PluginManager,   # This fixture must come after patch_event_listener_manager and spy-fixtures to ensure things are mocked and spied correctly.
 ) -> None:
-    """Test that PluginManager processes events correctly, calling event_adapter.validate_json and action_registry.get_action_handlers."""
+    """Test that PluginManager processes events correctly, calling event_adapter.validate_json and handlers_registry.get_event_handlers."""
     mock_event_listener_mgr, fake_event_messages = mock_event_listener_manager_with_fake_events
     fake_event_message = fake_event_messages[0]
 
@@ -137,9 +137,9 @@ def test_plugin_manager_process_event(
     # Check that the validate_json method returns the same event type model as the fake_event_message.
     assert spied_event_adapter__validate_json.spy_return == fake_event_message
 
-    # Check that the action_registry.get_action_handlers method was called with the event name and action uuid.
-    spied_action_registry__get_action_handlers = cast("Mock", plugin_manager._action_registry.get_action_handlers)
-    spied_action_registry__get_action_handlers.assert_called_once_with(
+    # Check that the handlers_registry.get_event_handlers method was called with the event name and action uuid.
+    spied_handlers_registry__get_event_handlers = cast("Mock", plugin_manager._handlers_registry.get_event_handlers)
+    spied_handlers_registry__get_event_handlers.assert_called_once_with(
         event_name=fake_event_message.event, event_action_uuid=fake_event_message.action
     )
 

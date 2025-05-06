@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import create_autospec
 
 import pytest
-from streamdeck.actions import Action, ActionRegistry, GlobalAction
+from streamdeck.actions import Action, GlobalAction, HandlersRegistry
 from streamdeck.models.events.common import ContextualEventMixin
 
 from tests.test_utils.fake_event_factories import (
@@ -86,14 +86,14 @@ def test_action_gets_triggered_by_event(
 
 
 
-def test_global_action_registry_get_action_handlers_filtering(
+def test_global_handlers_registry_get_event_handlers_filtering(
     mock_event_handler: Mock,
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
 
-    registry = ActionRegistry()
+    registry = HandlersRegistry()
     # Create an Action instance, without an action UUID as global actions aren't associated with a specific action
     global_action = GlobalAction()
 
@@ -102,7 +102,7 @@ def test_global_action_registry_get_action_handlers_filtering(
     # Register the global action with the registry
     registry.register(global_action)
 
-    for handler in registry.get_action_handlers(
+    for handler in registry.get_event_handlers(
         event_name=fake_event_data.event,
         event_action_uuid=action_uuid,
     ):
@@ -113,14 +113,14 @@ def test_global_action_registry_get_action_handlers_filtering(
 
 
 
-def test_action_registry_get_action_handlers_filtering(
+def test_handlers_registry_get_event_handlers_filtering(
     mock_event_handler: Mock,
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
     action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
 
-    registry = ActionRegistry()
+    registry = HandlersRegistry()
     # Create an Action instance, using either the fake event's action UUID or a default value
     action = Action(uuid=action_uuid or "my-fake-action-uuid")
 
@@ -129,7 +129,7 @@ def test_action_registry_get_action_handlers_filtering(
     # Register the action with the registry
     registry.register(action)
 
-    for handler in registry.get_action_handlers(
+    for handler in registry.get_event_handlers(
         event_name=fake_event_data.event,
         event_action_uuid=action_uuid,  # This will be None if the event is not action-specific (i.e. doesn't have an action UUID property)
     ):
@@ -141,7 +141,7 @@ def test_action_registry_get_action_handlers_filtering(
 
 
 def test_multiple_actions_filtering() -> None:
-    registry = ActionRegistry()
+    registry = HandlersRegistry()
     action = Action("my-fake-action-uuid-1")
     global_action = GlobalAction()
 
@@ -166,7 +166,7 @@ def test_multiple_actions_filtering() -> None:
     fake_app_did_launch_event_data: events.ApplicationDidLaunch = ApplicationDidLaunchEventFactory.build()
     fake_key_down_event_data: events.KeyDown = KeyDownEventFactory.build(action=action.uuid)
 
-    for handler in registry.get_action_handlers(event_name=fake_app_did_launch_event_data.event):
+    for handler in registry.get_event_handlers(event_name=fake_app_did_launch_event_data.event):
         handler(fake_app_did_launch_event_data)
 
     assert global_action_event_handler_called
@@ -176,7 +176,7 @@ def test_multiple_actions_filtering() -> None:
     global_action_event_handler_called = False
 
     # Get the action handlers for the event and call them
-    for handler in registry.get_action_handlers(event_name=fake_key_down_event_data.event, event_action_uuid=fake_key_down_event_data.action):
+    for handler in registry.get_event_handlers(event_name=fake_key_down_event_data.event, event_action_uuid=fake_key_down_event_data.action):
         handler(fake_key_down_event_data)
 
     assert action_event_handler_called

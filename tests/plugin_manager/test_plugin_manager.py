@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 import pytest_mock
-from streamdeck.actions import Action
+from streamdeck.event_handlers.actions import Action
 from streamdeck.manager import EventAdapter, PluginManager
 from streamdeck.models.events import (  #, event_adapter
     DEFAULT_EVENT_MODELS,

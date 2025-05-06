@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import create_autospec
 
 import pytest
-from streamdeck.actions import Action, GlobalAction, HandlersRegistry
+from streamdeck.event_handlers.actions import Action, GlobalAction
+from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.models.events.common import ContextualEventMixin
 
 from tests.test_utils.fake_event_factories import (

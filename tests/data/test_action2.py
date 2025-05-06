@@ -1,4 +1,4 @@
-from streamdeck.actions import Action, GlobalAction
+from streamdeck.event_handlers.actions import Action, GlobalAction
 from streamdeck.models.events import ApplicationDidLaunch
 
 

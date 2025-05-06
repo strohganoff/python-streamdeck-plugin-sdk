@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
-from streamdeck.actions import Action, ActionBase, HandlersRegistry
 from streamdeck.command_sender import StreamDeckCommandSender
+from streamdeck.event_handlers.actions import Action, ActionBase
 from streamdeck.event_handlers.protocol import (
     SupportsEventHandlers,
     is_bindable_handler,
     is_not_bindable_handler,
 )
+from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin

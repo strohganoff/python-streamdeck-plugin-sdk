@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from streamdeck.actions import Action, HandlersRegistry
+from streamdeck.event_handlers.actions import Action
+from streamdeck.event_handlers.registry import HandlersRegistry
 
 from tests.test_utils.fake_event_factories import (
     DialDownEventFactory,

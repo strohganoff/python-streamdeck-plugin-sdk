@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
-from streamdeck.actions import Action, ActionBase, GlobalAction
+from streamdeck.event_handlers.actions import Action, ActionBase, GlobalAction
 from streamdeck.models.events import DEFAULT_EVENT_NAMES
 
 

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import Mock, create_autospec
 
 import pytest
-from streamdeck.actions import Action
+from streamdeck.event_handlers.actions import Action
 
 
 if TYPE_CHECKING:

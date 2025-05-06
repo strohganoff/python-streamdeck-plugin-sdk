@@ -22,11 +22,11 @@ def test_register_action() -> None:
     registry = HandlersRegistry()
     action = Action("my-fake-action-uuid")
 
-    assert len(registry._plugin_actions) == 0
+    assert len(registry._plugin_event_handler_catalogs) == 0
 
     registry.register(action)
-    assert len(registry._plugin_actions) == 1
-    assert registry._plugin_actions[0] == action
+    assert len(registry._plugin_event_handler_catalogs) == 1
+    assert registry._plugin_event_handler_catalogs[0] == action
 
 
 def test_get_event_handlers_no_handlers() -> None:

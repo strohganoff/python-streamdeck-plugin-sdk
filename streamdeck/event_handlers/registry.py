@@ -13,24 +13,24 @@ if TYPE_CHECKING:
 
 
 class HandlersRegistry:
-    """Manages the registration and retrieval of actions and their event handlers."""
-    _plugin_actions: list[SupportsEventHandlers]
-    """List of registered actions."""
+    """Manages the registration and retrieval of event handler catalogs and their event handlers."""
+    _plugin_event_handler_catalogs: list[SupportsEventHandlers]
+    """List of registered actions and other event handler catalogs."""
 
     def __init__(self) -> None:
-        """Initialize an HandlersRegistry instance."""
-        self._plugin_actions = []
+        """Initialize a HandlersRegistry instance."""
+        self._plugin_event_handler_catalogs = []
 
-    def register(self, action: SupportsEventHandlers) -> None:
-        """Register an action with the registry.
+    def register(self, catalog: SupportsEventHandlers) -> None:
+        """Register an event handler catalog with the registry.
 
         Args:
-            action (Action): The action to register.
+            catalog (SupportsEventHandlers): The event handler catalog to register.
         """
-        self._plugin_actions.append(action)
+        self._plugin_event_handler_catalogs.append(catalog)
 
     def get_event_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
-        """Get all event handlers for a specific event from all registered actions.
+        """Get all event handlers for a specific event from all registered event handler catalogs.
 
         Args:
             event_name (EventName): The name of the event to retrieve handlers for.
@@ -40,11 +40,11 @@ class HandlersRegistry:
         Yields:
             EventHandlerFunc: The event handler functions for the specified event.
         """
-        for action in self._plugin_actions:
+        for catalog in self._plugin_event_handler_catalogs:
             # If the event is action-specific (i.e is not a GlobalAction and has a UUID attribute),
             # only get handlers for that action, as we don't want to trigger
             # and pass this event to handlers for other actions.
-            if event_action_uuid is not None and (isinstance(action, Action) and action.uuid != event_action_uuid):
+            if event_action_uuid is not None and (isinstance(catalog, Action) and catalog.uuid != event_action_uuid):
                 continue
 
-            yield from action.get_event_handlers(event_name)
+            yield from catalog.get_event_handlers(event_name)

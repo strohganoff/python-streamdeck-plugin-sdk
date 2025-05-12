@@ -45,6 +45,13 @@ class DeviceDidConnectFactory(ModelFactory[events.DeviceDidConnect]):
     """
 
 
+class DeviceDidDisconnectFactory(ModelFactory[events.DeviceDidDisconnect]):
+    """Polyfactory factory for creating fake deviceDidDisconnect event message based on our Pydantic model.
+
+    DeviceDidDisconnectEvent's have `device` unique identifier property.
+    """
+
+
 ControllerTypeFactory = Use(ModelFactory.__random__.choice, ["Keypad", "Encoder"])
 
 

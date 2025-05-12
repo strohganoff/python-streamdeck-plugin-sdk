@@ -17,6 +17,7 @@ from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
+from streamdeck.state import PluginState
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
 
@@ -73,6 +74,9 @@ class PluginManager:
         self._handlers_registry = HandlersRegistry()
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
+
+        self._plugin_state = PluginState()
+        self._handlers_registry.register(self._plugin_state)
 
     def _ensure_catalog_has_valid_events(self, action: SupportsEventHandlers) -> None:
         """Ensure that the event handler catalog's registered events are valid.

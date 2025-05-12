@@ -43,13 +43,15 @@ def _spy_event_adapter_validate_json(mocker: pytest_mock.MockerFixture) -> None:
 
 def test_plugin_manager_register_action(plugin_manager: PluginManager) -> None:
     """Test that an action can be registered in the PluginManager."""
-    assert len(plugin_manager._handlers_registry._plugin_event_handler_catalogs) == 0
+    # NOTE: PluginManager registers PluginState with its HandlersRegistry upon initialization,
+    # so there will already be one action registered at this point.
+    assert len(plugin_manager._handlers_registry._plugin_event_handler_catalogs) == 1
 
     action = Action("my-fake-action-uuid")
     plugin_manager.register_action(action)
 
-    assert len(plugin_manager._handlers_registry._plugin_event_handler_catalogs) == 1
-    assert plugin_manager._handlers_registry._plugin_event_handler_catalogs[0] == action
+    assert len(plugin_manager._handlers_registry._plugin_event_handler_catalogs) == 2
+    assert plugin_manager._handlers_registry._plugin_event_handler_catalogs[1] == action
 
 
 def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -> None:

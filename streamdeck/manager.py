@@ -175,7 +175,6 @@ class PluginManager:
 
         for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
             processed_handler = self._inject_command_sender(event_handler, command_sender)
-            # TODO: from contextual event occurrences, save metadata to the action's properties.
 
             processed_handler(event)
 

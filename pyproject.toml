@@ -120,104 +120,88 @@ dev = [
         fixable=["ALL"]
 
         select = [
-            "A",      # flake8-builtins (redefinition of builtins)
-            "ANN",    # flake8-annotations (type annotations are everywhere)
-            "ARG",    # flake8-unused-arguments (unused argument in function/method/class/lambda)
-            "ASYNC",  # flake8-async (async/await usage)
-            "B",      # flake8-bugbear (bugs & design problems)
-            "BLE",    # flake8-blind-except (no "except:" or "except Exception:")
-            "C4",     # flake8-comprehensions (better list/set/dict comprehensions)
-            "C90",    # McCabe (code complexity)
-            # "COM",    # flake8-commas (force trailing commas) -> unelegant
-            # "COPY",   # flake8-copyright (copyright notices)
-            "D",      # pydocstyle (documentation style)
-            # "DJ",     # flake8-django (practices on Django)
-            "DTZ",    # flake8-datetimez (usage of unsafe naive datetime class)
-            "E",      # pycodestyle (violation of PEP-8)
-            "EM",     # flake8-errmsg (error messages)
-            "ERA",    # eradicate (no commented-out code)
-            "EXE",    # flake8-executable (executable permissions and shebangs)
-            "F",      # pyflakes (invalid Python code)
-            "FA",     # flake-8-future-annotations (future annotations)
-            "FBT",    # flake8-boolean-trap (misusage of booleans in function declarations & calls)
-            "FIX",    # flake8-fixme (fixme comments)
-            "FLY",    # flynt (f-strings)
-            # "FURB",   # refurb (refurbishing and modernizing Python codebases)
-            "G",      # flake8-logging-format (logging format strings)
-            "I",      # isort (import order)
-            "ICN",    # flake8-import-conventions (how certain packages should be imported or aliased)
-            "INP",    # flake8-no-pep420 (ban pep-420 implicit namespace packages)
-            "INT",    # flake8-gettext (f-string resolved before function calls)
-            "ISC",    # flake8-implicit-str-concat (string literal concatenation)
-            "LOG",    # flake8-logging (logging)
-            "N",      # pep88-naming (naming conventions)
-            # "NPY",    # NumPy-specific rules (e.g. deprecated-type-alias and legacy-random)
-            # "PD",     # pandas-vet (pandas linting)
-            "PERF",   # PerFlint (performance linter for anti-patterns)
-            "PGH",    # pygrep-hooks (miscellaneous lints, e.g. "use specific rule codes when using noqa")
-            "PIE",    # flake8-pie (miscellaneous lints)
-            "PL",     # Pylint (static code analyser)
-            "PT",     # flake8-pytest-style (style issues or inconsistencies with pytest-based tests)
-            "PTH",    # flake8-use-pathlib (use of functions that can be replaced by pathlib module)
-            "PYI",    # flake8-pyi (provide specializations for type hinting stub files)
-            "Q",      # flake8-quotes (avoid escaping quotes)
-            "RET",    # flake8-return (check return values)
-            "RSE",    # flake8-raise (improvements for raise statements)
-            "RUF",    # ruff (ruff specific rules)
-            "S",      # flake8-bandit (security)
-            "SIM",    # flake8-simplify (tips to simplify the code)
-            "SLF",    # flake8-self (private members)
-            "SLOT",   # flake8-slots (slots usage)
-            "T10",    # flake8-debugger (check for pdb; ipdb imports)
-            "T20",    # flake8-print (no print nor pprint)
-            "TC",    # flake8-type-checking (move import only intended for type-checking in "if TYPE_CHECKING" blocks)
-            "TD",     # flake8-todos (todos)
-            "TID",    # flake8-tidy-imports (ordered imports)
-            "TRY",    # tryceratops (exception handling AntiPatterns)
-            "UP",     # pyupgrade (upgrade syntax for newer versions of Python)
-            "W",      # pycodestyle (violation of PEP-8)
-            "YTT",    # flake8-2020 (misuse of sys.version and sys.version_info)
+            "A",         # flake8-builtins (shadowing Python builtins)
+            "ANN",       # flake8-annotations (missing or disallowed type annotations)
+            "ARG",       # flake8-unused-arguments (unused function parameters)
+            "ASYNC",     # flake8-async (async programming pitfalls)
+            "B",         # flake8-bugbear (bugs & design problems)
+            "BLE",       # flake8-blind-except (overly broad exception catches)
+            "C4",        # flake8-comprehensions (better list/set/dict comprehensions)
+            "C90",       # McCabe (code complexity)
+            "D",         # pydocstyle (documentation style)
+            "DTZ",       # flake8-datetimez (naive datetime usage)
+            "E",         # pycodestyle (errors and style conventions)
+            "EM",        # flake8-errmsg (error messages)
+            "ERA",       # eradicate (commented-out code)
+            "EXE",       # flake8-executable (executable permissions and shebangs)
+            "F",         # Pyflakes (undefined names, unused imports, and related checks)
+            "FA",        # flake8-future-annotations (postponed annotation opportunities)
+            "FBT",       # flake8-boolean-trap (boolean positional parameters and arguments)
+            "FIX",       # flake8-fixme (FIXME, TODO, and similar comment markers)
+            "FLY",       # flynt (f-strings)
+            "G",         # flake8-logging-format (logging format strings)
+            "I",         # isort (import order)
+            "ICN",       # flake8-import-conventions (how certain packages should be imported or aliased)
+            "INP",       # flake8-no-pep420 (missing __init__.py files)
+            "INT",       # flake8-gettext (formatting translation strings before lookup)
+            "ISC",       # flake8-implicit-str-concat (implicit string concatenation)
+            "LOG",       # flake8-logging (logging)
+            "N",         # pep8-naming (naming conventions)
+            "PERF",      # PerFlint (performance linter for anti-patterns)
+            "PGH",       # pygrep-hooks (miscellaneous lints, e.g. "use specific rule codes when using noqa")
+            "PIE",       # flake8-pie (miscellaneous lints)
+            "PL",        # Pylint (static code analyser)
+            "PT",        # flake8-pytest-style (style issues or inconsistencies with pytest-based tests)
+            "PTH",       # flake8-use-pathlib (prefer pathlib over equivalent APIs)
+            "PYI",       # flake8-pyi (type stub and typing conventions)
+            "Q",         # flake8-quotes (quote style and unnecessary escapes)
+            "RET",       # flake8-return (return statement patterns)
+            "RSE",       # flake8-raise (improvements for raise statements)
+            "RUF",       # ruff (ruff specific rules)
+            "S",         # flake8-bandit (security)
+            "SIM",       # flake8-simplify (tips to simplify the code)
+            "SLF",       # flake8-self (access to private members)
+            "SLOT",      # flake8-slots (missing __slots__ in certain subclasses)
+            "T10",       # flake8-debugger (debugger imports and calls)
+            "T20",       # flake8-print (no print nor pprint)
+            "TC",        # flake8-type-checking (runtime versus type-only imports)
+            "TD",        # flake8-todos (todos)
+            "TID",       # flake8-tidy-imports (banned imports and relative import conventions)
+            "TRY",       # tryceratops (exception handling patterns)
+            "UP",        # pyupgrade (upgrade syntax for newer versions of Python)
+            "W",         # pycodestyle (warnings)
+            "YTT",       # flake8-2020 (misuse of sys.version and sys.version_info)
         ]
 
         ignore = [
-            # "ANN102", # missing type annotation for cls but hinting cls all the time is useless
-            "ANN204",   # ignore missing return type annotations for `__init__` special method
-            # "ANN401", # disallows Any, but some elements should be Any when they are external
-            "B024",   # forces abstract classes to have at least one abstract method, but sometimes a class is virtually abstract
-            "COM",    # flake8-commas (force trailing commas) -> unelegant
-            "CPY001", # flake8-copyright (copyright notices)
-            # "D105", # docstrings on magic methods, useless docstrings are well known 
-            "E501",   # ignore line size, bug-bear already sets it with a tolerance of 10% (B950)
-            "ISC001", # ignore for ruff format
-            "TD002",  # missing-todo-author -> unused
-            "TD003",  # missing-todo-link -> unused
+            "ANN204",    # Allow special methods, including __init__, without return annotations.
+            "B024",      # Allow ABC subclasses without abstract methods or properties.
+            "E501",      # Do not enforce line length in the linter; the formatter uses line-length.
+            "ISC001",    # Avoid conflicts with Ruff formatting of single-line string concatenation.
+            "TD002",     # Do not require an author in TODO comments.
+            "TD003",     # Do not require an issue link in TODO comments.
         ]
 
+        # Report these rules, but leave their fixes to manual review.
         unfixable = [
-            "ERA",    # eradicat (no commented-out code) -> sometimes it is useful to comment out code
-            "F841",   # local variable is assigned to but never used, but sometimes it is useful to assign a variable to debug
-            "RET504", # local variable is assigned to and returned but never used, but sometimes it is useful to assign a variable to debug
-            # "F401",   # imported but unused, but sometimes it is useful to import a module to use its side effects
+            "ERA",       # Keep commented-out code for manual review rather than deleting it automatically.
+            "F841",      # Preserve unused assignments for manual review, including debugging helpers.
+            "RET504",    # Preserve assignments immediately before return, which can aid debugging.
         ]
 
         [tool.ruff.lint.per-file-ignores]
-            # "__main__.py" = [
-            #     "FBT002",  # booleans in function calls -> Some CLI options defined in Typer command functions are definitely going to be booleans.
-            #     "B006",    # don't use mutable data structures for argument defaults -> It's OK to use mutable data structures for argument defaults in a CLI Typer command function.
-            #     "PLR0913", # too many arguments in function definition -> CLI Typer command functions may have many options. The function should hanlde calling the appropriate handler function based on the options.
-            # ]
             "tests/*" = [
-                "ARG",     # some arguments are unused in test functions but useful (e.g. patching fixtures)
-                "S101",    # asserts are OK for tests
-                "S106",    # possible hardcoded password -> in tests, we commonly hardcode fake passwords
-                "S311",    # cryptographically weak random number generating -> we use random numbers for generating a port number, not for cryptographic
-                "SLF001",  # accessing private memebers is OK for tests
-                "ANN002",  # missing type annotation for *args
-                "ANN003",  # missing type annotation for *kwargs
-                "ANN201",  # missing-return-type-undocumented-public-function -> test functions usually don't return anything
-                "ANN202",  # missing-return-type-undocumented-private-function -> special methods (like __init__) may be mocked by a closure function defined within a test function.
-                "FBT001",  # booleans in function args -> sometimes we need to use booleans in test function args
-                "FBT002",  # booleans in function callas -> sometimes we need to use booleans in test function calls
+                "ARG",       # Allow unused test parameters, including injected fixtures.
+                "S101",      # Allow assertions in tests.
+                "S106",      # Allow dummy password values passed as keyword arguments in tests.
+                "S311",      # Allow noncryptographic random values in tests, such as port numbers.
+                "SLF001",    # Allow tests to inspect private members.
+                "ANN002",    # Allow unannotated *args in test helpers.
+                "ANN003",    # Allow unannotated **kwargs in test helpers.
+                "ANN201",    # Allow public test functions without return annotations.
+                "ANN202",    # Allow private test helpers without return annotations.
+                "FBT001",    # Allow boolean-typed positional parameters in test functions.
+                "FBT002",    # Allow boolean default values for positional test parameters.
             ]
 
         [tool.ruff.lint.mccabe]
@@ -232,7 +216,6 @@ dev = [
         [tool.ruff.lint.isort]
             known-first-party = ["streamdeck"]
             lines-after-imports = 2
-            # required-imports = []
 
     [tool.ruff.format]
         preview = false

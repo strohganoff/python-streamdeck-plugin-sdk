@@ -3,7 +3,7 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from streamdeck.actions import Action
+from streamdeck.event_handlers.actions import Action
 from streamdeck.models.events import DEFAULT_EVENT_NAMES
 
 

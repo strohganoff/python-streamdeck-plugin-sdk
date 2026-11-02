@@ -28,9 +28,9 @@ jobs:
           version: '0.13.6'
           enable-cache: true
       - name: Install locked dependencies
-        run: uv sync --locked --extra dev --python '${{ matrix.python-version }}'
+        run: uv sync --locked --python '${{ matrix.python-version }}'
       - name: Test with pytest and python version
-        run: uv run --locked --extra dev python -m pytest -p no:sugar --cov=streamdeck --cov-report=xml --cov-report=html --cov-report=term --junit-xml=reports/xunit-results.xml
+        run: uv run --locked python -m pytest -p no:sugar --cov=streamdeck --cov-report=xml --cov-report=html --cov-report=term --junit-xml=reports/xunit-results.xml
       - name: Upload test coverage reports to artifacts
         uses: actions/upload-artifact@v4
         with:

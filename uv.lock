@@ -1347,7 +1347,7 @@ dependencies = [
     { name = "websockets", version = "17.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "debugpy", version = "1.8.21", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "debugpy", version = "1.8.22", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -1366,22 +1366,25 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "debugpy", marker = "extra == 'dev'" },
     { name = "platformdirs", specifier = ">=4.3.6" },
-    { name = "polyfactory", marker = "extra == 'dev'", specifier = ">=2.17.0" },
-    { name = "pprintpp", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "pydantic", specifier = ">=2.11" },
     { name = "pydantic-core", specifier = ">=2.33" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.3" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14.0" },
-    { name = "pytest-sugar", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "tomli", specifier = ">=2.0.2" },
-    { name = "tox", marker = "extra == 'dev'", specifier = ">=4.23.2" },
     { name = "typer", specifier = ">=0.15.1" },
     { name = "websockets", specifier = ">=13.1" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "debugpy" },
+    { name = "polyfactory", specifier = ">=2.17.0" },
+    { name = "pprintpp", specifier = ">=0.4.0" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "pytest-mock", specifier = ">=3.14.0" },
+    { name = "pytest-sugar", specifier = ">=1.0.0" },
+    { name = "tox", specifier = ">=4.23.2" },
+]
 
 [[package]]
 name = "termcolor"

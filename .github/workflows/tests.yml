@@ -37,3 +37,39 @@ jobs:
           name: test-coverage-reports-${{ matrix.python-version }}
           path: reports/
         if: ${{ always() }}
+  packaging:
+    name: Build and check distributions
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' ||
+        ((github.event.action == 'opened' || github.event.action == 'synchronize') && contains(github.event.pull_request.labels.*.name, 'READY TO TEST')) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'READY TO TEST')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.13.6'
+          enable-cache: true
+      - name: Build source and wheel distributions
+        run: uv build --no-sources
+      - name: Check distribution metadata and README rendering
+        run: uv run --locked --only-group packaging python -m twine check --strict dist/*
+      - name: Install wheel in a clean environment
+        run: |
+          uv venv --python 3.13 "$RUNNER_TEMP/wheel-smoke"
+          uv pip install --python "$RUNNER_TEMP/wheel-smoke/bin/python" dist/*.whl
+      - name: Check installed imports and CLI outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -c 'import streamdeck; import streamdeck.manager; import streamdeck.utils.helper_actions'
+          "$RUNNER_TEMP/wheel-smoke/bin/python" -I -m streamdeck --help
+          "$RUNNER_TEMP/wheel-smoke/bin/streamdeck" --help
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-distributions
+          path: dist/
+          if-no-files-found: error

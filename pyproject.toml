@@ -86,6 +86,9 @@ dev = [
     "ruff >= 0.8.0",
     "mypy >= 1.14.0",
 ]
+packaging = [
+    "twine >= 6.1.0",
+]
 
 
 [tool.setuptools.packages.find]

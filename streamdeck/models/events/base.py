@@ -53,7 +53,7 @@ if TYPE_CHECKING:
 
     from collections.abc import Callable
 
-    from pydantic._internal._model_construction import ModelMetaclass  # type: ignore[import]
+    from pydantic._internal._model_construction import ModelMetaclass
 
     from streamdeck.types import EventNameStr
 

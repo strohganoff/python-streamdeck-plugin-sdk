@@ -13,7 +13,7 @@ from pydantic import (
     model_validator,
 )
 
-from streamdeck.actions import ActionBase
+from streamdeck.event_handlers.actions import ActionBase
 from streamdeck.event_listener import EventListener
 from streamdeck.models.events import EventBase
 

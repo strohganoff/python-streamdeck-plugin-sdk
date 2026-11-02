@@ -37,7 +37,7 @@ This guide will help you set up your first Stream Deck plugin using the library.
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher (declared package minimum; see the testing guide for validation limits)
 - Stream Deck software installed
 - A valid `manifest.json` file for your plugin
 
@@ -50,7 +50,7 @@ The SDK provides two types of actions: `Action` and `GlobalAction`. Each represe
 An `Action` handles events that are specifically associated with it based on event metadata. When the Stream Deck sends an event, the action's handlers only run if the event metadata indicates it was triggered by or is intended for that specific action instance.
 
 ```python
-from streamdeck import Action
+from streamdeck.event_handlers.actions import Action
 
 # Create an action with a unique UUID (from your manifest.json)
 my_action = Action(uuid="com.example.myplugin.myaction")
@@ -61,7 +61,7 @@ my_action = Action(uuid="com.example.myplugin.myaction")
 A `GlobalAction` runs its event handlers for all events of a given type, regardless of which action the events were originally intended for. Unlike regular Actions which only process events specifically targeted at their UUID, GlobalActions handle events meant for any action in the plugin, making them useful for implementing plugin-wide behaviors or monitoring.
 
 ```python
-from streamdeck import GlobalAction
+from streamdeck.event_handlers.actions import GlobalAction
 
 # Create a global action
 my_global_action = GlobalAction()
@@ -87,9 +87,12 @@ def handle_will_appear(event_data):
 
 !!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
 
-Handlers can optionally include a `command_sender` parameter to access Stream Deck command sending capabilities.
+A handler without injection must have exactly one parameter named `event_data`. Handlers can optionally include a `command_sender` parameter to access Stream Deck command sending capabilities.
 
 ```python
+from streamdeck.command_sender import StreamDeckCommandSender
+
+
 @my_action.on("willAppear")
 def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
     # Use command_sender to interact with Stream Deck
@@ -109,7 +112,7 @@ When creating actions in your plugin, you can configure logging using the logger
 
 ```python
 import logging
-from streamdeck import Action
+from streamdeck.event_handlers.actions import Action
 
 logger = logging.getLogger("myaction")
 
@@ -147,29 +150,31 @@ Once the plugin's actions and their handlers have been defined, very little else
 
 #### Usage
 
+The commands below illustrate individual options. A real launch also requires all four Stream Deck launch arguments listed below.
+
 The following commands are required, which are the same as the Stream Deck software passes in when running a plugin:
 
 - `-port`: The port number assigned by the Stream Deck.
 
-- `-pluginUUID`: Your plugin's unique identifier, provided by the Stream Deck.
+- `-pluginUUID`: The per-launch registration identifier provided by Stream Deck. The manifest plugin UUID comes from `-info` → `plugin.uuid`.
 
 - `-registerEvent`: The event used to register your plugin. 
 
 - `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
 
-There are also two additional options for specifying action scripts to load. Note that you can't use both of these options together, and the Stream Deck software doesn't pass in these options.
+There are also two additional options for specifying action scripts to load. The Stream Deck software does not pass these options. Explicit action modules override the list loaded from the plugin directory's TOML file; that file is still required.
 
-- Plugin Directory: Pass the directory containing the plugin files as a positional argument:
+- Plugin Directory: Pass the directory containing the plugin files using `--plugin-dir`:
 
     ```bash
-    streamdeck myplugin_dir/
+    streamdeck --plugin-dir myplugin_dir/
     ```
     This will read the pyproject.toml file inside the directory to locate the action scripts. If this is not passed in, then the library looks in the current working directory for a pyproject.toml file.
 
-- Action Scripts Directly: Alternatively, pass the script paths directly using the `--action-scripts` option:
+- Action Scripts Directly: Alternatively, pass importable module names directly using the `--action-scripts` option:
 
     ```bash
-    streamdeck --action-scripts actions1.py actions2.py
+    streamdeck --action-scripts actions1 --action-scripts actions2
     ```
 
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
@@ -184,7 +189,7 @@ To enable debug mode, pass in the option `--debug {debug port number}`, which te
 streamdeck --debug 5675
 ```
 
-When running in debug mode, the plugin will pause for 10 seconds after initialization, giving you time to attach your debugger. You'll see a message in the logs indicating that the plugin is waiting for a debugger to attach.
+Debug mode requires `debugpy` (included in the development extra). The plugin waits until a debugger attaches; there is no fixed timeout. You'll see a message in the logs indicating that the plugin is waiting for a debugger to attach.
 
 NOTE: If things get messy, and you have a prior instance already listening to that port, you should kill the process with something like the following command:
 
@@ -206,15 +211,15 @@ kill $(lsof -t -i:$DEBUG_PORT)
             "request": "attach",
             "connect": {
                 "host": "localhost",
-                "port": 5678
-            }
+                "port": 5675
+            },
             "pathMappings": [
                 {
                     "localRoot": "${workspaceFolder}",
                     "remoteRoot": "."
                 }
             ],
-            "justMyCode": false,
+            "justMyCode": false
         }
     ]
 }
@@ -227,16 +232,16 @@ kill $(lsof -t -i:$DEBUG_PORT)
 
 #### Configuration
 
-To configure your plugin to use the streamdeck CLI, add a tool.streamdeck section to your pyproject.toml with a list variable for action_scripts that should contain paths to all the action scripts you want the plugin to load.
+To configure your plugin to use the streamdeck CLI, add a tool.streamdeck section to your pyproject.toml with a list variable for action_scripts that should contain importable module names for all the action scripts you want the plugin to load.
 
 Below is an example of the pyproject.toml configuration and how to run the plugin:
 ```toml
 # pyproject.toml
 
-[tools.streamdeck]
+[tool.streamdeck]
     action_scripts = [
-        "actions1.py",
-        "actions2.py",
+        "actions1",
+        "actions2",
     ]
 ```
 
@@ -247,7 +252,8 @@ Below is a complete example that creates a plugin with a single action. The acti
 ```python
 # main.py
 import logging
-from streamdeck import Action, GlobalAction, PluginManager, events
+from streamdeck.event_handlers.actions import Action, GlobalAction
+from streamdeck.models import events
 
 logger = logging.getLogger("myaction")
 
@@ -260,23 +266,23 @@ my_global_action = GlobalAction()
 # Register event handlers for regular action
 @my_action.on("applicationDidLaunch")
 def handle_application_did_launch(event_data: events.ApplicationDidLaunch):
-    logger.debug("Application Did Launch event recieved:", event_data)
+    logger.debug("Application Did Launch event received: %s", event_data)
 
 @my_action.on("keyDown")
 def handle_key_down(event_data: events.KeyDown):
-    logger.debug("Key Down event received:", event_data)
+    logger.debug("Key Down event received: %s", event_data)
 
 # Register event handlers for global action
 @my_global_action.on("keyDown")
 def handle_global_key_down(event_data: events.KeyDown):
-    logger.debug("Global Key Down event received:", event_data)
+    logger.debug("Global Key Down event received: %s", event_data)
 ```
 
 ```toml
 # pyproject.toml
-[tools.streamdeck]
+[tool.streamdeck]
     action_scripts = [
-        "main.py",
+        "main",
     ]
 ```
 And a command like the following is called by the Stream Deck software:
@@ -339,9 +345,9 @@ class MyCustomEventListener(EventListener):
 To use your custom event listener, add it to your `pyproject.toml` file:
 
 ```toml
-[tools.streamdeck]
+[tool.streamdeck]
     action_scripts = [
-        "main.py",
+        "main",
     ]
     event_listener_modules = [
         "myplugin.custom_listener",

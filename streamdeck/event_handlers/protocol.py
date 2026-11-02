@@ -26,7 +26,7 @@ class EventHandlerFunc(Protocol[EventModel_contra, InjectableParams]):
     def __call__(self, event_data: EventModel_contra, *args: InjectableParams.args, **kwargs: InjectableParams.kwargs) -> None: ...
 
 
-BindableEventHandlerFunc = EventHandlerFunc[EventModel_contra, tuple[StreamDeckCommandSender]]  # type: ignore[misc]
+BindableEventHandlerFunc = EventHandlerFunc[EventModel_contra, tuple[StreamDeckCommandSender]]
 """Type alias for a bindable event handler function that takes an event (of subtype of EventBase) and a command_sender parameter that is to be injected."""
 BoundEventHandlerFunc = EventHandlerFunc[EventModel_contra]
 """Type alias for a bound event handler function that takes an event (of subtype of EventBase) and no other parameters.

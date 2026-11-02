@@ -1,7 +1,6 @@
 [build-system]
     requires = [
-        "setuptools>=61.0",
-        # "wheel"
+        "setuptools>=77.0.3",
     ]
     build-backend = "setuptools.build_meta"
 
@@ -13,7 +12,8 @@
     authors = [
         { name = "strohganoff", email = "you@example.com" }
     ]
-    license = { file = "LICENSE" }
+    license = "MIT"
+    license-files = ["LICENSE"]
     keywords = [
         "python",
         "sdk",
@@ -46,10 +46,10 @@
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Development Status :: 4 - Beta",
         "Environment :: MacOS X",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Libraries :: Application Frameworks",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Typing :: Typed",
@@ -83,6 +83,8 @@ dev = [
     "pytest-mock >= 3.14.0",
     "pytest-sugar >= 1.0.0",
     "debugpy",
+    "ruff >= 0.8.0",
+    "mypy >= 1.14.0",
 ]
 
 
@@ -111,7 +113,7 @@ dev = [
     src=["streamdeck"]
     line-length=100 # Same as Black
     indent-width = 4
-    target-version="py312"
+    target-version="py39"
 
     [tool.ruff.lint]
         preview=false
@@ -168,7 +170,7 @@ dev = [
             "SLOT",   # flake8-slots (slots usage)
             "T10",    # flake8-debugger (check for pdb; ipdb imports)
             "T20",    # flake8-print (no print nor pprint)
-            "TCH",    # flake8-type-checking (move import only intended for type-checking in "if TYPE_CHECKING" blocks)
+            "TC",    # flake8-type-checking (move import only intended for type-checking in "if TYPE_CHECKING" blocks)
             "TD",     # flake8-todos (todos)
             "TID",    # flake8-tidy-imports (ordered imports)
             "TRY",    # tryceratops (exception handling AntiPatterns)
@@ -178,7 +180,6 @@ dev = [
         ]
 
         ignore = [
-            "ANN101", # ignore missing type annotation for self
             # "ANN102", # missing type annotation for cls but hinting cls all the time is useless
             "ANN204",   # ignore missing return type annotations for `__init__` special method
             # "ANN401", # disallows Any, but some elements should be Any when they are external
@@ -229,7 +230,7 @@ dev = [
             max-args=10
 
         [tool.ruff.lint.isort]
-            known-first-party = ["app"]
+            known-first-party = ["streamdeck"]
             lines-after-imports = 2
             # required-imports = []
 
@@ -255,6 +256,7 @@ dev = [
     source = ["streamdeck"]  # Specify the source files for coverage.
 
 [tool.coverage.report]
+    skip_empty = true
     omit = ["tests/*"]  # Exclude test files from the coverage report.
 
 [tool.coverage.html]
@@ -262,7 +264,6 @@ dev = [
 
 [tool.coverage.xml]
     output = "reports/coverage-results.xml"
-    skip_empty = true
     # skip_covered = true
 
 [tool.coverage.lcov]

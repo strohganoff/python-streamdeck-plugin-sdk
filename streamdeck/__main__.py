@@ -7,7 +7,7 @@ from typing import Annotated, Optional
 import typer
 
 from streamdeck.manager import PluginManager
-from streamdeck.models.configs import PyProjectConfigs
+from streamdeck.models.configs import StreamDeckToolConfig
 from streamdeck.utils.logging import configure_streamdeck_logger
 
 
@@ -59,8 +59,10 @@ def main(
     if debug_port:
         setup_debug_mode(debug_port)
 
-    pyproject = PyProjectConfigs.validate_from_toml_file(plugin_dir / "pyproject.toml", action_scripts=action_scripts)
-    actions = pyproject.streamdeck_plugin_actions
+    config = StreamDeckToolConfig(
+        toml_file=plugin_dir / "pyproject.toml",
+        action_scripts_override=action_scripts,
+    )
 
     manager = PluginManager(
         port=port,
@@ -73,10 +75,10 @@ def main(
     )
 
     # Event listeners and their Event models are registered before actions in order to validate the actions' registered events' names.
-    for event_listener in pyproject.event_listeners:
+    for event_listener in config.event_listeners:
         manager.register_event_listener(event_listener())
 
-    for action in actions:
+    for action in config.actions:
         manager.register_action(action)
 
     try:

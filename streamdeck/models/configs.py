@@ -1,16 +1,21 @@
+"""TOML-only plugin settings and module discovery."""
+
 from __future__ import annotations
 
+from contextvars import ContextVar
+from pathlib import Path  # noqa: TC003
 from types import ModuleType  # noqa: TC003
-from typing import TYPE_CHECKING, Annotated, ClassVar
+from typing import TYPE_CHECKING, Annotated
 
-import tomli as toml
 from pydantic import (
-    BaseModel,
     Field,
     ImportString,
-    ValidationInfo,
-    field_validator,
-    model_validator,
+)
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    PyprojectTomlConfigSettingsSource,
+    SettingsConfigDict,
 )
 
 from streamdeck.event_handlers.actions import ActionBase
@@ -20,8 +25,12 @@ from streamdeck.models.events import EventBase
 
 if TYPE_CHECKING:
     from collections.abc import Generator
-    from pathlib import Path
 
+
+_load_options: ContextVar[tuple[Path | None, list[str] | None]] = ContextVar(
+    "streamdeck_toml_load_options",
+    default=(None, None),
+)
 
 
 def parse_objects_from_modules(value: list[ModuleType]) -> Generator[object, None, None]:
@@ -40,130 +49,81 @@ def parse_objects_from_modules(value: list[ModuleType]) -> Generator[object, Non
             yield obj
 
 
-class PyProjectConfigs(BaseModel):
-    """A Pydantic model for the PyProject.toml configuration file to load a Stream Deck plugin's actions."""
-    tool: ToolSection
-    """The "tool" section of a pyproject.toml file, which contains configs for project tools, including for this Stream Deck plugin."""
+class StreamDeckToolConfig(BaseSettings):
+    """Plugin configuration loaded exclusively from [tool.streamdeck]."""
 
-    @classmethod
-    def validate_from_toml_file(cls, filepath: Path, action_scripts: list[str] | None = None) -> PyProjectConfigs:
-        """Alternative constructor to validate a PyProjectConfigs instance from a TOML file."""
-        with filepath.open("rb") as f:
-            pyproject_configs = toml.load(f)
+    model_config = SettingsConfigDict(
+        arbitrary_types_allowed=True,
+        extra="ignore",
+        pyproject_toml_table_header=("tool", "streamdeck"),
+    )
 
-            # Pass the action scripts to the context dictionary if they are provided,
-            # so they can be used in the before-validater for the nested StreamDeckToolConfig model.
-            ctx = {"action_scripts": action_scripts} if action_scripts else None
-
-            # Return the loaded PyProjectConfigs model instance.
-            return cls.model_validate(pyproject_configs, context=ctx)
-
-    @model_validator(mode="before")
-    @classmethod
-    def overwrite_action_scripts(cls, data: object, info: ValidationInfo) -> object:
-        """If action scripts were provided as a context variable, overwrite the action_scripts field in the PyProjectConfigs model."""
-        context = info.context
-
-        # If no action scripts were provided, return the data as-is.
-        if context is None or "action_scripts" not in context:
-            return data
-
-        # If data isn't a dict as expected, let Pydantic's validation handle them as usual in its next validations step.
-        if isinstance(data, dict):
-            # We also need to ensure the "tool" and "streamdeck" sections exist in the data dictionary in case they were not defined in the PyProject.toml file.
-            data.setdefault("tool", {}).setdefault("streamdeck", {})["action_scripts"] = context["action_scripts"]
-
-        return data
-
-    @property
-    def streamdeck(self) -> StreamDeckToolConfig:
-        """Reach into the [tool.streamdeck] section of the PyProject.toml file and return the plugin's configuration."""
-        return self.tool.streamdeck
-
-    @property
-    def streamdeck_plugin_actions(self) -> Generator[ActionBase, None, None]:
-        """Reach into the [tool.streamdeck] section of the PyProject.toml file and yield the plugin's actions configured by the developer."""
-        yield from self.streamdeck.actions
-
-    @property
-    def event_listeners(self) -> Generator[type[EventListener], None, None]:
-        """Reach into the [tool.streamdeck] section of the PyProject.toml file and yield the plugin's event listeners configured by the developer."""
-        yield from self.streamdeck.event_listeners
-
-    @property
-    def event_models(self) -> Generator[type[EventBase], None, None]:
-        """Reach into the [tool.streamdeck] section of the PyProject.toml file and yield the plugin's event models configured by the developer."""
-        yield from self.streamdeck.event_models
-
-
-class ToolSection(BaseModel):
-    """A model class representing the "tool" section in configuration.
-
-    Nothing much to see here, just a wrapper around the model representing the "streamdeck" subsection.
-    """
-    streamdeck: StreamDeckToolConfig
-    """The "streamdeck" subsection in the "tool" section of the pyproject.toml file, which contains the developer's configuration for their Stream Deck plugin."""
-
-
-class StreamDeckToolConfig(BaseModel, arbitrary_types_allowed=True):
-    """A model class representing the "streamdeck" subsection in the "tool" section of the PyProject.toml file.
-
-    This section contains the developer's configuration for their Stream Deck plugin.
-    """
     action_script_modules: Annotated[list[ImportString[ModuleType]], Field(alias="action_scripts")]
-    """A list of loaded action script modules with all of their objects.
+    event_listener_modules: list[ImportString[ModuleType]] = Field(default_factory=list)
 
-    This field is filtered to only include objects that are subclasses of ActionBase (as well as the built-in magic methods and attributes typically found in a module).
-    """
-
-    event_listener_modules: list[ImportString[ModuleType]] = []
-    """A list of loaded event listener modules with all of their objects.
-
-    This field is filtered to only include objects that are subclasses of EventListener & EventBase (as well as the built-in magic methods and attributes typically found in a module).
-    """
-
-    # The following fields are populated by the field validators below, and are not during Pydantic's validation process.
-    actions: ClassVar[list[ActionBase]] = []
-    """The collected ActionBase subclass instances from the loaded modules listed in the `action_script_modules` field."""
-    event_listeners: ClassVar[list[type[EventListener]]] = []
-    """The collected EventListener subclasses from the loaded modules listed in the `event_listener_modules` field."""
-    event_models: ClassVar[list[type[EventBase]]] = []
-    """The collected EventBase subclasses from the loaded modules listed in the `event_listener_modules` field."""
-
-    @field_validator("action_script_modules", mode="after")
     @classmethod
-    def filter_action_module_objects(cls, value: list[ModuleType]) -> list[ModuleType]:
-        """Loop through objects in each configured action script module, and collect ActionBase subclasses.
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,  # noqa: ARG003 - required hook parameter
+        env_settings: PydanticBaseSettingsSource,  # noqa: ARG003 - required hook parameter
+        dotenv_settings: PydanticBaseSettingsSource,  # noqa: ARG003 - required hook parameter
+        file_secret_settings: PydanticBaseSettingsSource,  # noqa: ARG003 - required hook parameter
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Use only TOML; Typer overrides its data explicitly until CLI migration."""
+        filepath, action_scripts = _load_options.get()
+        # The settings source otherwise silently ignores a missing file.
+        if filepath is not None:
+            with filepath.open("rb"):
+                pass
+        source = PyprojectTomlConfigSettingsSource(settings_cls, filepath)
+        if action_scripts:
+            source.init_kwargs["action_scripts"] = action_scripts
+        return (source,)
 
-        The value arg isn't modified here, it is simply returned as-is at the end of the method.
+    def __init__(
+        self,
+        *,
+        toml_file: Path | None = None,
+        action_scripts_override: list[str] | None = None,
+        **values: object,
+    ) -> None:
+        """Configure the TOML source before settings validation.
+
+        These keyword arguments control loading, not model fields. Other constructor
+        field values are ignored because InitSettingsSource is not enabled.
+        A scoped context passes options to the class-level source hook and is reset
+        even when validation or a nested configuration load fails.
         """
-        for obj in parse_objects_from_modules(value):
-            # Ignore obj if it's not an instance of an ActionBase subclass.
-            if not isinstance(obj, ActionBase):
-                continue
+        token = _load_options.set((toml_file, action_scripts_override))
+        try:
+            super().__init__(**values)
+        finally:
+            _load_options.reset(token)
 
-            cls.actions.append(obj)
+    @property
+    def actions(self) -> list[ActionBase]:
+        """Discover action instances from this configuration's modules."""
+        return [
+            obj
+            for obj in parse_objects_from_modules(self.action_script_modules)
+            if isinstance(obj, ActionBase)
+        ]
 
-        return value
+    @property
+    def event_listeners(self) -> list[type[EventListener]]:
+        """Discover listener classes, including imported classes, except the base."""
+        return [
+            obj
+            for obj in parse_objects_from_modules(self.event_listener_modules)
+            if isinstance(obj, type) and obj is not EventListener and issubclass(obj, EventListener)
+        ]
 
-    @field_validator("event_listener_modules", mode="after")
-    @classmethod
-    def filter_event_listener_module_objects(cls, value: list[ModuleType]) -> list[ModuleType]:
-        """Loop through objects in each configured event listener module, and collect EventListener and EventBase subclasses.
-
-        The value arg isn't modified here, it is simply returned as-is at the end of the method.
-        """
-        for obj in parse_objects_from_modules(value):
-            # Ensure obj is a type (class definition), but not the base classes themselves.
-            if not isinstance(obj, type) or obj in (EventListener, EventBase):
-                continue
-
-            # Collect obj if it is an EventListener subclass
-            if issubclass(obj, EventListener):
-                cls.event_listeners.append(obj)
-
-            # Collect obj if it is an EventBase subclass
-            if issubclass(obj, EventBase):
-                cls.event_models.append(obj)
-
-        return value
+    @property
+    def event_models(self) -> list[type[EventBase]]:
+        """Discover event classes, including imported classes, except the base."""
+        return [
+            obj
+            for obj in parse_objects_from_modules(self.event_listener_modules)
+            if isinstance(obj, type) and obj is not EventBase and issubclass(obj, EventBase)
+        ]

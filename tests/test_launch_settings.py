@@ -200,8 +200,9 @@ def test_omitted_cli_actions_preserve_toml(tmp_path, monkeypatch):
     assert len(StreamDeckToolConfig().actions) == 1
 
 
+@pytest.mark.parametrize("explicit_args", [False, True])
 def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, explicit_args
 ):
     import streamdeck.__main__ as entry
 
@@ -219,22 +220,19 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
         'event_listener_modules=["does.not.exist"]\n'
     )
     monkeypatch.setattr(sys, "path", list(sys.path))
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "streamdeck",
-            *host_args(),
-            "--plugin-dir",
-            str(import_dir),
-            "--action-scripts",
-            "local_plugin_actions",
-            "--event-listener",
-            "tests.data.dummy_event_listener",
-            "-d",
-            "5678",
-        ],
-    )
+    args = [
+        *host_args(),
+        "--plugin-dir",
+        str(import_dir),
+        "--action-scripts",
+        "local_plugin_actions",
+        "--event-listener",
+        "tests.data.dummy_event_listener",
+        "-d",
+        "5678",
+    ]
+    process_args = ["--unrelated-process-argument"] if explicit_args else args
+    monkeypatch.setattr(sys, "argv", ["streamdeck", *process_args])
     manager = Mock()
     factory = Mock(return_value=manager)
     monkeypatch.setattr(entry, "PluginManager", factory)
@@ -242,7 +240,7 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
     debug = Mock()
     monkeypatch.setattr(entry, "setup_debug_mode", debug)
     try:
-        entry.main()
+        entry.main(args) if explicit_args else entry.main()
         assert [call[0] for call in manager.mock_calls] == [
             "register_event_listener",
             "register_action",
@@ -255,3 +253,55 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
         debug.assert_called_once_with(5678)
     finally:
         sys.modules.pop("local_plugin_actions", None)
+
+
+@pytest.mark.parametrize("phase", ["settings", "listener", "action", "run"])
+def test_main_logs_startup_and_runtime_failures(monkeypatch, caplog, phase):
+    import streamdeck.__main__ as entry
+
+    error = RuntimeError(f"{phase} failed")
+    listener_type = Mock()
+    config = Mock(event_listeners=[listener_type], actions=[object()])
+    settings_factory = Mock(return_value=config)
+    manager = Mock()
+    if phase == "settings":
+        settings_factory.side_effect = error
+    elif phase == "listener":
+        listener_type.side_effect = error
+    elif phase == "action":
+        manager.register_action.side_effect = error
+    else:
+        manager.run.side_effect = error
+
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(entry, "configure_streamdeck_logger", Mock())
+    monkeypatch.setattr(entry, "StreamDeckToolConfig", settings_factory)
+    monkeypatch.setattr(entry, "PluginManager", Mock(return_value=manager))
+    with pytest.raises(RuntimeError) as exc:
+        entry.main(host_args())
+    assert exc.value is error
+    assert "Plugin startup or execution failed" in caplog.text
+
+
+def test_run_plugin_uses_supplied_settings_without_reading_process_args(tmp_path, monkeypatch):
+    import streamdeck.__main__ as entry
+
+    monkeypatch.chdir(tmp_path)
+    launch = LaunchArguments(_cli_parse_args=host_args())
+    config = StreamDeckToolConfig(
+        _cli_parse_args=[
+            "--action-scripts",
+            "tests.data.test_action1",
+            "--event-listener",
+            "tests.data.dummy_event_listener",
+        ]
+    )
+    monkeypatch.setattr(sys, "argv", ["unrelated-program", "--invalid"])
+    manager = Mock()
+    monkeypatch.setattr(entry, "PluginManager", Mock(return_value=manager))
+    entry.run_plugin(launch, config)
+    assert [call[0] for call in manager.mock_calls] == [
+        "register_event_listener",
+        "register_action",
+        "run",
+    ]

@@ -201,6 +201,8 @@ Module discovery reads module namespace values in definition/import order, inclu
 
 Use `streamdeck --help` without launch arguments to see the available options. Help and argument errors use argparse formatting; Typer's shell-completion options are no longer available.
 
+The CLI entry point `streamdeck.__main__.main(argv=None)` accepts an optional argument list, excluding the executable name. Both settings models use that same list; omitting it uses the process arguments. Startup prepares imports, logging, and optional debugging before loading plugin settings, then calls `run_plugin(launch, config)` with both validated models. Startup and runtime failures are logged and re-raised.
+
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
 
 #### Debugging

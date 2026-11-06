@@ -3,18 +3,27 @@
 import logging
 import sys
 
+from pydantic import ValidationError
+from pydantic_settings import SettingsError
+
 from streamdeck.manager import PluginManager
 from streamdeck.models.configs import StreamDeckToolConfig
-from streamdeck.models.launch import LaunchArguments, parse_launch_arguments
+from streamdeck.models.launch import LaunchArguments
 from streamdeck.utils.logging import configure_streamdeck_logger
 
 
 logger = logging.getLogger("streamdeck")
 
 
-def plugin() -> None:
+def main() -> None:
     """Console entry point for the Pydantic Settings CLI."""
-    main(parse_launch_arguments())
+    try:
+        launch = LaunchArguments()
+    except (ValidationError, SettingsError) as exc:
+        logger.error("Invalid launch arguments: %s", exc)
+        raise SystemExit(2) from exc
+
+    run_plugin(launch)
 
 
 def setup_debug_mode(debug_port: int) -> None:
@@ -27,7 +36,7 @@ def setup_debug_mode(debug_port: int) -> None:
     logger.info("Debugger attached.")
 
 
-def main(launch: LaunchArguments) -> None:
+def run_plugin(launch: LaunchArguments) -> None:
     """Start the plugin after CLI validation."""
     plugin_dir = launch.plugin_dir
     port = launch.port
@@ -36,8 +45,7 @@ def main(launch: LaunchArguments) -> None:
     if str(plugin_dir) not in sys.path:
         sys.path.insert(0, str(plugin_dir))
 
-    info_data = launch.info
-    plugin_uuid = info_data["plugin"]["uuid"]
+    plugin_uuid = launch.info.plugin_uuid
 
     # After configuring once here, we can grab the logger in any other module with `logging.getLogger("streamdeck")`, or
     # a child logger with `logging.getLogger("streamdeck.mycomponent")`, all with the same handler/formatter configuration.
@@ -48,7 +56,7 @@ def main(launch: LaunchArguments) -> None:
     if debug_port:
         setup_debug_mode(debug_port)
 
-    config = StreamDeckToolConfig(_cli_settings_source=launch.cli_settings_source)
+    config = StreamDeckToolConfig()
 
     manager = PluginManager(
         port=port,
@@ -57,7 +65,7 @@ def main(launch: LaunchArguments) -> None:
         # which can be pulled out of `info["plugin"]["uuid"]`
         plugin_registration_uuid=launch.plugin_registration_uuid,
         register_event=launch.register_event,
-        info=info_data,
+        info=launch.info.model_dump(),
     )
 
     # Event listeners and their Event models are registered before actions in order to validate the actions' registered events' names.
@@ -76,4 +84,4 @@ def main(launch: LaunchArguments) -> None:
 
 # Also run the plugin if this script is ran as a console script.
 if __name__ == "__main__":
-    plugin()
+    main()

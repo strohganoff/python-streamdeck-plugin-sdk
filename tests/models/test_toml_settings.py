@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,15 +12,11 @@ from streamdeck.models.configs import StreamDeckToolConfig
 @pytest.fixture(autouse=True)
 def plugin_working_directory(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["streamdeck"])
 
 
 def with_cli_actions(actions):
-    source = CliSettingsSource(
-        StreamDeckToolConfig,
-        cli_kebab_case=True,
-        cli_parse_args=["--action-scripts", json.dumps(actions)],
-    )
-    return StreamDeckToolConfig(_cli_settings_source=source)
+    return StreamDeckToolConfig(_cli_parse_args=["--action-scripts", json.dumps(actions)])
 
 
 def write_config(tmp_path, text):
@@ -44,7 +41,7 @@ def test_discovery_and_load_isolation(tmp_path):
     assert test_action1 in config.actions
 
 
-def test_only_toml_source_and_no_implicit_inputs(tmp_path, monkeypatch):
+def test_cli_and_toml_sources_and_no_implicit_inputs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     write_config(tmp_path, "[tool.streamdeck]\naction_scripts = []\n")
     monkeypatch.setenv("ACTION_SCRIPTS", '["does.not.exist"]')
@@ -61,8 +58,10 @@ def test_only_toml_source_and_no_implicit_inputs(tmp_path, monkeypatch):
     sources = StreamDeckToolConfig.settings_customise_sources(
         StreamDeckToolConfig,
     )
-    assert len(sources) == 1
-    assert type(sources[0]) is PyprojectTomlConfigSettingsSource
+    assert [type(source) for source in sources] == [
+        CliSettingsSource,
+        PyprojectTomlConfigSettingsSource,
+    ]
 
 
 def test_cli_override_before_import(tmp_path):
@@ -72,6 +71,92 @@ def test_cli_override_before_import(tmp_path):
     assert with_cli_actions(["tests.data.test_action1"]).actions == [test_action1]
     with pytest.raises(ValidationError):
         StreamDeckToolConfig()
+
+
+@pytest.mark.parametrize("flag", ["--event-listener", "--event-listener-modules"])
+def test_cli_listener_modules_replace_toml_before_import(tmp_path, flag):
+    from tests.data.dummy_event_listener import DummyEvent, DummyEventListener
+
+    write_config(
+        tmp_path,
+        '[tool.streamdeck]\naction_scripts=[]\nevent_listener_modules=["does.not.exist"]\n',
+    )
+    config = StreamDeckToolConfig(_cli_parse_args=[flag, "tests.data.dummy_event_listener"])
+    assert config.actions == []
+    assert config.event_listeners == [DummyEventListener]
+    assert config.event_models == [DummyEvent]
+    with pytest.raises(ValidationError):
+        StreamDeckToolConfig()
+
+
+def test_repeated_listener_aliases_combine_in_one_override(tmp_path):
+    from tests.data.dummy_event_listener import DummyEventListener
+    from streamdeck.websocket import WebSocketClient
+
+    write_config(
+        tmp_path,
+        '[tool.streamdeck]\naction_scripts=[]\nevent_listener_modules=["does.not.exist"]\n',
+    )
+    config = StreamDeckToolConfig(
+        _cli_parse_args=[
+            "--event-listener",
+            "tests.data.dummy_event_listener",
+            "--event-listener-modules",
+            "streamdeck.websocket",
+        ]
+    )
+    assert [module.__name__ for module in config.event_listener_modules] == [
+        "tests.data.dummy_event_listener",
+        "streamdeck.websocket",
+    ]
+    assert config.event_listeners == [DummyEventListener, WebSocketClient]
+
+
+def test_cli_listener_override_retains_toml_actions(tmp_path):
+    from tests.data.test_action1 import test_action1
+
+    write_config(tmp_path, '[tool.streamdeck]\naction_scripts=["tests.data.test_action1"]\n')
+    config = StreamDeckToolConfig(
+        _cli_parse_args=[
+            "--event-listener",
+            "tests.data.dummy_event_listener",
+        ]
+    )
+    assert config.actions == [test_action1]
+
+
+def test_filtered_cli_accepts_repeated_actions_and_ignores_host_args(tmp_path):
+    from tests.data.test_action1 import test_action1
+    from tests.data.test_action2 import test_action2, test_global_action1
+
+    write_config(tmp_path, '[tool.streamdeck]\naction_scripts=["does.not.exist"]\n')
+    config = StreamDeckToolConfig(
+        _cli_parse_args=[
+            "-port",
+            "12345",
+            "-info",
+            '{"plugin":{"uuid":"example"}}',
+            "--action-scripts",
+            "tests.data.test_action1",
+            "--action-scripts",
+            "tests.data.test_action2",
+            "--debug",
+            "5678",
+        ]
+    )
+    assert config.actions == [test_action1, test_action2, test_global_action1]
+
+
+def test_filtered_cli_help_exposes_only_module_options(tmp_path, capsys):
+    write_config(tmp_path, "[tool.streamdeck]\naction_scripts=[]\n")
+    with pytest.raises(SystemExit) as exc:
+        StreamDeckToolConfig(_cli_parse_args=["--help"])
+    assert exc.value.code == 0
+    help_text = capsys.readouterr().out
+    assert "--action-scripts" in help_text
+    assert "--event-listener" in help_text
+    assert "--event-listener-modules" in help_text
+    assert "--debug" not in help_text
 
 
 def test_missing_section_with_cli_values(tmp_path):

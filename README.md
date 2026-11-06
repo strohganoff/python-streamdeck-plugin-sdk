@@ -166,9 +166,11 @@ The following commands are required, which are the same as the Stream Deck softw
 
 - `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
 
-The SDK uses Pydantic Settings to parse launch arguments and load `[tool.streamdeck]` from `pyproject.toml` in the current working directory, without searching parent directories. Explicit action modules override the configured list. If the file or section is absent, `--action-scripts` can supply the required action modules.
+    The SDK models this as `RegistrationInfo`, extracting the required string at `plugin.uuid` as `launch.info.plugin_uuid`. Other launch-info fields are ignored by this model. The manager receives the normalized dictionary `{"plugin_uuid": "..."}`.
 
-There are also two development options for locating action scripts. The Stream Deck software does not pass these options.
+The SDK uses Pydantic Settings to parse launch arguments and load `[tool.streamdeck]` from `pyproject.toml` in the current working directory, without searching parent directories. Constructing the `LaunchArguments` settings model parses and validates CLI arguments automatically, using only its customized CLI source. Explicit action modules override the configured list. If the file or section is absent, `--action-scripts` can supply the required action modules.
+
+There are also development options for locating action and listener modules. The Stream Deck software does not pass these options.
 
 - Plugin Directory: Pass the directory containing the plugin files using `--plugin-dir`:
 
@@ -183,7 +185,17 @@ There are also two development options for locating action scripts. The Stream D
     streamdeck --action-scripts actions1 --action-scripts actions2
     ```
 
-    These modules replace the TOML `action_scripts` list; configured listener modules still load from TOML. Environment variables, dotenv files, secrets, and constructor field values do not supply plugin settings.
+    These modules replace the TOML `action_scripts` list. Omitting this option preserves TOML actions.
+
+- Event Listener Modules: Pass importable module names with repeated `--event-listener` options (also available as `--event-listener-modules`):
+
+    ```bash
+    streamdeck --event-listener myplugin.listener_a --event-listener myplugin.listener_b
+    ```
+
+    These modules replace the TOML `event_listener_modules` list and are scanned for listener and event classes. Omitting the option preserves TOML listeners. The manager registers event models declared by each discovered listener's `event_models` attribute.
+
+The plugin settings model's CLI source registers only action and listener module options, ignoring host arguments already checked by the launch parser. Environment variables, dotenv files, secrets, and constructor field values do not supply plugin settings.
 
 Module discovery reads module namespace values in definition/import order, including imported objects. It skips names starting with `__` and does not deduplicate objects. Discovery results are cached per configuration instance; listener and event-model discovery share one cached collection. Changes to module contents or configured module lists after discovery do not refresh those results; create a new configuration instance to rediscover them.
 

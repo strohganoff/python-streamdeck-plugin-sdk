@@ -11,6 +11,10 @@ A Python library for developing plugins for the Elgato Stream Deck. This library
 This library differs from the official Stream Deck TypeScript SDK, as it aims to be more Pythonic, adhering to current Python conventions and trends. The goal is to make plugin development as simple and intuitive as possible for Python developers. Inspired by libraries like FastAPI, this project aims to provide a clear, concise, and developer-friendly experience for Python Stream Deck plugin development.
 
 
+For repository contributors and coding agents, start with [AGENTS.md](AGENTS.md).
+The [architecture guide](docs/architecture.md), [extension recipes](docs/extension-guide.md),
+[testing guide](docs/testing.md), and [known issues](docs/known-issues.md) describe the current implementation.
+
 ## Features
 
 - **WebSocket Abstraction**: WebSocket communication is abstracted away, so users don't need to handle WebSocket connections directly.
@@ -162,20 +166,28 @@ The following commands are required, which are the same as the Stream Deck softw
 
 - `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
 
-There are also two additional options for specifying action scripts to load. The Stream Deck software does not pass these options. Explicit action modules override the list loaded from the plugin directory's TOML file; that file is still required.
+The SDK uses Pydantic Settings to parse launch arguments and load `[tool.streamdeck]` from `pyproject.toml` in the current working directory, without searching parent directories. Explicit action modules override the configured list. If the file or section is absent, `--action-scripts` can supply the required action modules.
+
+There are also two development options for locating action scripts. The Stream Deck software does not pass these options.
 
 - Plugin Directory: Pass the directory containing the plugin files using `--plugin-dir`:
 
     ```bash
     streamdeck --plugin-dir myplugin_dir/
     ```
-    This will read the pyproject.toml file inside the directory to locate the action scripts. If this is not passed in, then the library looks in the current working directory for a pyproject.toml file.
+    This adds the directory to Python's module import path. It defaults to the current working directory and must point to an existing directory. It does not change which TOML file is read or change the working directory.
 
 - Action Scripts Directly: Alternatively, pass importable module names directly using the `--action-scripts` option:
 
     ```bash
     streamdeck --action-scripts actions1 --action-scripts actions2
     ```
+
+    These modules replace the TOML `action_scripts` list; configured listener modules still load from TOML. Environment variables, dotenv files, secrets, and constructor field values do not supply plugin settings.
+
+Module discovery reads module namespace values in definition/import order, including imported objects. It skips names starting with `__` and does not deduplicate objects. Discovery results are cached per configuration instance; listener and event-model discovery share one cached collection. Changes to module contents or configured module lists after discovery do not refresh those results; create a new configuration instance to rediscover them.
+
+Use `streamdeck --help` without launch arguments to see the available options. Help and argument errors use argparse formatting; Typer's shell-completion options are no longer available.
 
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
 
@@ -295,6 +307,8 @@ streamdeck -port 28196 -pluginUUID 63831042F4048F072B096732E0385245 -registerEve
 The SDK allows you to create custom event listeners and events by extending the `EventListener` and `EventBase` classes. This is useful when you need to monitor data from external applications and perform specific actions in response to changes or alerts.
 
 ### Creating a Custom Event Listener
+
+For a complete finite listener and shutdown guidance, see the [extension guide](docs/extension-guide.md#add-a-custom-listener).
 
 To create a custom event listener:
 

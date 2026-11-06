@@ -1,21 +1,20 @@
-import json
+"""Parse launch arguments and start the Stream Deck plugin runtime."""
+
 import logging
 import sys
-from pathlib import Path
-from typing import Annotated, Optional
-
-import typer
 
 from streamdeck.manager import PluginManager
 from streamdeck.models.configs import StreamDeckToolConfig
+from streamdeck.models.launch import LaunchArguments, parse_launch_arguments
 from streamdeck.utils.logging import configure_streamdeck_logger
 
 
 logger = logging.getLogger("streamdeck")
 
 
-
-plugin = typer.Typer()
+def plugin() -> None:
+    """Console entry point for the Pydantic Settings CLI."""
+    main(parse_launch_arguments())
 
 
 def setup_debug_mode(debug_port: int) -> None:
@@ -28,26 +27,16 @@ def setup_debug_mode(debug_port: int) -> None:
     logger.info("Debugger attached.")
 
 
-@plugin.command()
-def main(
-    port: Annotated[int, typer.Option("-p", "-port")],
-    plugin_registration_uuid: Annotated[str, typer.Option("-pluginUUID")],
-    register_event: Annotated[str, typer.Option("-registerEvent")],
-    info: Annotated[str, typer.Option("-info")],
-    plugin_dir: Annotated[Path, typer.Option(file_okay=False, exists=True, readable=True)] = Path.cwd(),  # noqa: B008
-    action_scripts: Optional[list[str]] = None,  # noqa: UP007
-    debug_port: Annotated[Optional[int], typer.Option("--debug", "-d")] = None,  # noqa: UP007
-) -> None:
-    """Start the Stream Deck plugin with the given configuration.
-
-    NOTE: Single flag long-name options are extected & passed in by the Stream Deck software.
-    Double flag long-name options are used during development and testing.
-    """
+def main(launch: LaunchArguments) -> None:
+    """Start the plugin after CLI validation."""
+    plugin_dir = launch.plugin_dir
+    port = launch.port
+    debug_port = launch.debug_port
     # Ensure plugin_dir is in `sys.path`, so that import statements in the plugin module will work as expected.
     if str(plugin_dir) not in sys.path:
         sys.path.insert(0, str(plugin_dir))
 
-    info_data = json.loads(info)
+    info_data = launch.info
     plugin_uuid = info_data["plugin"]["uuid"]
 
     # After configuring once here, we can grab the logger in any other module with `logging.getLogger("streamdeck")`, or
@@ -59,18 +48,15 @@ def main(
     if debug_port:
         setup_debug_mode(debug_port)
 
-    config = StreamDeckToolConfig(
-        toml_file=plugin_dir / "pyproject.toml",
-        action_scripts_override=action_scripts,
-    )
+    config = StreamDeckToolConfig(_cli_settings_source=launch.cli_settings_source)
 
     manager = PluginManager(
         port=port,
         plugin_uuid=plugin_uuid,
         # NOT the configured plugin UUID in the manifest.json,
         # which can be pulled out of `info["plugin"]["uuid"]`
-        plugin_registration_uuid=plugin_registration_uuid,
-        register_event=register_event,
+        plugin_registration_uuid=launch.plugin_registration_uuid,
+        register_event=launch.register_event,
         info=info_data,
     )
 
@@ -83,14 +69,11 @@ def main(
 
     try:
         manager.run()
-    except Exception as e:
+    except Exception:
         logger.exception("Error in plugin manager")
         raise
 
 
 # Also run the plugin if this script is ran as a console script.
-if __name__ in ("__main__", "streamdeck.__main__"):
+if __name__ == "__main__":
     plugin()
-
-
-

@@ -11,6 +11,9 @@ A Python library for developing plugins for the Elgato Stream Deck. This library
 This library differs from the official Stream Deck TypeScript SDK, as it aims to be more Pythonic, adhering to current Python conventions and trends. The goal is to make plugin development as simple and intuitive as possible for Python developers. Inspired by libraries like FastAPI, this project aims to provide a clear, concise, and developer-friendly experience for Python Stream Deck plugin development.
 
 
+See the [configuration guide](CONFIGURATION.md) for launch arguments, settings
+sources, and module discovery behavior.
+
 ## Features
 
 - **WebSocket Abstraction**: WebSocket communication is abstracted away, so users don't need to handle WebSocket connections directly.
@@ -162,20 +165,42 @@ The following commands are required, which are the same as the Stream Deck softw
 
 - `-info`: Additional information (formatted as json) about the plugin environment, as provided by the Stream Deck software.
 
-There are also two additional options for specifying action scripts to load. The Stream Deck software does not pass these options. Explicit action modules override the list loaded from the plugin directory's TOML file; that file is still required.
+    The SDK models this as `RegistrationInfo`, extracting the required string at `plugin.uuid` as `launch.info.plugin_uuid`. Other launch-info fields are ignored by this model. The manager receives the normalized dictionary `{"plugin_uuid": "..."}`.
+
+The SDK uses Pydantic Settings to parse launch arguments and load `[tool.streamdeck]` from `pyproject.toml` in the current working directory, without searching parent directories. Constructing the `LaunchArguments` settings model parses and validates CLI arguments automatically, using only its customized CLI source. Explicit action modules override the configured list. If the file or section is absent, `--action-scripts` can supply the required action modules.
+
+There are also development options for locating action and listener modules. The Stream Deck software does not pass these options.
 
 - Plugin Directory: Pass the directory containing the plugin files using `--plugin-dir`:
 
     ```bash
     streamdeck --plugin-dir myplugin_dir/
     ```
-    This will read the pyproject.toml file inside the directory to locate the action scripts. If this is not passed in, then the library looks in the current working directory for a pyproject.toml file.
+    This adds the directory to Python's module import path. It defaults to the current working directory and must point to an existing directory. It does not change which TOML file is read or change the working directory.
 
 - Action Scripts Directly: Alternatively, pass importable module names directly using the `--action-scripts` option:
 
     ```bash
     streamdeck --action-scripts actions1 --action-scripts actions2
     ```
+
+    These modules replace the TOML `action_scripts` list. Omitting this option preserves TOML actions.
+
+- Event Listener Modules: Pass importable module names with repeated `--event-listener` options (also available as `--event-listener-modules`):
+
+    ```bash
+    streamdeck --event-listener myplugin.listener_a --event-listener myplugin.listener_b
+    ```
+
+    These modules replace the TOML `event_listener_modules` list and are scanned for listener and event classes. Omitting the option preserves TOML listeners. The manager registers event models declared by each discovered listener's `event_models` attribute.
+
+The plugin settings model's CLI source registers only action and listener module options, ignoring host arguments already checked by the launch parser. Environment variables, dotenv files, secrets, and constructor field values do not supply plugin settings.
+
+Module discovery reads module namespace values in definition/import order, including imported objects. It skips names starting with `__` and does not deduplicate objects. Discovery results are cached per configuration instance; listener and event-model discovery share one cached collection. Changes to module contents or configured module lists after discovery do not refresh those results; create a new configuration instance to rediscover them.
+
+Use `streamdeck --help` without launch arguments to see the available options. Help and argument errors use argparse formatting; Typer's shell-completion options are no longer available.
+
+The CLI entry point `streamdeck.__main__.main(argv=None)` accepts an optional argument list, excluding the executable name. Both settings models use that same list; omitting it uses the process arguments. Startup prepares imports, logging, and optional debugging before loading plugin settings, then calls `run_plugin(launch, config)` with both validated models. Startup and runtime failures are logged and re-raised.
 
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
 

@@ -42,7 +42,9 @@ def _add_plugin_module_argument(
     *names: str,
     **kwargs: Any,  # noqa: ANN401
 ) -> Any:  # noqa: ANN401
-    """Register only action and listener modules, with a short listener alias."""
+    """Register help and module options, with a short listener alias."""
+    if kwargs.get("action") == "help":
+        return parser.add_argument(*names, **kwargs)
     if kwargs.get("dest") == "event_listener_modules":
         return parser.add_argument(*names, "--event-listener", **kwargs)
     if kwargs.get("dest") == "action_scripts":

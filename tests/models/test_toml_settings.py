@@ -147,10 +147,11 @@ def test_filtered_cli_accepts_repeated_actions_and_ignores_host_args(tmp_path):
     assert config.actions == [test_action1, test_action2, test_global_action1]
 
 
-def test_filtered_cli_help_exposes_only_module_options(tmp_path, capsys):
+@pytest.mark.parametrize("flag", ["--help", "-h"])
+def test_filtered_cli_help_exposes_only_module_options(tmp_path, capsys, flag):
     write_config(tmp_path, "[tool.streamdeck]\naction_scripts=[]\n")
     with pytest.raises(SystemExit) as exc:
-        StreamDeckToolConfig(_cli_parse_args=["--help"])
+        StreamDeckToolConfig(_cli_parse_args=[flag])
     assert exc.value.code == 0
     help_text = capsys.readouterr().out
     assert "--action-scripts" in help_text

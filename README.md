@@ -11,9 +11,8 @@ A Python library for developing plugins for the Elgato Stream Deck. This library
 This library differs from the official Stream Deck TypeScript SDK, as it aims to be more Pythonic, adhering to current Python conventions and trends. The goal is to make plugin development as simple and intuitive as possible for Python developers. Inspired by libraries like FastAPI, this project aims to provide a clear, concise, and developer-friendly experience for Python Stream Deck plugin development.
 
 
-For repository contributors and coding agents, start with [AGENTS.md](AGENTS.md).
-The [architecture guide](docs/architecture.md), [extension recipes](docs/extension-guide.md),
-[testing guide](docs/testing.md), and [known issues](docs/known-issues.md) describe the current implementation.
+See the [configuration guide](CONFIGURATION.md) for launch arguments, settings
+sources, and module discovery behavior.
 
 ## Features
 
@@ -321,8 +320,6 @@ streamdeck -port 28196 -pluginUUID 63831042F4048F072B096732E0385245 -registerEve
 The SDK allows you to create custom event listeners and events by extending the `EventListener` and `EventBase` classes. This is useful when you need to monitor data from external applications and perform specific actions in response to changes or alerts.
 
 ### Creating a Custom Event Listener
-
-For a complete finite listener and shutdown guidance, see the [extension guide](docs/extension-guide.md#add-a-custom-listener).
 
 To create a custom event listener:
 

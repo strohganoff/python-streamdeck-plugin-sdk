@@ -12,6 +12,7 @@ from streamdeck.event_handlers.protocol import (
     EventModel_contra,
     InjectableHandlerParams,
     SupportsEventHandlers,
+    validate_event_handler_signature,
 )
 
 
@@ -45,10 +46,12 @@ class ActionBase(ABC, SupportsEventHandlers):
 
         Raises:
             KeyError: If the provided event name is not available.
+            TypeError: If the handler signature cannot be satisfied during dispatch.
         """
         def _wrapper(
             func: EventHandlerFunc[EventModel_contra, InjectableHandlerParams],
         ) -> EventHandlerFunc[EventModel_contra, InjectableHandlerParams]:
+            validate_event_handler_signature(func)
             # Use the default callable specialization for homogeneous storage.
             self._events[event_name].add(cast("EventHandlerFunc", func))
             return func

@@ -16,7 +16,7 @@ from streamdeck.event_handlers.protocol import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
     from streamdeck.types import ActionUUIDStr, EventNameStr
 

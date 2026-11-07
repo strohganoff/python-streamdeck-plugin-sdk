@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 from typing_extensions import Concatenate, ParamSpec, TypeVar  # noqa: UP035
 
@@ -40,7 +40,6 @@ class EventHandlerDecorator(Protocol):
     ) -> EventHandlerFunc[EventModel_contra, InjectableHandlerParams]: ...
 
 
-@runtime_checkable
 class SupportsEventHandlers(Protocol):
     """Protocol for a class that holds event-specific handler functions which can be pulled out by event name.
 

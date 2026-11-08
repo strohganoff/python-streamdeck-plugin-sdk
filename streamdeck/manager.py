@@ -22,7 +22,7 @@ from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
     from typing import Any, Literal
 
     from streamdeck.event_handlers.protocol import (
@@ -112,7 +112,7 @@ class PluginManager:
         for event_model in listener.event_models:
             self._event_adapter.add_model(event_model)
 
-    def _stream_event_data(self) -> Generator[EventBase, None, None]:
+    def _stream_event_data(self) -> Iterator[EventBase]:
         """Stream event data from the event listeners.
 
         Validate and model the incoming event data before yielding it.

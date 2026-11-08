@@ -25,10 +25,10 @@ from streamdeck.models.events import EventBase
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
-    from collections.abc import Generator
+    from collections.abc import Iterator
 
 
-def iter_module_objects(module: ModuleType) -> Generator[object, None, None]:
+def iter_module_objects(module: ModuleType) -> Iterator[object]:
     """Yield module namespace values whose names do not start with double underscores."""
     for object_name, obj in vars(module).items():
         if object_name.startswith("__"):

@@ -17,7 +17,7 @@ from streamdeck.models.events import DEFAULT_EVENT_MODELS, EventBase
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
     from types import TracebackType
     from typing import Any, ClassVar
 
@@ -56,13 +56,13 @@ class WebSocketClient(EventListener):
         data_str = json.dumps(data)
         self._client.send(message=data_str)
 
-    def listen(self) -> Generator[str | bytes, Any, None]:
+    def listen(self) -> Iterator[str | bytes]:
         """Listen for messages from the WebSocket server indefinitely.
 
         TODO: implement more concise error-handling.
 
         Yields:
-            Union[str, bytes]: The received message from the WebSocket server.
+            str | bytes: The received message from the WebSocket server.
         """
         if self._client is None:
             msg = "WebSocket connection not established yet."

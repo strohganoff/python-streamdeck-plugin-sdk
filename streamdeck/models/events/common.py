@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Annotated, Generic, Literal, NamedTuple, Optional, Union
+from typing import Annotated, Generic, Literal, NamedTuple, Union
 
 from pydantic import Field
 from typing_extensions import TypedDict, TypeVar
@@ -100,7 +100,7 @@ class CoordinatesPayloadMixin:
 
 class StatefulActionPayloadMixin:
     """Mixin class for payload models that have an optional state field."""
-    state: Optional[int] = None  # noqa: UP007
+    state: int | None = None
     """Current state of the action.
 
     Only applicable to actions that have multiple states defined within the manifest.json file.

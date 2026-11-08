@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-    from typing import Any, ClassVar
+    from collections.abc import Generator, Iterator
+    from typing import ClassVar
 
     from typing_extensions import TypeIs
 
@@ -126,7 +126,7 @@ class EventListener(ABC):
     """
 
     @abstractmethod
-    def listen(self) -> Generator[str | bytes, Any, None]:
+    def listen(self) -> Iterator[str | bytes]:
         """Start listening for events and yield them as they come.
 
         This is the method that run in a separate thread.

@@ -6,7 +6,7 @@ from streamdeck.event_handlers.actions import Action
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
 
     from streamdeck.event_handlers.protocol import EventHandlerFunc, SupportsEventHandlers
     from streamdeck.types import ActionUUIDStr, EventNameStr
@@ -29,7 +29,7 @@ class HandlersRegistry:
         """
         self._plugin_event_handler_catalogs.append(catalog)
 
-    def get_event_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Generator[EventHandlerFunc, None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, event_action_uuid: ActionUUIDStr | None = None) -> Iterator[EventHandlerFunc]:
         """Get all event handlers for a specific event from all registered event handler catalogs.
 
         Args:

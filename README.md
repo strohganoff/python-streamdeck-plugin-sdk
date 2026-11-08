@@ -90,7 +90,7 @@ def handle_will_appear(event_data):
 
 !!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
 
-A handler without injection must have exactly one parameter named `event_data`. Handlers can optionally include a `command_sender` parameter to access Stream Deck command sending capabilities.
+A handler must have a required positional parameter named `event_data` first. The SDK validates this when the handler is registered. Additional parameters must either have defaults or be provided by the SDK; currently, `command_sender` is the only injected parameter. The SDK passes it by keyword, so declare it as positional-or-keyword or keyword-only.
 
 ```python
 from streamdeck.command_sender import StreamDeckCommandSender
@@ -103,7 +103,7 @@ def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
     command_sender.set_state(context=event_data.context, state=0)
 ```
 
-The `command_sender` parameter is optional. If included in the handler's signature, the SDK automatically injects a `StreamDeckCommandSender` instance that can be used to send commands back to the Stream Deck (like setting titles, states, or images).
+The `command_sender` parameter is optional. If included in the handler's signature, the SDK automatically injects a `StreamDeckCommandSender` instance that can be used to send commands back to the Stream Deck (like setting titles, states, or images). Registration raises `TypeError` for signatures whose required parameters cannot be supplied by dispatch.
 
 
 

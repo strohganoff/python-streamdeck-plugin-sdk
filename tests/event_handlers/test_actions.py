@@ -33,6 +33,43 @@ def test_action_register_event_handler(action: ActionBase, event_name: str) -> N
     assert handler in action._events[event_name]
 
 
+@pytest.mark.parametrize(
+    "handler",
+    [
+        lambda: None,
+        lambda not_event_data: None,
+        lambda *, event_data: None,
+        lambda event_data=None: None,
+        lambda event_data, required_extra: None,
+        lambda event_data, command_sender, /: None,
+    ],
+)
+def test_action_rejects_invalid_handler_signature(action: ActionBase, handler: Any) -> None:
+    """Reject handlers that dispatch cannot call with the event and supported injections."""
+    with pytest.raises(TypeError, match="Invalid event handler signature"):
+        action.on("keyDown")(handler)
+
+
+def test_action_accepts_optional_handler_parameters(action: ActionBase) -> None:
+    """Optional trailing parameters don't prevent dispatch from calling a handler."""
+    def handler(event_data: EventBase, unused: object | None = None) -> None:
+        pass
+
+    action.on("keyDown")(handler)
+
+    assert handler in action._events["keyDown"]
+
+
+def test_action_accepts_keyword_only_command_sender(action: ActionBase) -> None:
+    """The command sender can be injected into a keyword-only parameter."""
+    def handler(event_data: EventBase, *, command_sender: object) -> None:
+        pass
+
+    action.on("keyDown")(handler)
+
+    assert handler in action._events["keyDown"]
+
+
 def test_action_get_event_handlers(action: ActionBase) -> None:
     """Test that the correct event handlers are retrieved for each event name."""
     # Each iteration will add to the action's event handlers, thus we're checking that

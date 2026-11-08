@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def mock_event_handler() -> Mock:
-    def dummy_handler(event: events.EventBase) -> None:
+    def dummy_handler(event_data: events.EventBase) -> None:
         """Dummy event handler function that matches the EventHandlerFunc TypeAlias."""
 
     return create_autospec(dummy_handler, spec_set=True)
@@ -150,12 +150,12 @@ def test_multiple_actions_filtering() -> None:
     action_event_handler_called = False
 
     @global_action.on("applicationDidLaunch")
-    def _global_app_did_launch_action_handler(event: events.EventBase) -> None:
+    def _global_app_did_launch_action_handler(event_data: events.EventBase) -> None:
         nonlocal global_action_event_handler_called
         global_action_event_handler_called = True
 
     @action.on("keyDown")
-    def _action_key_down_event_handler(event: events.EventBase) -> None:
+    def _action_key_down_event_handler(event_data: events.EventBase) -> None:
         nonlocal action_event_handler_called
         action_event_handler_called = True
 

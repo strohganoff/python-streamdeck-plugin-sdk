@@ -8,8 +8,8 @@ from typing_extensions import override  # noqa: UP035
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-    from typing import Any, ClassVar
+    from collections.abc import Iterator
+    from typing import ClassVar
 
 
 class DummyEvent(EventBase["dummy"]):
@@ -22,7 +22,7 @@ class DummyEventListener(EventListener):
     event_models: ClassVar[list[type[EventBase]]] = [DummyEvent]
 
     @override
-    def listen(self) -> Generator[str | bytes, Any, None]:
+    def listen(self) -> Iterator[str | bytes]:
         """Yields a dummy event."""
         yield '{"event": "dummy", "something": 42}'
 

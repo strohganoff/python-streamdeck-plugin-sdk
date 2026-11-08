@@ -11,7 +11,7 @@ from streamdeck.models.events import ApplicationDidLaunch, EventBase
 
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
     from typing import Any, ClassVar
 
     from streamdeck.types import EventNameStr
@@ -27,7 +27,7 @@ class MockEventListener(EventListener):
         self.listen_called = False
         self.stop_called = False
 
-    def listen(self) -> Generator[str, None, None]:
+    def listen(self) -> Iterator[str]:
         self.listen_called = True
         for event in self.events:
             if not self._running:
@@ -48,7 +48,7 @@ class SlowMockEventListener(EventListener):
         self.delay = delay
         self.events = ["slow1", "slow2", "slow3"]
 
-    def listen(self) -> Generator[str, None, None]:
+    def listen(self) -> Iterator[str]:
         for event in self.events:
             if not self._running:
                 break
@@ -63,7 +63,7 @@ class ExceptionEventListener(EventListener):
     """Mock implementation of EventListener that raises an exception."""
     event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
-    def listen(self) -> Generator[str, None, None]:
+    def listen(self) -> Iterator[str]:
         self._running = True
         # Raise exception after yielding one event
         yield "event_before_exception"

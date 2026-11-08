@@ -15,7 +15,7 @@ from streamdeck.event_handlers.protocol import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable, Iterable
 
     from streamdeck.types import ActionUUIDStr, EventNameStr
 
@@ -52,7 +52,7 @@ class ActionBase(ABC, SupportsEventHandlers):
 
         return _wrapper
 
-    def get_event_handlers(self, event_name: EventNameStr, /) -> Generator[EventHandlerFunc, None, None]:
+    def get_event_handlers(self, event_name: EventNameStr, /) -> Iterable[EventHandlerFunc]:
         """Get all event handlers for a specific event.
 
         Args:

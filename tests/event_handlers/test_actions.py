@@ -40,12 +40,10 @@ def test_action_register_event_handler(action: ActionBase, event_name: str) -> N
         lambda not_event_data: None,
         lambda *, event_data: None,
         lambda event_data=None: None,
-        lambda event_data, required_extra: None,
-        lambda event_data, command_sender, /: None,
     ],
 )
 def test_action_rejects_invalid_handler_signature(action: ActionBase, handler: Any) -> None:
-    """Reject handlers that dispatch cannot call with the event and supported injections."""
+    """Reject handlers that do not start with a required positional event parameter."""
     with pytest.raises(TypeError, match="Invalid event handler signature"):
         action.on("keyDown")(handler)
 

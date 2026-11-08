@@ -67,71 +67,25 @@ class SupportsEventHandlers(Protocol):
         ...
 
 
-def is_bindable_handler(handler: EventHandlerFunc[EventModel_contra, ...]) -> bool:
-    """Check if the handler is prebound with the `command_sender` parameter."""
-    # Check dynamically if the `command_sender`'s name is in the handler's arguments.
-    return "command_sender" in inspect.signature(handler).parameters
-
-
-def is_not_bindable_handler(handler: EventHandlerFunc[EventModel_contra, ...]) -> bool:
-    """Check if a handler can be called with only its event parameter.
-
-    Optional parameters and variadic parameters are allowed, as they don't
-    prevent dispatch from calling the handler with just the event data.
-    """
-    if is_bindable_handler(handler):
-        return False
-
+def inspect_event_handler_signature(
+    handler: EventHandlerFunc[EventModel_contra, ...],
+) -> inspect.Signature:
+    """Return the inspected signature for a handler."""
     try:
-        inspect.signature(handler).bind(object())
-    except TypeError:
-        return False
-    return True
-
-
-def validate_event_handler_signature(handler: EventHandlerFunc[EventModel_contra, ...]) -> None:
-    """Validate that dispatch can call a handler with its event and SDK injections.
-
-    The event must be the required first positional parameter. The current
-    registry provides ``command_sender`` by keyword; any other parameters must
-    be optional or variadic.
-
-    Raises:
-        TypeError: If the handler signature cannot be satisfied by dispatch.
-    """
-    try:
-        handler_signature = inspect.signature(handler)
+        return inspect.signature(handler)
     except (TypeError, ValueError) as exc:
         msg = f"Cannot inspect event handler signature: {handler!r}"
         raise TypeError(msg) from exc
 
-    event_parameter = next(iter(handler_signature.parameters.values()), None)
-    if event_parameter is None:
-        msg = f"Invalid event handler signature for {handler!r}: expected a required positional 'event_data' parameter first"
-        raise TypeError(msg)
 
+def validate_event_handler_event_parameter(handler_signature: inspect.Signature) -> None:
+    """Validate the required positional event parameter in an inspected signature."""
+    event_parameter = next(iter(handler_signature.parameters.values()), None)
     if (
-        event_parameter.name != "event_data"
+        event_parameter is None
+        or event_parameter.name != "event_data"
         or event_parameter.kind not in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
         or event_parameter.default is not inspect.Parameter.empty
     ):
-        msg = f"Invalid event handler signature for {handler!r}: expected a required positional 'event_data' parameter first"
+        msg = f"Invalid event handler signature {handler_signature}: expected a required positional 'event_data' parameter first"
         raise TypeError(msg)
-
-    command_sender_parameter = handler_signature.parameters.get("command_sender")
-    if command_sender_parameter is not None and command_sender_parameter.kind not in (
-        inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        inspect.Parameter.KEYWORD_ONLY,
-    ):
-        msg = f"Invalid event handler signature for {handler!r}: 'command_sender' must accept a keyword argument"
-        raise TypeError(msg)
-
-    # Check that dispatch can satisfy every required parameter without calling the handler.
-    # Simulate dispatch's call shape: event_data positionally, plus command_sender by keyword when declared.
-    # Binding fails if any required parameter is missing.
-    bind_kwargs = {"command_sender": object()} if command_sender_parameter is not None else {}
-    try:
-        handler_signature.bind(object(), **bind_kwargs)
-    except TypeError as exc:
-        msg = f"Invalid event handler signature for {handler!r}: {exc}"
-        raise TypeError(msg) from exc

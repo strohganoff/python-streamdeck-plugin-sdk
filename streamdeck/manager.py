@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -8,12 +7,9 @@ from pydantic import ValidationError
 
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_handlers.actions import Action, ActionBase
-from streamdeck.event_handlers.protocol import (
-    SupportsEventHandlers,
-    is_bindable_handler,
-    is_not_bindable_handler,
-)
-from streamdeck.event_handlers.registry import HandlersRegistry
+from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
+from streamdeck.event_handlers.protocol import SupportsEventHandlers
+from streamdeck.event_handlers.registry import ALL_EVENTS, HandlersRegistry
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
@@ -25,9 +21,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Any, Literal
 
-    from streamdeck.event_handlers.protocol import (
-        EventHandlerFunc,
-    )
     from streamdeck.models.events import EventBase
 
 
@@ -69,6 +62,7 @@ class PluginManager:
         self._handlers_registry = HandlersRegistry()
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
+        self._injectable_handler_param_store = InjectableHandlerParamStore()
 
     def _ensure_catalog_has_valid_events(self, action: SupportsEventHandlers) -> None:
         """Ensure that the event handler catalog's registered events are valid.
@@ -83,10 +77,13 @@ class PluginManager:
                 raise KeyError(msg)
 
     def register_action(self, action: ActionBase) -> None:
-        """Register an action with the PluginManager, and configure its logger.
+        """Validate and register an action, and configure its logger.
 
         Args:
             action (Action): The action to register.
+
+        Raises:
+            KeyError: If a handler is registered for an unknown event.
         """
         # First, validate that the action's registered events are valid.
         self._ensure_catalog_has_valid_events(action)
@@ -96,6 +93,11 @@ class PluginManager:
         configure_streamdeck_logger(name=action_component_name, plugin_uuid=self.uuid)
 
         self._handlers_registry.register(action)
+
+    def _validate_registered_handler_signatures(self) -> None:
+        """Ensure registered handlers can be called with the current injectable values."""
+        for handler in self._handlers_registry.get_event_handlers(event_name=ALL_EVENTS):
+            self._injectable_handler_param_store.validate_handler_signature(handler)
 
     def register_event_listener(self, listener: EventListener) -> None:
         """Register an event listener with the PluginManager, and add its event models to the event adapter.
@@ -132,30 +134,7 @@ class PluginManager:
 
             yield data
 
-    def _inject_command_sender(self, handler: EventHandlerFunc, command_sender: StreamDeckCommandSender) -> EventHandlerFunc:
-        """Inject command_sender into handler if it accepts it as a parameter.
-
-        Args:
-            handler: The event handler function
-            command_sender: The StreamDeckCommandSender instance
-
-        Returns:
-            The handler with command_sender injected if needed
-        """
-        if is_bindable_handler(handler):
-            # If the handler accepts command_sender, inject it and return the handler.
-            return functools.partial(handler, command_sender=command_sender)
-
-        if not is_not_bindable_handler(handler):
-            # If the handler is neither bindable nor not bindable, raise an error.
-            raise TypeError(f"Invalid event handler function signature: {handler}")
-
-        return handler
-
-        # return self._injector.bind_injectable(handler, device, action, action_instance)
-
-    # TODO: rather than an explicit 'command_sender' arg, this will eventually be handled by dynamically binded args.
-    def _dispatch_event(self, event: EventBase, command_sender: StreamDeckCommandSender) -> None:
+    def _dispatch_event(self, event: EventBase) -> None:
         """Dispatch an event to the appropriate action handlers.
 
         Args:
@@ -163,27 +142,33 @@ class PluginManager:
         """
         # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
         event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
-
         for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
-            processed_handler = self._inject_command_sender(event_handler, command_sender)
+            injected_params = self._injectable_handler_param_store.resolve_for_handler(event_handler)
             # TODO: from contextual event occurrences, save metadata to the action's properties.
 
-            processed_handler(event)
+            event_handler(event, **injected_params)
 
     def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
         This method establishes a WebSocket connection, registers the plugin, listens for incoming messages,
         and triggers the appropriate action handlers based on the received events.
+
+        Raises:
+            TypeError: If a registered handler requires a parameter with no stored injectable value.
         """
-        with WebSocketClient(port=self._port) as client:
+        client = WebSocketClient(port=self._port)
+        command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
+        self._injectable_handler_param_store.set_value("command_sender", command_sender)
+        self._validate_registered_handler_signatures()
+
+        with client:
             # Register the WebSocketClient as an event listener, so we can receive Stream Deck events.
             self.register_event_listener(client)
 
-            command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
             command_sender.send_action_registration(register_event=self._register_event)
 
             for data in self._stream_event_data():
-                self._dispatch_event(data, command_sender)
+                self._dispatch_event(data)
 
             logger.info("PluginManager has stopped processing events.")

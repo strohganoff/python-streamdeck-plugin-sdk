@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from streamdeck.event_handlers.actions import Action
-from streamdeck.event_handlers.registry import HandlersRegistry
+from streamdeck.event_handlers.registry import ALL_EVENTS, HandlersRegistry
 
 from tests.test_utils.fake_event_factories import (
     DialDownEventFactory,
@@ -84,3 +84,25 @@ def test_get_event_handlers_multiple_actions() -> None:
     assert len(handlers) == 2
     assert key_up_handler1 in handlers
     assert key_up_handler2 in handlers
+
+
+def test_get_event_handlers_for_all_events() -> None:
+    """The ALL_EVENTS sentinel yields handlers across catalogs and event names."""
+    registry = HandlersRegistry()
+    action = Action("fake-action-uuid")
+
+    @action.on("keyUp")
+    def key_up_handler(event_data: events.EventBase) -> None:
+        pass
+
+    @action.on("dialDown")
+    def dial_down_handler(event_data: events.EventBase) -> None:
+        pass
+
+    registry.register(action)
+
+    handlers = list(registry.get_event_handlers(event_name=ALL_EVENTS))
+
+    assert len(handlers) == 2
+    assert key_up_handler in handlers
+    assert dial_down_handler in handlers

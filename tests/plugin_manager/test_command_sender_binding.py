@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import inspect
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, create_autospec
 
 import pytest
 from streamdeck.event_handlers.actions import Action
+from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
 
 
 if TYPE_CHECKING:
-    from functools import partial
-
     from streamdeck.command_sender import StreamDeckCommandSender
     from streamdeck.event_handlers.protocol import EventHandlerFunc
     from streamdeck.manager import PluginManager
@@ -39,38 +37,71 @@ def create_event_handler(include_command_sender_param: bool = False) -> EventHan
     return dummy_handler_with_cmd_sender
 
 
-@pytest.fixture(params=[True, False])
-def mock_event_handler(request: pytest.FixtureRequest) -> Mock:
-    include_command_sender_param: bool = request.param
-    dummy_handler: EventHandlerFunc = create_event_handler(include_command_sender_param)
-
-    return create_autospec(dummy_handler, spec_set=True)
-
-
-
-def test_inject_command_sender_func(
-    plugin_manager: PluginManager,
-    mock_event_handler: Mock,
-) -> None:
-    """Test that the command_sender is injected into the handler."""
+def test_injectable_param_store_resolves_only_declared_params() -> None:
+    """Resolve SDK values by name and provide only parameters requested by a handler."""
     mock_command_sender = Mock()
-    result_handler: EventHandlerFunc = plugin_manager._inject_command_sender(mock_event_handler, mock_command_sender)
+    handler_with_sender = create_event_handler(include_command_sender_param=True)
+    handler_without_sender = create_event_handler(include_command_sender_param=False)
 
-    resulting_handler_params = inspect.signature(result_handler).parameters
+    store = InjectableHandlerParamStore()
+    store.set_value("command_sender", mock_command_sender)
+    with_sender = store.resolve_for_handler(handler_with_sender)
+    without_sender = store.resolve_for_handler(handler_without_sender)
 
-    # If this condition is true, then the `result_handler` is a partial function.
-    if "command_sender" in resulting_handler_params:
+    assert with_sender == {"command_sender": mock_command_sender}
+    assert without_sender == {}
 
-        # Check that the `result_handler` is not the same as the original `mock_event_handler`.
-        assert result_handler != mock_event_handler
 
-        # Check that the `command_sender` parameter is bound to the correct value.
-        resulting_handler_bound_kwargs: dict[str, Any] = cast("partial[Any]", result_handler).keywords
-        assert resulting_handler_bound_kwargs["command_sender"] == mock_command_sender
+def test_injectable_param_store_resolves_multiple_named_values() -> None:
+    """The store resolves multiple named values and ignores unprovided names."""
+    command_sender = Mock()
+    event_snapshot = object()
+    store = InjectableHandlerParamStore()
+    store.set_value("command_sender", command_sender)
+    store.set_value("event_snapshot", event_snapshot)
 
-    # If there isn't a `command_sender` parameter, then the `result_handler` is the original handler unaltered.
-    else:
-        assert result_handler == mock_event_handler
+    injected_params = store.resolve(("command_sender", "event_snapshot", "unused"))
+
+    assert injected_params == {
+        "command_sender": command_sender,
+        "event_snapshot": event_snapshot,
+    }
+
+
+def test_manager_validates_and_resolves_custom_store_value(plugin_manager: PluginManager) -> None:
+    """Registration and dispatch use the same manager-owned injectable names."""
+    provided_value = object()
+    plugin_manager._injectable_handler_param_store = InjectableHandlerParamStore()
+    plugin_manager._injectable_handler_param_store.set_value("extension_value", provided_value)
+
+    def handler(event_data: events.EventBase, extension_value: object) -> None:
+        pass
+
+    mock_handler = create_autospec(handler, spec_set=True)
+    action = Action("test.action")
+    action.on("applicationDidLaunch")(mock_handler)
+
+    plugin_manager.register_action(action)
+    plugin_manager._validate_registered_handler_signatures()
+
+    event_data = Mock(event="applicationDidLaunch")
+    plugin_manager._dispatch_event(event_data)
+
+    mock_handler.assert_called_once_with(event_data, extension_value=provided_value)
+
+
+def test_manager_rejects_required_param_without_provider(plugin_manager: PluginManager) -> None:
+    """Required handler parameters must have a provider in the manager's store."""
+    def handler(event_data: events.EventBase, missing_value: object) -> None:
+        pass
+
+    action = Action("test.action")
+    action.on("applicationDidLaunch")(handler)
+    plugin_manager.register_action(action)
+    plugin_manager._injectable_handler_param_store.set_value("command_sender", Mock())
+
+    with pytest.raises(TypeError, match="Invalid event handler signature"):
+        plugin_manager._injectable_handler_param_store.validate_handler_signature(handler)
 
 
 @pytest.mark.usefixtures("patch_websocket_client")

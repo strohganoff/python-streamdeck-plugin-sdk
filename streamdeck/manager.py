@@ -26,11 +26,7 @@ if TYPE_CHECKING:
     from typing import Any, Literal
 
     from streamdeck.event_handlers.protocol import (
-        BindableEventHandlerFunc,
-        BoundEventHandlerFunc,
         EventHandlerFunc,
-        EventModel_contra,
-        InjectableParams,
     )
     from streamdeck.models.events import EventBase
 
@@ -136,8 +132,7 @@ class PluginManager:
 
             yield data
 
-    # def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], device: DeviceUUIDStr | None, action: ActionUUIDStr | None, action_instance: ActionInstanceUUIDStr | None) -> BoundEventHandlerFunc[EventModel_contra]:
-    def _inject_command_sender(self, handler: EventHandlerFunc[EventModel_contra, InjectableParams], command_sender: StreamDeckCommandSender) -> BoundEventHandlerFunc[EventModel_contra]:
+    def _inject_command_sender(self, handler: EventHandlerFunc, command_sender: StreamDeckCommandSender) -> EventHandlerFunc:
         """Inject command_sender into handler if it accepts it as a parameter.
 
         Args:

@@ -7,15 +7,16 @@ from logging import getLogger
 from typing import TYPE_CHECKING, cast
 
 from streamdeck.event_handlers.protocol import (
+    EventHandlerDecorator,
     EventHandlerFunc,
     EventModel_contra,
-    InjectableParams,
+    InjectableHandlerParams,
     SupportsEventHandlers,
 )
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
     from streamdeck.types import ActionUUIDStr, EventNameStr
 
@@ -33,20 +34,22 @@ class ActionBase(ABC, SupportsEventHandlers):
         """Initialize an Action instance."""
         self._events = defaultdict(set)
 
-    def on(self, event_name: EventNameStr, /) -> Callable[[EventHandlerFunc[EventModel_contra, InjectableParams]], EventHandlerFunc[EventModel_contra, InjectableParams]]:
+    def on(self, event_name: EventNameStr, /) -> EventHandlerDecorator:
         """Register an event handler for a specific event.
 
         Args:
             event_name (EventNameStr): The name of the event to register the handler for.
 
         Returns:
-            Callable[[EventHandlerFunc], EventHandlerFunc]: A decorator function for registering the event handler.
+            EventHandlerDecorator: A decorator that preserves the handler's event type and signature.
 
         Raises:
             KeyError: If the provided event name is not available.
         """
-        def _wrapper(func: EventHandlerFunc[EventModel_contra, InjectableParams]) -> EventHandlerFunc[EventModel_contra, InjectableParams]:
-            # Cast to EventHandlerFunc with default type arguments so that the storage type is consistent.
+        def _wrapper(
+            func: EventHandlerFunc[EventModel_contra, InjectableHandlerParams],
+        ) -> EventHandlerFunc[EventModel_contra, InjectableHandlerParams]:
+            # Use the default callable specialization for homogeneous storage.
             self._events[event_name].add(cast("EventHandlerFunc", func))
             return func
 

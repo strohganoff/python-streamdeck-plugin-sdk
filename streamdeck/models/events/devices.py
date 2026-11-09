@@ -40,18 +40,21 @@ DEVICE_TYPE_BY_ID: Final[dict[DeviceTypeId, DeviceType]] = {
 
 class DeviceSizeDict(TypedDict):
     """Number of action slots, excluding dials / touchscreens, available to the device."""
+
     columns: int
     rows: int
 
 
 class DeviceSize(NamedTuple):
     """Number of action slots, excluding dials / touchscreens, available to the device."""
+
     columns: int
     rows: int
 
 
 class DeviceInfo(ConfiguredBaseModel):
     """Information about the newly connected device."""
+
     name: str
     """Name of the device, as specified by the user in the Stream Deck application."""
     type_id: Annotated[DeviceTypeId, Field(alias="type", repr=False)]
@@ -78,11 +81,12 @@ class DeviceInfo(ConfiguredBaseModel):
         return f"DeviceInfo(name={self.name}, type={self.type}, size={self.size})"
 
 
-class DeviceDidConnect(EventBase["deviceDidConnect"], DeviceSpecificEventMixin):
+class DeviceDidConnect(EventBase[Literal["deviceDidConnect"]], DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is connected."""
+
     device_info: Annotated[DeviceInfo, Field(alias="deviceInfo")]
     """Information about the newly connected device."""
 
 
-class DeviceDidDisconnect(EventBase["deviceDidDisconnect"], DeviceSpecificEventMixin):
+class DeviceDidDisconnect(EventBase[Literal["deviceDidDisconnect"]], DeviceSpecificEventMixin):
     """Occurs when a Stream Deck device is disconnected."""

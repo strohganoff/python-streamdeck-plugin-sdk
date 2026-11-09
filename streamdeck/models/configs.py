@@ -112,5 +112,10 @@ class StreamDeckToolConfig(BaseSettings):
         return [
             obj
             for obj in self._event_listener_objects
-            if isinstance(obj, type) and obj is not EventBase and issubclass(obj, EventBase)
+            if (
+                isinstance(obj, type)
+                and obj is not EventBase  # Exclude the base class itself.
+                and issubclass(obj, EventBase)
+                and getattr(obj, "__pydantic_generic_metadata__", {}).get("origin") is not EventBase
+            )
         ]

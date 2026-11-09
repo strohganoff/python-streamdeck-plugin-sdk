@@ -36,6 +36,12 @@ def plugin_manager(port_number: int, plugin_registration_uuid: str) -> PluginMan
     )
 
 
+@pytest.fixture(autouse=True)
+def mock_streamdeck_logger(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep plugin manager tests independent of the user's log directory."""
+    monkeypatch.setattr("streamdeck.manager.configure_streamdeck_logger", Mock())
+
+
 @pytest.fixture
 def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Fixture that uses pytest's MonkeyPatch to mock WebSocketClient for the PluginManager run method.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Union
+from typing import TYPE_CHECKING, Annotated, Union, cast
 
 from pydantic import Field, TypeAdapter
 
@@ -8,6 +8,8 @@ from streamdeck.models.events import DEFAULT_EVENT_MODELS
 
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeForm
+
     from streamdeck.models.events.base import EventBase
     from streamdeck.types import EventNameStr
 
@@ -41,11 +43,15 @@ class EventAdapter:
     def type_adapter(self) -> TypeAdapter[EventBase]:
         """Get the TypeAdapter instance for the event models."""
         if self._type_adapter is None:
+            # Mypy cannot infer the type form of this union because its models are collected at runtime.
             self._type_adapter = TypeAdapter(
-                Annotated[
-                    Union[tuple(self._models)],  # noqa: UP007
-                    Field(discriminator="event")
-                ]
+                cast(
+                    "TypeForm[EventBase]",
+                    Annotated[
+                        Union[tuple(self._models)],  # noqa: UP007
+                        Field(discriminator="event")
+                    ],
+                )
             )
 
         return self._type_adapter

@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Any, Literal
 
+    from pydantic import JsonValue
+
     from streamdeck.types import (
         ActionInstanceUUIDStr,
         ActionUUIDStr,
@@ -81,7 +83,7 @@ class StreamDeckCommandSender:
         target: Literal["hardware", "software", "both"] | None = None,
         title: str | None = None,
     ) -> None:
-        payload = {}
+        payload: dict[str, JsonValue] = {}
 
         if state is not None:
             payload["state"] = state

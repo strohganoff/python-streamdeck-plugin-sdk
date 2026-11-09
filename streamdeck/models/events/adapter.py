@@ -8,8 +8,6 @@ from streamdeck.models.events import DEFAULT_EVENT_MODELS
 
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeIs
-
     from streamdeck.models.events.base import EventBase
     from streamdeck.types import EventNameStr
 
@@ -35,7 +33,7 @@ class EventAdapter:
         # so `get_model_event_names()` returns a tuple of all event names, even if there is only one.
         self._event_names.update(model.get_model_event_names())
 
-    def event_name_exists(self, event_name: str) -> TypeIs[EventNameStr]:
+    def event_name_exists(self, event_name: str) -> bool:
         """Check if an event name has been registered with the adapter."""
         return event_name in self._event_names
 

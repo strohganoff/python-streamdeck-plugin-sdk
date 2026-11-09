@@ -22,15 +22,9 @@ To set up the development environment for this project, follow these steps:
    cd your_package_name
    ```
 
-2. Create a virtual environment and activate it:
+2. Install uv, then synchronize the locked development environment:
    ```sh
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows use: venv\Scripts\activate
-   ```
-
-3. Install the development dependencies:
-   ```sh
-   pip install .[dev]
+   uv sync --locked
    ```
 
 ## Running Tests
@@ -38,20 +32,20 @@ To set up the development environment for this project, follow these steps:
 To run the test suite, use the following command:
 
 ```sh
-pytest
+uv run --locked python -m pytest
 ```
 
 This will run all tests located in the `tests/` directory.
 
 ### Running Tests with multiple Python versions
 
-Multiple versions of Python can be tested using Tox. Versions 3.9-3.13 are supported. To have Tox run the tests, simply call its command:
+CI tests Python 3.10–3.15. Create an environment for the Python version you want,
+then install the locked dependencies and run pytest:
 
 ```sh
-tox
+uv sync --locked --python 3.15
+uv run --locked python -m pytest
 ```
-
-Tox will create an isolated environment for each Python version to run the tests in.
 
 ### Running Tests with Coverage
 

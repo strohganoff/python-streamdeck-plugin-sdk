@@ -2550,7 +2550,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "debugpy" },
-    { name = "mypy", specifier = ">=1.14.0" },
+    { name = "mypy", specifier = ">=1.19.1" },
     { name = "polyfactory", specifier = ">=2.17.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-cov", specifier = ">=5.0.0" },

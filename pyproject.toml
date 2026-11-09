@@ -83,7 +83,7 @@ dev = [
     "pytest-mock >= 3.14.0",
     "debugpy",
     "ruff >= 0.8.0",
-    "mypy >= 1.14.0",
+    "mypy >= 1.19.1",
 ]
 packaging = [
     "twine >= 6.1.0",

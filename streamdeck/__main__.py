@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import ValidationError
 from pydantic_settings import SettingsError
@@ -15,13 +16,24 @@ from streamdeck.utils.logging import configure_streamdeck_logger
 
 
 logger = logging.getLogger("streamdeck")
+SettingsT = TypeVar("SettingsT")
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
+def _parse_settings_from_cli(
+    settings_cls: Callable[..., SettingsT], args: list[str]
+) -> SettingsT:
+    """Instantiate Pydantic Settings with its private CLI argument hook."""
+    return settings_cls(_cli_parse_args=args)
 
 
 def main(argv: list[str] | None = None) -> None:
     """Console entry point for the Pydantic Settings CLI."""
     args = sys.argv[1:] if argv is None else list(argv)
     try:
-        launch = LaunchArguments(_cli_parse_args=args)
+        launch = _parse_settings_from_cli(LaunchArguments, args)
     except (ValidationError, SettingsError) as exc:
         logger.error("Invalid launch arguments: %s", exc)
         raise SystemExit(2) from exc
@@ -38,7 +50,7 @@ def main(argv: list[str] | None = None) -> None:
         if launch.debug_port:
             setup_debug_mode(launch.debug_port)
 
-        config = StreamDeckToolConfig(_cli_parse_args=args)
+        config = _parse_settings_from_cli(StreamDeckToolConfig, args)
         run_plugin(launch, config)
     except Exception:
         logger.exception("Plugin startup or execution failed")

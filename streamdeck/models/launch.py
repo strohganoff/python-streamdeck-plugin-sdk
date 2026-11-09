@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import AliasPath, BaseModel, DirectoryPath, Field
 from pydantic_settings import (
@@ -38,8 +38,8 @@ class LaunchArguments(BaseSettings):
     plugin_registration_uuid: str = Field(validation_alias="pluginUUID")
     """Per-launch registration identifier supplied as -pluginUUID, distinct from the manifest plugin UUID."""
 
-    register_event: str = Field(validation_alias="registerEvent")
-    """Registration event name supplied as -registerEvent, normally registerPlugin."""
+    register_event: Literal["registerPlugin"] = Field(validation_alias="registerEvent")
+    """Registration event name supplied as -registerEvent; this SDK expects registerPlugin."""
 
     info: RegistrationInfo
     """Launch information supplied as JSON through -info, modeled to extract plugin.uuid."""

@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Annotated, Any, ClassVar, Generic, Literal, get_args, get_origin
+from typing import TYPE_CHECKING, Annotated, Any, Generic, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, GetPydanticSchema
-from typing_extensions import LiteralString, TypeAlias, TypeVar, override
+from typing_extensions import LiteralString, TypeVar, override
+
+
+if TYPE_CHECKING:
+    from typing import ClassVar, TypeAlias
 
 
 StringLiteralType: TypeAlias = Annotated[

@@ -18,7 +18,9 @@ class DidReceivePropertyInspectorMessage(EventBase[Literal["sendToPlugin"]], Con
 
 
 class PropertyInspectorDidAppear(
-    EventBase[Literal["propertyInspectorDidAppear"]], ContextualEventMixin, DeviceSpecificEventMixin
+    EventBase[Literal["propertyInspectorDidAppear"]],
+    ContextualEventMixin,
+    DeviceSpecificEventMixin,
 ):
     """Occurs when the property inspector associated with the action becomes visible.
 
@@ -26,11 +28,7 @@ class PropertyInspectorDidAppear(
     """
 
 
-class PropertyInspectorDidDisappear(
-    EventBase[Literal["propertyInspectorDidDisappear"]],
-    ContextualEventMixin,
-    DeviceSpecificEventMixin,
-):
+class PropertyInspectorDidDisappear(EventBase[Literal["propertyInspectorDidDisappear"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the property inspector associated with the action becomes invisible.
 
     I.e. the user unselected the action in the Stream Deck application.

@@ -1,4 +1,3 @@
-# ruff: noqa: UP040
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -7,8 +6,7 @@ from pydantic import JsonValue
 
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias  # noqa: UP035
-
+    from typing import TypeAlias
 
 
 EventNameStr: TypeAlias = str

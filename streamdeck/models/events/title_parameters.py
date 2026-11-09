@@ -50,9 +50,7 @@ class TitleParametersDidChangePayload(
     """Defines aesthetic properties that determine how the title should be rendered."""
 
 
-class TitleParametersDidChange(
-    EventBase[Literal["titleParametersDidChange"]], ContextualEventMixin, DeviceSpecificEventMixin
-):
+class TitleParametersDidChange(EventBase[Literal["titleParametersDidChange"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user updates an action's title settings in the Stream Deck application."""
 
     payload: TitleParametersDidChangePayload

@@ -46,9 +46,7 @@ class WillAppear(EventBase[Literal["willAppear"]], ContextualEventMixin, DeviceS
     payload: CardinalityDiscriminated[SingleActionVisibilityPayload, MultiActionVisibilityPayload]
 
 
-class WillDisappear(
-    EventBase[Literal["willDisappear"]], ContextualEventMixin, DeviceSpecificEventMixin
-):
+class WillDisappear(EventBase[Literal["willDisappear"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when an action disappears from the Stream Deck due to the user navigating to another page, profile, folder, etc.
 
     An action refers to all types of actions, e.g. keys, dials, touchscreens, pedals, etc.

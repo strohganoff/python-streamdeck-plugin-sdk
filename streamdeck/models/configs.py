@@ -71,8 +71,11 @@ class StreamDeckToolConfig(BaseSettings):
     def settings_customise_sources(
         cls,
         settings_cls: type[BaseSettings],
-        **_sources: PydanticBaseSettingsSource,
-    ) -> tuple[CliSettingsSource, PyprojectTomlConfigSettingsSource]:
+        init_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        env_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        dotenv_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        file_secret_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Use CLI and TOML without environment, constructor, or secrets sources."""
         return (
             CliSettingsSource(settings_cls, add_argument_method=_add_plugin_module_argument),

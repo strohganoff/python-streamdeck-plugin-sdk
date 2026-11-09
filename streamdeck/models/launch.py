@@ -61,8 +61,11 @@ class LaunchArguments(BaseSettings):
     def settings_customise_sources(
         cls,
         settings_cls: type[BaseSettings],
-        **_sources: PydanticBaseSettingsSource,
-    ) -> tuple[CliSettingsSource]:
+        init_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        env_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        dotenv_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+        file_secret_settings: PydanticBaseSettingsSource | None = None,  # noqa: ARG003
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         """Parse only CLI arguments, preserving the host-specific option aliases."""
         return (CliSettingsSource(settings_cls, add_argument_method=_add_launch_argument),)
 

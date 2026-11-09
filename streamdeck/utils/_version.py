@@ -16,7 +16,7 @@ import os
 
 
 # NOTE: A single variable is set using this function below.
-def get_version():
+def get_version() -> str:
     """Retrieve the version from GitHub Actions environment variables.
 
     Raises:
@@ -58,7 +58,7 @@ def get_version():
 
     tag_name = event_data.get("release", {}).get("tag_name")
 
-    if not tag_name:
+    if not isinstance(tag_name, str) or not tag_name:
         logging.error("No tag version found in event_data file.")
         return "0.0.1"
 

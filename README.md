@@ -40,7 +40,7 @@ This guide will help you set up your first Stream Deck plugin using the library.
 
 ### Prerequisites
 
-- Python 3.9 or higher (declared package minimum; see the testing guide for validation limits)
+- Python 3.10 or higher
 - Stream Deck software installed
 - A valid `manifest.json` file for your plugin
 

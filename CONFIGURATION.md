@@ -8,9 +8,7 @@ are a filtered `CliSettingsSource`, followed by
 `PyprojectTomlConfigSettingsSource`, selecting `[tool.streamdeck]`. Constructor
 field values, environment variables, dotenv files, and secrets are not sources.
 
-Model fields use pipe-syntax unions. On Python 3.9, the conditional
-`eval-type-backport` dependency lets Pydantic evaluate those annotations;
-Python 3.10 and later do not require that backport.
+Model fields use pipe-syntax unions. The package requires Python 3.10 or later.
 
 `LaunchArguments` inherits from `BaseSettings`: `LaunchArguments()` parses and
 validates the process arguments during construction. Tests and programmatic
@@ -119,6 +117,6 @@ Regression coverage is in
 [`test_launch_settings.py`](tests/test_launch_settings.py). These tests use
 local modules and do not establish live Stream Deck integration.
 
-PR CI runs Python 3.9–3.13 plus distribution-build and installed-wheel checks.
+PR CI runs Python 3.10–3.15 plus distribution-build and installed-wheel checks.
 Passing those checks does not establish live Stream Deck startup. See the PR's
 checks for results at a particular commit.

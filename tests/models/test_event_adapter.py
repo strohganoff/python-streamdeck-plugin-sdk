@@ -3,11 +3,11 @@ from typing import Literal
 
 import pytest
 from pydantic import ValidationError
+
 from streamdeck.models.events import DEFAULT_EVENT_MODELS, DEFAULT_EVENT_NAMES, EventBase, KeyDown
 from streamdeck.models.events.adapter import (
     EventAdapter,
 )
-
 from tests.test_utils.fake_event_factories import KeyDownEventFactory
 
 
@@ -25,12 +25,13 @@ def test_init_with_default_models() -> None:
     for model in DEFAULT_EVENT_MODELS:
         assert model in adapter._models
 
+
 def test_add_model() -> None:
     """Test that models can be added to the adapter."""
     adapter = EventAdapter()
 
     # Create a fake event model
-    class DummyEvent(EventBase["dummyEvent"]):
+    class DummyEvent(EventBase[Literal["dummyEvent"]]):
         payload: dict[str, str]
 
     # Add the custom model
@@ -44,6 +45,7 @@ def test_add_model() -> None:
     assert DummyEvent in adapter._models
     assert len(adapter._models) == len(DEFAULT_EVENT_MODELS) + 1
 
+
 def test_event_name_exists() -> None:
     """Test that event_name_exists correctly identifies registered events."""
     adapter = EventAdapter()
@@ -55,6 +57,7 @@ def test_event_name_exists() -> None:
     # Should return False for non-registered events
     assert not adapter.event_name_exists("nonExistentEvent")
 
+
 def test_type_adapter_creation() -> None:
     """Test that the type_adapter property creates a TypeAdapter."""
     adapter = EventAdapter()
@@ -65,6 +68,7 @@ def test_type_adapter_creation() -> None:
 
     # Second access should return the same instance
     assert adapter.type_adapter is type_adapter
+
 
 def test_validate_json_with_valid_data() -> None:
     """Test that validate_json correctly parses valid JSON into the correct event model instance."""
@@ -81,10 +85,20 @@ def test_validate_json_with_valid_data() -> None:
     assert isinstance(event, KeyDown)
     assert event == fake_key_down_event
 
-@pytest.mark.parametrize("invalid_event_json", [
-    json.dumps({"event": "keyDown"}),  # Missing required fields: action, context, device
-    json.dumps({"event": "unknownEvent", "action": "com.example.plugin.action", "context": "context123"}) # Unknown event
-])
+
+@pytest.mark.parametrize(
+    "invalid_event_json",
+    [
+        json.dumps({"event": "keyDown"}),  # Missing required fields: action, context, device
+        json.dumps(
+            {
+                "event": "unknownEvent",
+                "action": "com.example.plugin.action",
+                "context": "context123",
+            }
+        ),  # Unknown event
+    ],
+)
 def test_validate_json_with_invalid_data(invalid_event_json: str) -> None:
     """Test that validate_json raises an error for invalid JSON.
 
@@ -103,7 +117,7 @@ def test_adding_custom_event_allows_validation() -> None:
     adapter = EventAdapter()
 
     # Create a fake event model
-    class DummyEvent(EventBase["dummyEvent"]):
+    class DummyEvent(EventBase[Literal["dummyEvent"]]):
         action: str
         context: str
         device: str
@@ -118,7 +132,7 @@ def test_adding_custom_event_allows_validation() -> None:
         action="com.example.plugin.action",
         context="context123",
         device="device123",
-        payload={"key": "value"}
+        payload={"key": "value"},
     )
     fake_event_json = fake_event.model_dump_json()
 

@@ -1,174 +1,88 @@
+"""Tests for the generic incoming event base model."""
+
 from __future__ import annotations
 
-from contextlib import nullcontext
-from typing import TYPE_CHECKING, Annotated, Any, Union
+from typing import Any, Literal
 
 import pytest
-from pydantic import Discriminator, TypeAdapter
+from pydantic import TypeAdapter, ValidationError
+
 from streamdeck.models.events.base import EventBase
 
 
-if TYPE_CHECKING:
-    from _pytest.python_api import RaisesContext  # type: ignore[import]
-
-
-class TestBaseSubscripting:
-    """Test expected behavior of subscripting the base class."""
-    common_test_parameters: pytest.MarkDecorator = pytest.mark.parametrize(
-        ("subscript_value", "expected_context"),
-        [
-            ("ok", nullcontext()),
-            (404, pytest.raises(TypeError)),
-            (False, pytest.raises(TypeError)),
-        ],
-    )
-
-    @common_test_parameters
-    def test_base_type_subscripting(
-        self,
-        subscript_value: Any,
-        expected_context: RaisesContext[TypeError] | nullcontext[None],
-    ) -> None:
-        """Test that only string types are allowed for base class subscripting."""
-        with expected_context:
-            EventBase[subscript_value]
-
-    @common_test_parameters
-    def test_base_type_subscription_subclassing(
-        self,
-        subscript_value: Any,
-        expected_context: RaisesContext[TypeError] | nullcontext[None],
-    ) -> None:
-        """Test that only string types are allowed for base class subscripting--even in subclasses."""
-        with expected_context:
-            class MyEvent(EventBase[subscript_value]):  # type: ignore[valid-type]
-                """Event model subclass with invalid event field type."""
-
-    def test_subscripting_subclass_raises_type_error(self) -> None:
-        """Test that subscripting the subclass raises a TypeError."""
-        class MyEvent(EventBase["ok"]): ...
-        with pytest.raises(TypeError):
-            MyEvent["not_ok"]
-
-        with pytest.raises(TypeError):
-            class BadMyEventSubclass(MyEvent["also_not_ok"]): ...  # type: ignore[valid-type]
-
-    def test_no_base_subscript_in_subclass_raises_type_error(self) -> None:
-        """Test that subscripting the base class without a value raises a TypeError."""
-        with pytest.raises(TypeError):
-            class BadNoSubscriptEvent(EventBase):  # type: ignore[valid-type]
-                ...
-
-    # def test_overridden_event_name_raises_type_error(self) -> None:
-    #     """Test that overriding the event name in a subclass raises a TypeError."""
-    #     with pytest.raises(TypeError):
-    #         class MyEvent(EventBase["ok"]):
-
-
-
-def test_init_base_class_raises_error() -> None:
-    """Test that initializing the base class directly raises a TypeError."""
+@pytest.mark.parametrize(
+    "event_name_type",
+    [str, Literal[404], Literal[False], Literal["ok", 404]],
+)
+def test_event_name_type_must_be_literal_of_strings(event_name_type: Any) -> None:  # noqa: ANN401
+    """Only Literal types containing strings can specialize EventBase."""
     with pytest.raises(TypeError):
+        EventBase[event_name_type]
+
+
+def test_event_base_must_be_specialized_when_subclassed() -> None:
+    """Concrete event models must specialize EventBase with a Literal."""
+    with pytest.raises(TypeError, match="specialized EventBase"):
+
+        class BadEvent(EventBase): ...
+
+
+def test_string_literal_specialization_records_event_names() -> None:
+    """A concrete event subclass inherits the names from its Literal specialization."""
+
+    class MyEvent(EventBase[Literal["ok"]]): ...
+
+    assert MyEvent.get_model_event_names() == ("ok",)
+    assert MyEvent.__event_type__() == Literal["ok"]
+
+
+def test_multiple_string_literal_values_are_supported() -> None:
+    """A single event model may declare more than one accepted event name."""
+
+    class MyEvent(EventBase[Literal["ok", "also_ok"]]): ...
+
+    assert MyEvent.get_model_event_names() == ("ok", "also_ok")
+    assert TypeAdapter(MyEvent).validate_python({"event": "ok"}) == MyEvent(event="ok")
+    assert TypeAdapter(MyEvent).validate_python({"event": "also_ok"}) == MyEvent(event="also_ok")
+    with pytest.raises(ValidationError):
+        TypeAdapter(MyEvent).validate_python({"event": "bad"})
+
+
+def test_event_base_and_generic_specialization_cannot_be_instantiated() -> None:
+    """Only concrete event model subclasses can be instantiated."""
+    with pytest.raises(TypeError, match="directly"):
         EventBase(event="uhh")
 
-
-def test_init_subscripted_subclass_raises_error() -> None:
-    """Test that initializing a subscripted subclass of the base class raises a TypeError."""
-    with pytest.raises(TypeError):
-        EventBase["uhh"](event="uhh")
+    with pytest.raises(TypeError, match="directly"):
+        EventBase[Literal["uhh"]](event="uhh")
 
 
+def test_generic_specializations_are_cached() -> None:
+    """Pydantic returns the same specialized class for repeated type arguments."""
+    specialized_base = EventBase[Literal["conc1"]]
 
-class TestBaseComparisons:
-    """Test expected behavior of comparisons between EventBase and its subscripted subclasses."""
-    def test_base_subtype_singleton_equality(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-
-        assert concrete_base_subtype1 == EventBase["conc1"]
-        assert concrete_base_subtype1 is EventBase["conc1"]
+    assert specialized_base is EventBase[Literal["conc1"]]
+    assert specialized_base != EventBase[Literal["conc2"]]
 
 
-    def test_base_different_subtypes_inequality(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-        concrete_base_subtype2 = EventBase["conc2"]
+def test_concrete_subclass_is_a_subclass_of_its_specialized_base() -> None:
+    """Concrete event models inherit the specialized Pydantic model class."""
+    specialized_base = EventBase[Literal["conc1"]]
 
-        assert concrete_base_subtype1 != concrete_base_subtype2
+    class ConcreteEvent(specialized_base): ...
 
-
-    def test_base_subtype_issubclass(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-
-        class ConcreteEvent1(EventBase["conc1"]): ...
-
-        assert issubclass(ConcreteEvent1, EventBase)
-        assert issubclass(ConcreteEvent1, concrete_base_subtype1)
+    event = ConcreteEvent(event="conc1")
+    assert issubclass(ConcreteEvent, EventBase)
+    assert issubclass(ConcreteEvent, specialized_base)
+    assert isinstance(event, EventBase)
+    assert isinstance(event, specialized_base)
 
 
-    def test_base_different_subtypes_not_issubclass(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-        concrete_base_subtype2 = EventBase["conc2"]
+def test_subclasses_of_event_models_keep_event_metadata() -> None:
+    """Further subclasses retain the event name metadata of their base model."""
 
-        class ConcreteEvent1(EventBase["conc1"]): ...
-        class ConcreteEvent2(EventBase["conc2"]): ...
+    class ConcreteEvent(EventBase[Literal["conc1"]]): ...
 
-        assert not issubclass(ConcreteEvent1, concrete_base_subtype2)
-        assert not issubclass(ConcreteEvent2, concrete_base_subtype1)
+    class ChildEvent(ConcreteEvent): ...
 
-
-    def test_subclass_isinstance_of_base_subtype(self) -> None:
-        class ConcreteEvent1(EventBase["conc1"]): ...
-        concrete_event_instance1 = ConcreteEvent1(event="conc1")
-
-        assert isinstance(concrete_event_instance1, EventBase)
-        assert isinstance(concrete_event_instance1, EventBase["conc1"])
-
-
-    def test_subclass_not_isinstance_of_different_subtypes(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-        concrete_base_subtype2 = EventBase["conc2"]
-
-        class ConcreteEvent1(EventBase["conc1"]): ...
-        class ConcreteEvent2(EventBase["conc2"]): ...
-
-        concrete_event_instance1 = ConcreteEvent1(event="conc1")
-        concrete_event_instance2 = ConcreteEvent2(event="conc2")
-
-        assert not isinstance(concrete_event_instance1, ConcreteEvent2)
-        assert not isinstance(concrete_event_instance1, concrete_base_subtype2)
-        assert not isinstance(concrete_event_instance2, concrete_base_subtype1)
-
-
-    def test_subclass_is_not_base_subtype(self) -> None:
-        concrete_base_subtype1 = EventBase["conc1"]
-
-        class ConcreteEvent1(EventBase["conc1"]): ...
-
-        # ConcreteEvent1 is an instance of concrete_event_instance1, but not equal to nor "is" concrete_event_instance1 itself.
-        assert ConcreteEvent1 != concrete_base_subtype1
-        assert ConcreteEvent1 is not concrete_base_subtype1
-
-
-
-def test_type_adapter() -> None:
-    """Test that Event subclasses can be discriminated by the event field."""
-    class ConcreteEvent(EventBase["concrete"]): ...
-    class TestEvent(EventBase["test"]): ...
-    class AnotherEvent(EventBase["another"]): ...
-    class YetAnotherEvent(EventBase["yet_another"]): ...
-
-    # Create a TypeAdapter for the base class
-    adapter: TypeAdapter[EventBase] = TypeAdapter(
-        Annotated[Union[ConcreteEvent, TestEvent, AnotherEvent, YetAnotherEvent], Discriminator("event")]  # noqa: UP007
-    )
-
-    concrete_event_instance = adapter.validate_json('{"event": "concrete"}')
-    assert isinstance(concrete_event_instance, ConcreteEvent)
-
-    test_event_instance = adapter.validate_json('{"event": "test"}')
-    assert isinstance(test_event_instance, TestEvent)
-
-    another_event_instance = adapter.validate_json('{"event": "another"}')
-    assert isinstance(another_event_instance, AnotherEvent)
-
-    yet_another_event_instance = adapter.validate_json('{"event": "yet_another"}')
-    assert isinstance(yet_another_event_instance, YetAnotherEvent)
+    assert ChildEvent.get_model_event_names() == ("conc1",)

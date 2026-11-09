@@ -323,7 +323,7 @@ The SDK allows you to create custom event listeners and events by extending the 
 
 To create a custom event listener:
 
-1. Create new event model that inherits from `EventBase["eventName"]`.
+1. Create new event model that inherits from `EventBase[Literal["eventName"]]`.
 2. Create a new class that inherits from `EventListener`.
     a. Implement the required `listen` and `stop` methods. The `listen` method should yield results as a json string that matches the new event model.
     b. List the new event classes in the `event_models` class variable of the new `EventListener` class.
@@ -338,7 +338,7 @@ from streamdeck.event_listener import EventListener
 from streamdeck.models.events import EventBase
 
 
-class MyCustomEvent(EventBase["somethingHappened"]):
+class MyCustomEvent(EventBase[Literal["somethingHappened"]]):
     # The 'event' field's type annotation is internally set as Literal["somethingHappened"]
     # Define additional data attributes here
     result: str

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -39,6 +39,7 @@ class MultiActionKeyGesturePayload(
     StatefulActionPayloadMixin,
 ):
     """Contextualized information for a KeyDown or KeyUp event that is part of a multi-action."""
+
     user_desired_state: Annotated[int, Field(alias="userDesiredState")]
     """Desired state as specified by the user.
 
@@ -48,13 +49,16 @@ class MultiActionKeyGesturePayload(
 
 ## Event models for KeyDown and KeyUp events
 
-class KeyDown(EventBase["keyDown"], ContextualEventMixin, DeviceSpecificEventMixin):
+
+class KeyDown(EventBase[Literal["keyDown"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user presses a action down."""
+
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""
 
 
-class KeyUp(EventBase["keyUp"], ContextualEventMixin, DeviceSpecificEventMixin):
+class KeyUp(EventBase[Literal["keyUp"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user releases a pressed action."""
+
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""

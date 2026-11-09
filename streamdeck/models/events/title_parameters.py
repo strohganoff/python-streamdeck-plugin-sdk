@@ -20,6 +20,7 @@ TitleAlignment = Literal["top", "middle", "bottom"]
 
 class TitleParameters(ConfiguredBaseModel):
     """Defines aesthetic properties that determine how the title should be rendered."""
+
     font_family: Annotated[str, Field(alias="fontFamily")]
     """Font-family the title will be rendered with."""
     font_size: Annotated[int, Field(alias="fontSize")]
@@ -42,12 +43,14 @@ class TitleParametersDidChangePayload(
     StatefulActionPayloadMixin,
 ):
     """Contextualized information for this event."""
+
     title: str
     """Title of the action, as specified by the user or dynamically by the plugin."""
     title_parameters: Annotated[TitleParameters, Field(alias="titleParameters")]
     """Defines aesthetic properties that determine how the title should be rendered."""
 
 
-class TitleParametersDidChange(EventBase["titleParametersDidChange"], ContextualEventMixin, DeviceSpecificEventMixin):
+class TitleParametersDidChange(EventBase[Literal["titleParametersDidChange"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user updates an action's title settings in the Stream Deck application."""
+
     payload: TitleParametersDidChangePayload

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
     BasePayload,
@@ -12,12 +14,14 @@ from streamdeck.models.events.common import (
 
 ## Payload models used in the below DialDown, DialRotate, and DialUp events
 
+
 class EncoderPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixin):
     """Contextualized information for a DialDown or DialUp event."""
 
 
 class DialRotatePayload(EncoderPayload):
     """Contextualized information for a DialRotate event."""
+
     pressed: bool
     """Determines whether the dial was pressed whilst the rotation occurred."""
     ticks: int
@@ -26,19 +30,23 @@ class DialRotatePayload(EncoderPayload):
 
 ## Event models for DialDown, DialRotate, and DialUp events
 
-class DialDown(EventBase["dialDown"], ContextualEventMixin, DeviceSpecificEventMixin):
+
+class DialDown(EventBase[Literal["dialDown"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user presses a dial (Stream Deck +)."""
+
     payload: EncoderPayload
     """Contextualized information for this event."""
 
 
-class DialRotate(EventBase["dialRotate"], ContextualEventMixin, DeviceSpecificEventMixin):
+class DialRotate(EventBase[Literal["dialRotate"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user rotates a dial (Stream Deck +)."""
+
     payload: DialRotatePayload
     """Contextualized information for this event."""
 
 
-class DialUp(EventBase["dialUp"], ContextualEventMixin, DeviceSpecificEventMixin):
+class DialUp(EventBase[Literal["dialUp"]], ContextualEventMixin, DeviceSpecificEventMixin):
     """Occurs when the user releases a pressed dial (Stream Deck +)."""
+
     payload: EncoderPayload
     """Contextualized information for this event."""

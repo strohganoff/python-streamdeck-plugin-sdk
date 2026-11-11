@@ -6,8 +6,8 @@ from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    ActionInstancePayloadEventMixin,
     BasePayload,
-    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     EncoderControllerType,
@@ -15,7 +15,7 @@ from streamdeck.models.events.common import (
 
 
 class TouchTapPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixin):
-    """Contextualized information for a TouchTap event."""
+    """Action-instance event data for a TouchTap event."""
 
     hold: bool
     """Determines whether the tap was considered 'held'."""
@@ -23,8 +23,8 @@ class TouchTapPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixi
     """Coordinates of where the touchscreen tap occurred, relative to the canvas of the action."""
 
 
-class TouchTap(EventBase[Literal["touchTap"]], ContextualPayloadEventMixin[TouchTapPayload], DeviceSpecificEventMixin):  # fmt: skip
+class TouchTap(EventBase[Literal["touchTap"]], ActionInstancePayloadEventMixin[TouchTapPayload], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user taps the touchscreen (Stream Deck +)."""
 
     payload: TouchTapPayload
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""

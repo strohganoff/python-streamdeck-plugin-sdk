@@ -13,7 +13,7 @@ from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_handlers.scopes import ScopeName, scope_for_event
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
-from streamdeck.models.events.common import ContextualEventMixin
+from streamdeck.models.events.common import ActionInstanceEventMixin
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketClient
 
@@ -164,10 +164,10 @@ class PluginManager:
             event (EventBase): The event data model for the event to dispatch.
         """
         # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
-        event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
+        event_action_uuid = event.action if isinstance(event, ActionInstanceEventMixin) else None
         for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
             injected_params = self._injectable_handler_param_store.resolve_for_handler(event_handler, event)
-            # TODO: from contextual event occurrences, save metadata to the action's properties.
+            # TODO: from action-instance event occurrences, save metadata to the action's properties.
 
             event_handler(event, **injected_params)
 

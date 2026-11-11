@@ -4,8 +4,8 @@ from typing import Literal
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    ActionInstancePayloadEventMixin,
     BasePayload,
-    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     EncoderControllerType,
@@ -16,11 +16,11 @@ from streamdeck.models.events.common import (
 
 
 class EncoderPayload(BasePayload[EncoderControllerType], CoordinatesPayloadMixin):
-    """Contextualized information for a DialDown or DialUp event."""
+    """Action-instance event data for a DialDown or DialUp event."""
 
 
 class DialRotatePayload(EncoderPayload):
-    """Contextualized information for a DialRotate event."""
+    """Action-instance event data for a DialRotate event."""
 
     pressed: bool
     """Determines whether the dial was pressed whilst the rotation occurred."""
@@ -31,22 +31,22 @@ class DialRotatePayload(EncoderPayload):
 ## Event models for DialDown, DialRotate, and DialUp events
 
 
-class DialDown(EventBase[Literal["dialDown"]], ContextualPayloadEventMixin[EncoderPayload], DeviceSpecificEventMixin):  # fmt: skip
+class DialDown(EventBase[Literal["dialDown"]], ActionInstancePayloadEventMixin[EncoderPayload], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user presses a dial (Stream Deck +)."""
 
     payload: EncoderPayload
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""
 
 
-class DialRotate(EventBase[Literal["dialRotate"]], ContextualPayloadEventMixin[DialRotatePayload], DeviceSpecificEventMixin):  # fmt: skip
+class DialRotate(EventBase[Literal["dialRotate"]], ActionInstancePayloadEventMixin[DialRotatePayload], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user rotates a dial (Stream Deck +)."""
 
     payload: DialRotatePayload
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""
 
 
-class DialUp(EventBase[Literal["dialUp"]], ContextualPayloadEventMixin[EncoderPayload], DeviceSpecificEventMixin):  # fmt: skip
+class DialUp(EventBase[Literal["dialUp"]], ActionInstancePayloadEventMixin[EncoderPayload], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user releases a pressed dial (Stream Deck +)."""
 
     payload: EncoderPayload
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""

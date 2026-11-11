@@ -6,15 +6,15 @@ from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
     BasePayload,
     CardinalityDiscriminated,
-    ContextualEventMixin,
+    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     KeypadControllerType,
     MultiActionPayloadMixin,
+    SettingsPayloadMixin,
     SingleActionPayloadMixin,
     StatefulActionPayloadMixin,
 )
-from streamdeck.types import PluginDefinedData  # noqa: TC001
 
 
 ## Models for didReceiveSettings event and its specific payloads.
@@ -40,9 +40,7 @@ class MultiActionSettingsPayload(
     """
 
 
-class DidReceiveSettings(
-    EventBase[Literal["didReceiveSettings"]], ContextualEventMixin, DeviceSpecificEventMixin
-):
+class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
 
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
@@ -52,11 +50,8 @@ class DidReceiveSettings(
 ## Models for didReceiveGlobalSettings event and its specific payload.
 
 
-class GlobalSettingsPayload(ConfiguredBaseModel):
+class GlobalSettingsPayload(ConfiguredBaseModel, SettingsPayloadMixin):
     """Additional information about the didReceiveGlobalSettings event that occurred."""
-
-    settings: PluginDefinedData
-    """The global settings received from the Stream Deck."""
 
 
 class DidReceiveGlobalSettings(EventBase[Literal["didReceiveGlobalSettings"]]):

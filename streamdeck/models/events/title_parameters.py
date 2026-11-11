@@ -7,7 +7,7 @@ from pydantic import Field
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
     BasePayload,
-    ContextualEventMixin,
+    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     StatefulActionPayloadMixin,
@@ -50,7 +50,7 @@ class TitleParametersDidChangePayload(
     """Defines aesthetic properties that determine how the title should be rendered."""
 
 
-class TitleParametersDidChange(EventBase[Literal["titleParametersDidChange"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
+class TitleParametersDidChange(EventBase[Literal["titleParametersDidChange"]], ContextualPayloadEventMixin[TitleParametersDidChangePayload], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user updates an action's title settings in the Stream Deck application."""
 
     payload: TitleParametersDidChangePayload

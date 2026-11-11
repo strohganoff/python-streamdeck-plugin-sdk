@@ -77,6 +77,9 @@ def run_plugin(launch: LaunchArguments, config: StreamDeckToolConfig) -> None:
         info=launch.info.model_dump(),
     )
 
+    for name, param_config in config.injectable_handler_params.items():
+        manager.register_injectable_handler_param_scope(name, param_config.scope)
+
     # Register custom event types before validating action handlers.
     for listener_type in config.event_listeners:
         manager.register_event_listener(listener_type())

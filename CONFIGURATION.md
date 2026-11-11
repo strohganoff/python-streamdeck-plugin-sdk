@@ -23,7 +23,15 @@ module overrides.
 [tool.streamdeck]
 action_scripts = ["myplugin.actions"]
 event_listener_modules = ["myplugin.listeners"]
+injectable_handler_params = { current_user = {}, instance_data = { scope = "ActionInstance" } }
 ```
+
+`injectable_handler_params` maps injectable parameter names to their scope
+availability. Scope names are `Plugin`, `Device`, `ActionInstance`, and
+`ActionInstanceWithDevice`; an omitted scope defaults to `Plugin`, which is
+available to every event. The scope controls which event models may provide a
+parameter; resolver callables are registered separately in code. The built-in
+`command_sender` injectable is registered by the SDK at `Plugin` scope.
 
 ```python
 from streamdeck.models.configs import StreamDeckToolConfig

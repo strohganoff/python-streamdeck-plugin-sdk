@@ -4,7 +4,6 @@ from unittest.mock import Mock, call
 import pytest
 import pytest_mock
 from streamdeck.event_handlers.actions import Action
-from streamdeck.event_handlers.registry import ALL_EVENTS
 from streamdeck.manager import EventAdapter, PluginManager
 from streamdeck.models.events import (  #, event_adapter
     DEFAULT_EVENT_MODELS,
@@ -138,10 +137,9 @@ def test_plugin_manager_process_event(
     # Check that the validate_json method returns the same event type model as the fake_event_message.
     assert spied_event_adapter__validate_json.spy_return == fake_event_message
 
-    # Startup validation enumerates all handlers before dispatch queries for this event.
+    # Startup validation inspects registered event bindings before dispatch queries for this event.
     spied_handlers_registry__get_event_handlers = cast("Mock", plugin_manager._handlers_registry.get_event_handlers)
     assert spied_handlers_registry__get_event_handlers.call_args_list == [
-        call(event_name=ALL_EVENTS),
         call(event_name=fake_event_message.event, event_action_uuid=fake_event_message.action),
     ]
 

@@ -261,7 +261,7 @@ def test_main_logs_startup_and_runtime_failures(monkeypatch, caplog, phase):
 
     error = RuntimeError(f"{phase} failed")
     listener_type = Mock()
-    config = Mock(event_listeners=[listener_type], actions=[object()])
+    config = Mock(event_listeners=[listener_type], actions=[object()], injectable_handler_params={})
     settings_factory = Mock(return_value=config)
     manager = Mock()
     if phase == "settings":

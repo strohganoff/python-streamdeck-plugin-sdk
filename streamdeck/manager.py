@@ -9,7 +9,8 @@ from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_handlers.actions import Action, ActionBase
 from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
 from streamdeck.event_handlers.protocol import SupportsEventHandlers
-from streamdeck.event_handlers.registry import ALL_EVENTS, HandlersRegistry
+from streamdeck.event_handlers.registry import HandlersRegistry
+from streamdeck.event_handlers.scopes import ScopeName, scope_for_event
 from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ContextualEventMixin
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from typing import Any, Literal
 
+    from streamdeck.event_handlers.injectables import InjectableResolver
     from streamdeck.models.events import EventBase
 
 
@@ -38,7 +40,7 @@ class PluginManager:
         plugin_uuid: str,
         plugin_registration_uuid: str,  # Passed in by Streamdeck to the entry-point script. should we compare what's in the manifest.json file?
         register_event: Literal["registerPlugin"],  # Passed in by Streamdeck to the entry-point script. Will this always be "registerPlugin"?
-        info: dict[str, Any]
+        info: dict[str, Any],
     ):
         """Initialize a PluginManager instance.
 
@@ -95,9 +97,17 @@ class PluginManager:
         self._handlers_registry.register(action)
 
     def _validate_registered_handler_signatures(self) -> None:
-        """Ensure registered handlers can be called with the current injectable values."""
-        for handler in self._handlers_registry.get_event_handlers(event_name=ALL_EVENTS):
-            self._injectable_handler_param_store.validate_handler_signature(handler)
+        """Ensure handlers can bind and resolve their injectables for every subscribed event."""
+        for event_name, handler in self._handlers_registry.iter_event_handler_bindings():
+            event_scopes = (
+                scope_for_event(model)
+                for model in self._event_adapter.models_for_event_name(event_name)
+            )
+            self._injectable_handler_param_store.validate_handler_signature(
+                handler,
+                event_scopes,
+                event_name,
+            )
 
     def register_event_listener(self, listener: EventListener) -> None:
         """Register an event listener with the PluginManager, and add its event models to the event adapter.
@@ -109,6 +119,18 @@ class PluginManager:
 
         for event_model in listener.event_models:
             self._event_adapter.add_model(event_model)
+
+    def register_injectable_handler_param(
+        self,
+        name: str,
+        resolver: InjectableResolver[object],
+    ) -> None:
+        """Register a custom injectable resolver using its configured scope."""
+        self._injectable_handler_param_store.register(name, resolver)
+
+    def register_injectable_handler_param_scope(self, name: str, scope: ScopeName) -> None:
+        """Register the availability scope for an injectable handler parameter."""
+        self._injectable_handler_param_store.register_scope(name, scope)
 
     def _stream_event_data(self) -> Iterator[EventBase]:
         """Stream event data from the event listeners.
@@ -143,7 +165,7 @@ class PluginManager:
         # If the event is action-specific, we'll pass the action's uuid to the handler to ensure only the correct action is triggered.
         event_action_uuid = event.action if isinstance(event, ContextualEventMixin) else None
         for event_handler in self._handlers_registry.get_event_handlers(event_name=event.event, event_action_uuid=event_action_uuid):
-            injected_params = self._injectable_handler_param_store.resolve_for_handler(event_handler)
+            injected_params = self._injectable_handler_param_store.resolve_for_handler(event_handler, event)
             # TODO: from contextual event occurrences, save metadata to the action's properties.
 
             event_handler(event, **injected_params)
@@ -159,7 +181,11 @@ class PluginManager:
         """
         client = WebSocketClient(port=self._port)
         command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
-        self._injectable_handler_param_store.set_value("command_sender", command_sender)
+        self._injectable_handler_param_store.register(
+            "command_sender",
+            lambda _event_data: command_sender,
+            scope="Plugin",
+        )
         self._validate_registered_handler_signatures()
 
         with client:

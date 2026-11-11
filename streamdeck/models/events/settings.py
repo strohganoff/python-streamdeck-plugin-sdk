@@ -40,13 +40,7 @@ class MultiActionSettingsPayload(
     """
 
 
-class DidReceiveSettings(
-    EventBase[Literal["didReceiveSettings"]],
-    ContextualPayloadEventMixin[
-        CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
-    ],
-    DeviceSpecificEventMixin,
-):
+class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
 
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]

@@ -50,26 +50,14 @@ class MultiActionKeyGesturePayload(
 ## Event models for KeyDown and KeyUp events
 
 
-class KeyDown(
-    EventBase[Literal["keyDown"]],
-    ContextualPayloadEventMixin[
-        CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
-    ],
-    DeviceSpecificEventMixin,
-):
+class KeyDown(EventBase[Literal["keyDown"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user presses a action down."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""
 
 
-class KeyUp(
-    EventBase[Literal["keyUp"]],
-    ContextualPayloadEventMixin[
-        CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
-    ],
-    DeviceSpecificEventMixin,
-):
+class KeyUp(EventBase[Literal["keyUp"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user releases a pressed action."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]

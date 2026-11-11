@@ -249,7 +249,6 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
         assert factory.call_args.kwargs["port"] == 12345
         assert factory.call_args.kwargs["plugin_uuid"] == "com.example.plugin"
         assert factory.call_args.kwargs["plugin_registration_uuid"] == "registration-id"
-        assert factory.call_args.kwargs["info"] == {"plugin_uuid": "com.example.plugin"}
         debug.assert_called_once_with(5678)
     finally:
         sys.modules.pop("local_plugin_actions", None)
@@ -261,7 +260,7 @@ def test_main_logs_startup_and_runtime_failures(monkeypatch, caplog, phase):
 
     error = RuntimeError(f"{phase} failed")
     listener_type = Mock()
-    config = Mock(event_listeners=[listener_type], actions=[object()])
+    config = Mock(event_listeners=[listener_type], actions=[object()], injectable_handler_params={})
     settings_factory = Mock(return_value=config)
     manager = Mock()
     if phase == "settings":

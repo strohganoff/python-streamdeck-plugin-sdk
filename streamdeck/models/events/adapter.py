@@ -39,6 +39,14 @@ class EventAdapter:
         """Check if an event name has been registered with the adapter."""
         return event_name in self._event_names
 
+    def models_for_event_name(self, event_name: str) -> tuple[type[EventBase], ...]:
+        """Return all event models that can validate the supplied event name."""
+        return tuple(
+            model
+            for model in self._models
+            if event_name in model.get_model_event_names()
+        )
+
     @property
     def type_adapter(self) -> TypeAdapter[EventBase]:
         """Get the TypeAdapter instance for the event models."""

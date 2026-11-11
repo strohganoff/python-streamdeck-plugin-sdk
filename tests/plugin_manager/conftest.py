@@ -25,14 +25,12 @@ def plugin_manager(port_number: int, plugin_registration_uuid: str) -> PluginMan
     """
     plugin_uuid = "test-plugin-uuid"
     register_event = "registerPlugin"
-    info = {"some": "info"}
 
     return PluginManager(
         port=port_number,
         plugin_uuid=plugin_uuid,
         plugin_registration_uuid=plugin_registration_uuid,
         register_event=register_event,
-        info=info,
     )
 
 

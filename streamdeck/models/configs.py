@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+# Pydantic resolves this annotation at runtime, so Callable must remain a runtime import.
+from collections.abc import Callable  # noqa: TC003
 from functools import cached_property
 from types import ModuleType  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import (
+    BaseModel,
     Field,
     ImportString,
 )
@@ -19,6 +22,9 @@ from pydantic_settings import (
 )
 
 from streamdeck.event_handlers.actions import ActionBase
+
+# Pydantic resolves this postponed annotation at runtime.
+from streamdeck.event_handlers.scopes import ScopeName  # noqa: TC001
 from streamdeck.event_listener import EventListener
 from streamdeck.models.events import EventBase
 
@@ -52,6 +58,15 @@ def _add_plugin_module_argument(
     return None
 
 
+class InjectableHandlerParamConfig(BaseModel):
+    """Configuration for an injectable handler parameter."""
+
+    resolver: ImportString[Callable[[EventBase], object]]
+    """Importable resolver called with event data to provide the handler parameter value."""
+    scope: ScopeName = "Plugin"
+    """The minimum event scope where this injectable parameter is available."""
+
+
 class StreamDeckToolConfig(BaseSettings):
     """Plugin configuration from CLI values followed by [tool.streamdeck]."""
 
@@ -66,6 +81,7 @@ class StreamDeckToolConfig(BaseSettings):
 
     action_script_modules: Annotated[list[ImportString[ModuleType]], Field(alias="action_scripts")]
     event_listener_modules: list[ImportString[ModuleType]] = Field(default_factory=list)
+    injectable_handler_params: dict[str, InjectableHandlerParamConfig] = Field(default_factory=dict)
 
     @classmethod
     def settings_customise_sources(

@@ -6,7 +6,7 @@ from unittest.mock import create_autospec
 import pytest
 from streamdeck.event_handlers.actions import Action, GlobalAction
 from streamdeck.event_handlers.registry import HandlersRegistry
-from streamdeck.models.events.common import ContextualEventMixin
+from streamdeck.models.events.common import ActionInstanceEventMixin
 
 from tests.test_utils.fake_event_factories import (
     ApplicationDidLaunchEventFactory,
@@ -69,7 +69,7 @@ def test_action_gets_triggered_by_event(
     Actions should only be triggered by events that have the same unique identifier properties as the action.
     """
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else "my-fake-action-uuid"
+    action_uuid: str = fake_event_data.action if isinstance(fake_event_data, ActionInstanceEventMixin) else "my-fake-action-uuid"
 
     action = Action(uuid=action_uuid)
 
@@ -92,7 +92,7 @@ def test_global_handlers_registry_get_event_handlers_filtering(
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ActionInstanceEventMixin) else None
 
     registry = HandlersRegistry()
     # Create an Action instance, without an action UUID as global actions aren't associated with a specific action
@@ -119,7 +119,7 @@ def test_handlers_registry_get_event_handlers_filtering(
     fake_event_data: events.EventBase,
 ) -> None:
     # Extract the action UUID from the fake event data, or use a default value
-    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ContextualEventMixin) else None
+    action_uuid: str | None = fake_event_data.action if isinstance(fake_event_data, ActionInstanceEventMixin) else None
 
     registry = HandlersRegistry()
     # Create an Action instance, using either the fake event's action UUID or a default value

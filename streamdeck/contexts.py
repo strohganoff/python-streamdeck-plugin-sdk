@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Protocol
 from streamdeck.event_handlers.actions import GlobalAction
 from streamdeck.models.events import DEFAULT_EVENT_MODELS
 from streamdeck.models.events.common import (
+    ActionInstanceEventMixin,
+    ActionInstancePayloadEventMixin,
     BasePayload,
-    ContextualEventMixin,
-    ContextualPayloadEventMixin,
     ControllerType,
     Coordinates,
     CoordinatesPayloadMixin,
@@ -165,8 +165,8 @@ class ContextStore:
         self.get_device_context(event_data.device).connected = False
 
     @update_from_event.register
-    def _update_contextual_event(self, event_data: ContextualEventMixin) -> None:
-        """Update action-instance identity for a contextual event.
+    def _update_action_instance_event(self, event_data: ActionInstanceEventMixin) -> None:
+        """Update action-instance identity from an event.
 
         Args:
             event_data: Event identifying an action and one of its instances.
@@ -174,14 +174,14 @@ class ContextStore:
         self._get_or_create_action_instance_context(event_data)
 
     @update_from_event.register
-    def _update_contextual_payload_event(
+    def _update_action_instance_payload_event(
         self,
-        event_data: ContextualPayloadEventMixin,
+        event_data: ActionInstancePayloadEventMixin,
     ) -> None:
-        """Update action-instance context values from a contextual event payload.
+        """Update cached action-instance values from an event payload.
 
         Args:
-            event_data: Contextual event with payload data that may update the context.
+            event_data: Event with payload data that may update the cached action instance.
         """
         instance = self._get_or_create_action_instance_context(event_data)
         payload = event_data.payload
@@ -234,7 +234,7 @@ class ContextStore:
 
     def _get_or_create_action_instance_context(
         self,
-        event_data: ContextualEventMixin,
+        event_data: ActionInstanceEventMixin,
     ) -> ActionInstanceContext:
         """Get or create an action-instance context using event identity fields.
 
@@ -282,7 +282,7 @@ class ContextStore:
         return self.get_device_context(event_data.device)
 
     def resolve_action_context(self, event_data: EventBase) -> ActionContext:
-        """Resolve the action context identified by a contextual event.
+        """Resolve the action context identified by an action-instance event.
 
         Args:
             event_data: Event expected to identify an action.
@@ -293,13 +293,13 @@ class ContextStore:
         Raises:
             TypeError: If the event does not identify an action.
         """
-        if not isinstance(event_data, ContextualEventMixin):
+        if not isinstance(event_data, ActionInstanceEventMixin):
             msg = f"Event {event_data.event!r} does not identify an action"
             raise TypeError(msg)
         return self.get_action_context(event_data.action)
 
     def resolve_action_instance_context(self, event_data: EventBase) -> ActionInstanceContext:
-        """Resolve the action-instance context identified by a contextual event.
+        """Resolve the action-instance context identified by an action-instance event.
 
         Args:
             event_data: Event expected to identify an action instance.
@@ -310,7 +310,7 @@ class ContextStore:
         Raises:
             TypeError: If the event does not identify an action instance.
         """
-        if not isinstance(event_data, ContextualEventMixin):
+        if not isinstance(event_data, ActionInstanceEventMixin):
             msg = f"Event {event_data.event!r} does not identify an action instance"
             raise TypeError(msg)
 
@@ -333,7 +333,7 @@ def register_context_handlers(context_store: ContextStore) -> GlobalAction:
         context_store.update_from_event(event_data)
 
     for event_model in DEFAULT_EVENT_MODELS:
-        # Skip sendToPlugin: its arbitrary payload is the only contextual event payload not used
+        # Skip sendToPlugin: its arbitrary payload is the only action-instance event payload not used
         # to update cached context values.
         if event_model is DidReceivePropertyInspectorMessage:
             continue
@@ -341,7 +341,7 @@ def register_context_handlers(context_store: ContextStore) -> GlobalAction:
         # Only register events that identify an action instance, a device, or global settings.
         if not issubclass(
             event_model,
-            (ContextualEventMixin, DeviceSpecificEventMixin, DidReceiveGlobalSettings),
+            (ActionInstanceEventMixin, DeviceSpecificEventMixin, DidReceiveGlobalSettings),
         ):
             continue
 

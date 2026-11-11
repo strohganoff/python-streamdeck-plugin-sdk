@@ -4,13 +4,13 @@ from typing import Literal
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
-    ContextualEventMixin,
+    ActionInstanceEventMixin,
     DeviceSpecificEventMixin,
 )
 from streamdeck.types import PluginDefinedData  # noqa: TC001
 
 
-class DidReceivePropertyInspectorMessage(EventBase[Literal["sendToPlugin"]], ContextualEventMixin):
+class DidReceivePropertyInspectorMessage(EventBase[Literal["sendToPlugin"]], ActionInstanceEventMixin):
     """Occurs when a message was received from the UI."""
 
     payload: PluginDefinedData
@@ -19,7 +19,7 @@ class DidReceivePropertyInspectorMessage(EventBase[Literal["sendToPlugin"]], Con
 
 class PropertyInspectorDidAppear(
     EventBase[Literal["propertyInspectorDidAppear"]],
-    ContextualEventMixin,
+    ActionInstanceEventMixin,
     DeviceSpecificEventMixin,
 ):
     """Occurs when the property inspector associated with the action becomes visible.
@@ -28,7 +28,7 @@ class PropertyInspectorDidAppear(
     """
 
 
-class PropertyInspectorDidDisappear(EventBase[Literal["propertyInspectorDidDisappear"]], ContextualEventMixin, DeviceSpecificEventMixin):  # fmt: skip
+class PropertyInspectorDidDisappear(EventBase[Literal["propertyInspectorDidDisappear"]], ActionInstanceEventMixin, DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the property inspector associated with the action becomes invisible.
 
     I.e. the user unselected the action in the Stream Deck application.

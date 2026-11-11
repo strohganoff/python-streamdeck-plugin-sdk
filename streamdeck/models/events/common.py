@@ -16,8 +16,8 @@ from streamdeck.types import (  # noqa: TC001
 
 ## Mixin classes for common event model fields.
 
-class ContextualEventMixin:
-    """Mixin class for event models that have action and context fields."""
+class ActionInstanceEventMixin:
+    """Mixin for events that identify an action and one of its instances."""
     action: EventNameStr
     """Unique identifier of the action"""
     context: ActionInstanceUUIDStr
@@ -113,24 +113,26 @@ class StatefulActionPayloadMixin:
     """
 
 
-ContextualPayload: TypeAlias = (
+ActionInstancePayload: TypeAlias = (
     SettingsPayloadMixin | StatefulActionPayloadMixin | CoordinatesPayloadMixin
 )
 """Payload mixins that provide values copied into action-instance contexts."""
 
 
-ContextualPayloadT = TypeVar(
-    "ContextualPayloadT",
-    bound=ContextualPayload,
-    default=ContextualPayload,
+ActionInstancePayloadT = TypeVar(
+    "ActionInstancePayloadT",
+    bound=ActionInstancePayload,
+    default=ActionInstancePayload,
 )
 
 
-class ContextualPayloadEventMixin(ContextualEventMixin, Generic[ContextualPayloadT]):
-    """Mixin for contextual event models with payloads that update action-instance context."""
+class ActionInstancePayloadEventMixin(
+    ActionInstanceEventMixin, Generic[ActionInstancePayloadT]
+):
+    """Mixin for action-instance event models with payloads that update action-instance context."""
 
-    payload: ContextualPayloadT
-    """Payload data associated with the contextual event."""
+    payload: ActionInstancePayloadT
+    """Payload data associated with the action-instance event."""
 
 
 class SingleActionPayloadMixin:

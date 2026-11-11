@@ -4,9 +4,9 @@ from typing import Literal
 
 from streamdeck.models.events.base import ConfiguredBaseModel, EventBase
 from streamdeck.models.events.common import (
+    ActionInstancePayloadEventMixin,
     BasePayload,
     CardinalityDiscriminated,
-    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     KeypadControllerType,
@@ -26,7 +26,7 @@ class SingleActionSettingsPayload(
     StatefulActionPayloadMixin,
     CoordinatesPayloadMixin,
 ):
-    """Contextualized information for a didReceiveSettings events that are not part of a multi-action."""
+    """Action-instance event data for a didReceiveSettings events that are not part of a multi-action."""
 
 
 class MultiActionSettingsPayload(
@@ -34,17 +34,17 @@ class MultiActionSettingsPayload(
     MultiActionPayloadMixin,
     StatefulActionPayloadMixin,
 ):
-    """Contextualized information for a didReceiveSettings events that are part of a multi-action.
+    """Action-instance event data for a didReceiveSettings events that are part of a multi-action.
 
     NOTE: Action instances that are part of a multi-action are only applicable to the 'Keypad' controller type.
     """
 
 
-class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
+class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ActionInstancePayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
 
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""
 
 
 ## Models for didReceiveGlobalSettings event and its specific payload.

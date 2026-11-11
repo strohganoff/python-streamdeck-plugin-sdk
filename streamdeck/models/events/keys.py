@@ -6,9 +6,9 @@ from pydantic import Field
 
 from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
+    ActionInstancePayloadEventMixin,
     BasePayload,
     CardinalityDiscriminated,
-    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     KeypadControllerType,
@@ -30,7 +30,7 @@ class SingleActionKeyGesturePayload(
     StatefulActionPayloadMixin,
     CoordinatesPayloadMixin,
 ):
-    """Contextualized information for a KeyDown or KeyUp event that is not part of a multi-action."""
+    """Action-instance event data for a KeyDown or KeyUp event that is not part of a multi-action."""
 
 
 class MultiActionKeyGesturePayload(
@@ -38,7 +38,7 @@ class MultiActionKeyGesturePayload(
     MultiActionPayloadMixin,
     StatefulActionPayloadMixin,
 ):
-    """Contextualized information for a KeyDown or KeyUp event that is part of a multi-action."""
+    """Action-instance event data for a KeyDown or KeyUp event that is part of a multi-action."""
 
     user_desired_state: Annotated[int, Field(alias="userDesiredState")]
     """Desired state as specified by the user.
@@ -50,15 +50,15 @@ class MultiActionKeyGesturePayload(
 ## Event models for KeyDown and KeyUp events
 
 
-class KeyDown(EventBase[Literal["keyDown"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
+class KeyDown(EventBase[Literal["keyDown"]], ActionInstancePayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user presses a action down."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""
 
 
-class KeyUp(EventBase[Literal["keyUp"]], ContextualPayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
+class KeyUp(EventBase[Literal["keyUp"]], ActionInstancePayloadEventMixin[CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the user releases a pressed action."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
-    """Contextualized information for this event."""
+    """Action-instance event data for this event."""

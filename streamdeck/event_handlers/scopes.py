@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Flag, auto
 from typing import TYPE_CHECKING, Literal
 
-from streamdeck.models.events.common import ContextualEventMixin, DeviceSpecificEventMixin
+from streamdeck.models.events.common import ActionInstanceEventMixin, DeviceSpecificEventMixin
 
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ def scope_for_event(event_or_model: EventBase | type[EventBase]) -> Scope:
         issubclass if isinstance(event_or_model, type) else isinstance
     )
 
-    if scope_check(event_or_model, ContextualEventMixin):
+    if scope_check(event_or_model, ActionInstanceEventMixin):
         scope |= Scope.ACTION_INSTANCE
     if scope_check(event_or_model, DeviceSpecificEventMixin):
         scope |= Scope.DEVICE

@@ -1,7 +1,7 @@
 import json
 import subprocess
 import sys
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 from pydantic import ValidationError
@@ -261,11 +261,11 @@ def test_main_logs_startup_and_runtime_failures(monkeypatch, caplog, phase):
     error = RuntimeError(f"{phase} failed")
     listener_type = Mock()
     config = Mock(event_listeners=[listener_type], actions=[object()], injectable_handler_params={})
-    settings_factory = Mock(return_value=config)
+    launch = LaunchArguments(_cli_parse_args=host_args())
+    settings_result = error if phase == "settings" else config
+    cli_app_run = Mock(side_effect=[launch, settings_result])
     manager = Mock()
-    if phase == "settings":
-        settings_factory.side_effect = error
-    elif phase == "listener":
+    if phase == "listener":
         listener_type.side_effect = error
     elif phase == "action":
         manager.register_action.side_effect = error
@@ -274,11 +274,15 @@ def test_main_logs_startup_and_runtime_failures(monkeypatch, caplog, phase):
 
     monkeypatch.setattr(sys, "path", list(sys.path))
     monkeypatch.setattr(entry, "configure_streamdeck_logger", Mock())
-    monkeypatch.setattr(entry, "StreamDeckToolConfig", settings_factory)
+    monkeypatch.setattr(entry.CliApp, "run", cli_app_run)
     monkeypatch.setattr(entry, "PluginManager", Mock(return_value=manager))
     with pytest.raises(RuntimeError) as exc:
         entry.main(host_args())
     assert exc.value is error
+    assert cli_app_run.call_args_list == [
+        call(LaunchArguments, cli_args=host_args()),
+        call(StreamDeckToolConfig, cli_args=host_args()),
+    ]
     assert "Plugin startup or execution failed" in caplog.text
 
 

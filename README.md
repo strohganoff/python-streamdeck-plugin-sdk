@@ -123,6 +123,8 @@ def resolve_api_client(event_data):
 
 The resolver can return a module-level instance or compute an event-specific value. `scope` defaults to `Plugin` when omitted.
 
+The SDK also provides built-in context parameters: `plugin_context` is available to every handler; `device_context` is available when the event identifies a device; and `action_context` and `action_instance_context` are available when it identifies an action instance. Startup rejects a handler whose requested context is unavailable for one of its event types.
+
 
 
 ### Writing Logs

@@ -20,7 +20,7 @@ from streamdeck.websocket import WebSocketClient
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from typing import Any, Literal
+    from typing import Literal
 
     from streamdeck.event_handlers.injectables import InjectableResolver
     from streamdeck.models.events import EventBase
@@ -40,7 +40,6 @@ class PluginManager:
         plugin_uuid: str,
         plugin_registration_uuid: str,  # Passed in by Streamdeck to the entry-point script. should we compare what's in the manifest.json file?
         register_event: Literal["registerPlugin"],  # Passed in by Streamdeck to the entry-point script. Will this always be "registerPlugin"?
-        info: dict[str, Any],
     ):
         """Initialize a PluginManager instance.
 
@@ -53,14 +52,11 @@ class PluginManager:
                 used to send back in the registerPlugin event.
             register_event (str): The registration event type, passed in by the Stream Deck software as -registerEvent option.
                 It's value will almost definitely will be "registerPlugin".
-            info (dict[str, Any]): The information related to the plugin.
         """
         self._port = port
         self.uuid = plugin_uuid
         self._registration_uuid = plugin_registration_uuid
         self._register_event = register_event
-        self._info = info
-
         self._handlers_registry = HandlersRegistry()
         self._event_listener_manager = EventListenerManager()
         self._event_adapter = EventAdapter()
@@ -124,9 +120,18 @@ class PluginManager:
         self,
         name: str,
         resolver: InjectableResolver[object],
+        *,
+        scope: ScopeName | None = None,
     ) -> None:
-        """Register a custom injectable resolver using its configured scope."""
-        self._injectable_handler_param_store.register(name, resolver)
+        """Register an event-aware resolver for a handler parameter.
+
+        Args:
+            name: Handler parameter name supplied by this resolver.
+            resolver: Callable that returns the value to inject for an event.
+            scope: Optional availability scope override. If omitted, a previously registered
+                scope or the default `Plugin` scope is used.
+        """
+        self._injectable_handler_param_store.register(name, resolver, scope=scope)
 
     def register_injectable_handler_param_scope(self, name: str, scope: ScopeName) -> None:
         """Register the availability scope for an injectable handler parameter."""

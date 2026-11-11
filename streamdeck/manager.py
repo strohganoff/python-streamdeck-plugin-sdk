@@ -133,10 +133,6 @@ class PluginManager:
         """
         self._injectable_handler_param_store.register(name, resolver, scope=scope)
 
-    def register_injectable_handler_param_scope(self, name: str, scope: ScopeName) -> None:
-        """Register the availability scope for an injectable handler parameter."""
-        self._injectable_handler_param_store.register_scope(name, scope)
-
     def _stream_event_data(self) -> Iterator[EventBase]:
         """Stream event data from the event listeners.
 

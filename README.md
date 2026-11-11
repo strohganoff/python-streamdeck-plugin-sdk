@@ -121,7 +121,24 @@ def resolve_api_client(event_data):
     return api_client
 ```
 
-The resolver can return a module-level instance or compute an event-specific value. `scope` defaults to `Plugin` when omitted.
+The resolver can return a module-level instance or compute an event-specific value. Its `event_data` argument is the event being handled. `scope` declares what identity the event must provide for the parameter to be injected; it defaults to `Plugin` when omitted:
+
+- `Plugin`: no device or action-instance identity is needed, so the parameter is available for every event.
+- `Device`: the event must identify a device. Device events and action-instance events that include a device qualify.
+- `ActionInstance`: the event must identify an action instance; a device is optional.
+- `ActionInstanceWithDevice`: the event must identify both an action instance and a device.
+
+`Device` and `ActionInstance` are separate identity capabilities. `ActionInstanceWithDevice` provides both, so it can satisfy either requirement. When handlers are registered, the SDK checks their event types against the requested scope and raises `TypeError` if an event cannot supply the required identity.
+
+The SDK also provides built-in context parameters, which do not need a resolver entry in `pyproject.toml`. Request one by adding its name to an action handler's signature:
+
+```python
+def handle_will_appear(event_data, action_instance_context):
+    settings = action_instance_context.settings
+    current_state = action_instance_context.state
+```
+
+The SDK seeds `plugin_context` with launch information and updates the contexts from relevant Stream Deck events before user handlers run. `plugin_context` includes the plugin UUID, registration UUID, launch info, and global settings. `device_context` includes a device ID, connection status, and the latest device information. `action_context` identifies an action by UUID. `action_instance_context` identifies one action instance and holds its latest known settings, state, controller, coordinates, and associated action and device. Until an event supplies a value, context fields retain their empty or `None` defaults. The SDK rejects handlers that request a context unavailable for one of their event types.
 
 
 

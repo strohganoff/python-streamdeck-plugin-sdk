@@ -242,6 +242,11 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
     try:
         entry.main(args) if explicit_args else entry.main()
         assert [call[0] for call in manager.mock_calls] == [
+            "register_action",
+            "register_injectable_handler_param",
+            "register_injectable_handler_param",
+            "register_injectable_handler_param",
+            "register_injectable_handler_param",
             "register_event_listener",
             "register_action",
             "run",
@@ -304,6 +309,11 @@ def test_run_plugin_uses_supplied_settings_without_reading_process_args(tmp_path
     monkeypatch.setattr(entry, "PluginManager", Mock(return_value=manager))
     entry.run_plugin(launch, config)
     assert [call[0] for call in manager.mock_calls] == [
+        "register_action",
+        "register_injectable_handler_param",
+        "register_injectable_handler_param",
+        "register_injectable_handler_param",
+        "register_injectable_handler_param",
         "register_event_listener",
         "register_action",
         "run",

@@ -328,6 +328,10 @@ def register_context_handlers(context_store: ContextStore) -> GlobalAction:
     """
     context_actions = GlobalAction()
 
+    def update_context(event_data: EventBase) -> None:
+        """Forward event data through the store's singledispatch method."""
+        context_store.update_from_event(event_data)
+
     for event_model in DEFAULT_EVENT_MODELS:
         # Skip sendToPlugin: its arbitrary payload is the only contextual event payload not used
         # to update cached context values.
@@ -342,7 +346,7 @@ def register_context_handlers(context_store: ContextStore) -> GlobalAction:
             continue
 
         for event_name in event_model.get_model_event_names():
-            context_actions.on(event_name)(context_store.update_from_event)
+            context_actions.on(event_name)(update_context)
 
     return context_actions
 

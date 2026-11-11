@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Annotated, Generic, Literal, NamedTuple, Union
+from typing import Annotated, Generic, Literal, NamedTuple, TypeAlias, Union
 
 from pydantic import Field
 from typing_extensions import TypedDict, TypeVar
@@ -33,30 +33,37 @@ class DeviceSpecificEventMixin:
 
 ## Payload models and metadata used by multiple event models.
 
-
-
-
-
 EncoderControllerType = Literal["Encoder"]
 """The 'Encoder' controller type refers to a dial or touchscreen on a 'Stream Deck +' device."""
+
+
 KeypadControllerType = Literal["Keypad"]
 """The 'Keypad' controller type refers to a standard action on a Stream Deck device, e.g. buttons or a pedal."""
+
+
 ControllerType = Literal[EncoderControllerType, KeypadControllerType]
 """Defines the controller type the action is applicable to."""
+
 
 CT = TypeVar("CT", bound=ControllerType, default=ControllerType)
 
 
-class BasePayload(ConfiguredBaseModel, Generic[CT], ABC):
-    """Base class for all complex payload models."""
+class SettingsPayloadMixin:
+    """Mixin for payload models that carry plugin-defined settings."""
+
+    settings: PluginDefinedData
+    """Settings associated with a plugin or action instance."""
+
+
+class BasePayload(ConfiguredBaseModel, Generic[CT], ABC, SettingsPayloadMixin):
+    """Base class for action payload models with controller and settings data."""
+
     controller: CT
     """Defines the controller type the action is applicable to.
 
     'Keypad' refers to a standard action on a Stream Deck device, e.g. buttons or a pedal.
     'Encoder' refers to a dial / touchscreen on a 'Stream Deck +' device.
     """
-    settings: PluginDefinedData
-    """Settings associated with the action instance."""
 
 
 class CoordinatesDict(TypedDict):
@@ -105,6 +112,26 @@ class StatefulActionPayloadMixin:
 
     Only applicable to actions that have multiple states defined within the manifest.json file.
     """
+
+
+ContextualPayload: TypeAlias = (
+    SettingsPayloadMixin | StatefulActionPayloadMixin | CoordinatesPayloadMixin
+)
+"""Payload mixins that provide values copied into action-instance contexts."""
+
+
+ContextualPayloadT = TypeVar(
+    "ContextualPayloadT",
+    bound=ContextualPayload,
+    default=ContextualPayload,
+)
+
+
+class ContextualPayloadEventMixin(ContextualEventMixin, Generic[ContextualPayloadT]):
+    """Mixin for contextual event models with payloads that update action-instance context."""
+
+    payload: ContextualPayloadT
+    """Payload data associated with the contextual event."""
 
 
 class SingleActionPayloadMixin:

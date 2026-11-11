@@ -8,7 +8,7 @@ from streamdeck.models.events.base import EventBase
 from streamdeck.models.events.common import (
     BasePayload,
     CardinalityDiscriminated,
-    ContextualEventMixin,
+    ContextualPayloadEventMixin,
     CoordinatesPayloadMixin,
     DeviceSpecificEventMixin,
     KeypadControllerType,
@@ -50,14 +50,26 @@ class MultiActionKeyGesturePayload(
 ## Event models for KeyDown and KeyUp events
 
 
-class KeyDown(EventBase[Literal["keyDown"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class KeyDown(
+    EventBase[Literal["keyDown"]],
+    ContextualPayloadEventMixin[
+        CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
+    ],
+    DeviceSpecificEventMixin,
+):
     """Occurs when the user presses a action down."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
     """Contextualized information for this event."""
 
 
-class KeyUp(EventBase[Literal["keyUp"]], ContextualEventMixin, DeviceSpecificEventMixin):
+class KeyUp(
+    EventBase[Literal["keyUp"]],
+    ContextualPayloadEventMixin[
+        CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]
+    ],
+    DeviceSpecificEventMixin,
+):
     """Occurs when the user releases a pressed action."""
 
     payload: CardinalityDiscriminated[SingleActionKeyGesturePayload, MultiActionKeyGesturePayload]

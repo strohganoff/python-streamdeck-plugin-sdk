@@ -90,7 +90,7 @@ def handle_will_appear(event_data):
 
 !!!INFO Handlers for action-specific events are dispatched only if the event is triggered by the associated action, ensuring isolation and predictability. For other types of events that are not associated with a specific action, handlers are dispatched without such restrictions.
 
-A handler must have a required positional parameter named `event_data` first; the `.on()` decorator checks this when applied. At startup, before opening the WebSocket, the manager checks that any other required parameters have a stored injectable value. Currently, `command_sender` is the only injected parameter. The SDK passes it by keyword, so declare it as positional-or-keyword or keyword-only.
+A handler must have a required positional parameter named `event_data` first; the `.on()` decorator checks this when applied. At startup, before opening the WebSocket, the manager checks that any other required parameters have a stored injectable value. The SDK provides `command_sender`; plugins can define additional injected parameters in `pyproject.toml`. The SDK passes injectable values by keyword, so declare them as positional-or-keyword or keyword-only.
 
 ```python
 from streamdeck.command_sender import StreamDeckCommandSender
@@ -104,6 +104,24 @@ def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
 ```
 
 The `command_sender` parameter is optional. If included in the handler's signature, the SDK automatically injects a `StreamDeckCommandSender` instance that can be used to send commands back to the Stream Deck (like setting titles, states, or images). Startup raises `TypeError` for signatures whose required parameters cannot be supplied by dispatch.
+
+Custom injectable parameters name an importable resolver in `pyproject.toml`. The table key is the handler parameter name, and the resolver is called with the event data whenever a handler requests that parameter:
+
+```toml
+[tool.streamdeck.injectable_handler_params.api_client]
+resolver = "my_plugin.dependencies.resolve_api_client"
+scope = "Plugin"
+```
+
+```python
+# my_plugin/dependencies.py
+api_client = ApiClient()
+
+def resolve_api_client(event_data):
+    return api_client
+```
+
+The resolver can return a module-level instance or compute an event-specific value. `scope` defaults to `Plugin` when omitted.
 
 
 

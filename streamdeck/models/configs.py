@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import cached_property
 from types import ModuleType  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any
@@ -59,6 +60,8 @@ def _add_plugin_module_argument(
 class InjectableHandlerParamConfig(BaseModel):
     """Configuration for an injectable handler parameter."""
 
+    resolver: ImportString[Callable[[EventBase], object]]
+    """Importable resolver called with event data to provide the handler parameter value."""
     scope: ScopeName = "Plugin"
     """The minimum event scope where this injectable parameter is available."""
 

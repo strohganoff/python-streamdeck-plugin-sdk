@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import Annotated, Generic, Literal, NamedTuple, TypeAlias, Union
 
 from pydantic import Field
@@ -55,7 +54,7 @@ class SettingsPayloadMixin:
     """Settings associated with a plugin or action instance."""
 
 
-class BasePayload(ConfiguredBaseModel, Generic[CT], ABC, SettingsPayloadMixin):
+class BasePayload(ConfiguredBaseModel, SettingsPayloadMixin, Generic[CT]):
     """Base class for action payload models with controller and settings data."""
 
     controller: CT

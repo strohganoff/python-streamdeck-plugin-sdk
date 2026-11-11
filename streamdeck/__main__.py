@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING, TypeVar
 from pydantic import ValidationError
 from pydantic_settings import SettingsError
 
+from streamdeck.contexts import (
+    ContextStore,
+    register_context_handlers,
+    register_context_injectables,
+)
 from streamdeck.manager import PluginManager
 from streamdeck.models.configs import StreamDeckToolConfig
 from streamdeck.models.launch import LaunchArguments
@@ -76,12 +81,20 @@ def run_plugin(launch: LaunchArguments, config: StreamDeckToolConfig) -> None:
         register_event=launch.register_event,
     )
 
+    context_store = ContextStore(
+        plugin_registration_uuid=launch.plugin_registration_uuid,
+        info=launch.info,
+    )
+    manager.register_action(register_context_handlers(context_store))
+
     for name, param_config in config.injectable_handler_params.items():
         manager.register_injectable_handler_param(
             name,
             param_config.resolver,
             scope=param_config.scope,
         )
+
+    register_context_injectables(context_store, manager.register_injectable_handler_param)
 
     # Register custom event types before validating action handlers.
     for listener_type in config.event_listeners:

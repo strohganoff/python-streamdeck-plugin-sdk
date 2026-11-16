@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
-from streamdeck.event_listener import EventListener, EventListenerManager
+from streamdeck.event_listener import EventListener, EventListenerManager, StopStreaming
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
 
 
@@ -73,6 +73,18 @@ class ExceptionEventListener(EventListener):
         pass
 
 
+class StopStreamingEventListener(EventListener):
+    """Mock listener that requests the event stream to stop."""
+    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
+
+    def listen(self) -> Iterator[str]:
+        yield from ()
+        raise StopStreaming
+
+    def stop(self) -> None:
+        pass
+
+
 
 
 def test_add_listener():
@@ -108,6 +120,14 @@ def test_event_stream_basic():
 
     # Check that we got the expected events
     assert events == listener.events
+
+
+def test_event_stream_stops_when_listener_raises_stop_streaming():
+    """A StopStreaming request ends the stream without exposing its internal sentinel."""
+    manager = EventListenerManager()
+    manager.add_listener(StopStreamingEventListener())
+
+    assert list(manager.event_stream()) == []
 
 
 def test_event_stream_multiple_listeners():

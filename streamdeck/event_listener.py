@@ -5,13 +5,12 @@ from abc import ABC, abstractmethod
 from logging import getLogger
 from queue import Queue
 from typing import TYPE_CHECKING
+from typing_extensions import sentinel
 
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterator
     from typing import ClassVar
-
-    from typing_extensions import TypeIs
 
     from streamdeck.models.events import EventBase
 
@@ -20,15 +19,8 @@ if TYPE_CHECKING:
 logger = getLogger("streamdeck.event_listener")
 
 
-class _SENTINAL:
-    """A sentinel object used to signal the end of the event stream.
-
-    Not meant to be instantiated, but rather used as a singleton (e.g. `_SENTINAL`).
-    """
-    @classmethod
-    def is_sentinal(cls, event: str | bytes | type[_SENTINAL]) -> TypeIs[type[_SENTINAL]]:
-        """Check if an event is the sentinal object. Provided to enable better type-checking."""
-        return event is cls
+_END_OF_STREAM = sentinel("_END_OF_STREAM")
+"""Sentinel object used to signal the end of the event stream."""
 
 
 class StopStreaming(Exception):  # noqa: N818
@@ -42,7 +34,7 @@ class EventListenerManager:
     This allows for us to listen for not only Stream Deck events, but also other events plugin-developer -defined events.
     """
     def __init__(self) -> None:
-        self.event_queue: Queue[str | bytes | type[_SENTINAL]] = Queue()
+        self.event_queue: Queue[str | bytes | _END_OF_STREAM] = Queue()
         self.listeners_lookup_by_thread: dict[threading.Thread, EventListener] = {}
         self._running = False
 
@@ -71,7 +63,7 @@ class EventListenerManager:
 
         except StopStreaming:
             logger.debug("Event listener requested to stop streaming.")
-            self.event_queue.put(_SENTINAL)
+            self.event_queue.put(_END_OF_STREAM)
 
         except Exception:
             logger.exception("Unexpected error in wrapped listener %s. Stopping just this listener.", listener)
@@ -84,7 +76,7 @@ class EventListenerManager:
         # Set the running flag to False to stop the listeners running in separate threads.
         self.running = False
         # Push the sentinel to immediately unblock the queue.get() in event_stream.
-        self.event_queue.put(_SENTINAL)
+        self.event_queue.put(_END_OF_STREAM)
 
         for thread in self.listeners_lookup_by_thread:
             logger.debug("Stopping listener %s.")
@@ -105,9 +97,9 @@ class EventListenerManager:
         try:
             while True:
                 event = self.event_queue.get()
-                if _SENTINAL.is_sentinal(event):
-                    logger.debug("Sentinal received, stopping event stream.")
-                    break  # Exit loop immediately if the sentinal is received
+                if event is _END_OF_STREAM:
+                    logger.debug("Sentinel received, stopping event stream.")
+                    break  # Exit loop immediately if the sentinel is received
                 yield event
         finally:
             self.stop()

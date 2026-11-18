@@ -1,210 +1,244 @@
 from __future__ import annotations
 
-import threading
-import time
-from typing import TYPE_CHECKING
-from unittest.mock import Mock, patch
+import asyncio
+from typing import TYPE_CHECKING, ClassVar, cast
 
 import pytest
+
 from streamdeck.event_listener import EventListener, EventListenerManager, StopStreaming
 from streamdeck.models.events import ApplicationDidLaunch, EventBase
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
-    from typing import Any, ClassVar
-
-    from streamdeck.types import EventNameStr
+    from collections.abc import AsyncIterator
 
 
-class MockEventListener(EventListener):
-    """Mock implementation of EventListener for testing."""
+class ListListener(EventListener):
     event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
 
-    def __init__(self):
-        self._running = True
-        self.events = ["event1", "event2", "event3"]
-        self.listen_called = False
-        self.stop_called = False
-
-    def listen(self) -> Iterator[str]:
-        self.listen_called = True
-        for event in self.events:
-            if not self._running:
-                break
-            yield event
-
-    def stop(self) -> None:
-        self._running = False
-        self.stop_called = True
-
-
-class SlowMockEventListener(EventListener):
-    """Mock implementation of EventListener that yields events with a delay."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
-
-    def __init__(self, delay: float = 0.1):
-        self._running = True
+    def __init__(self, events: list[str], *, delay: float = 0) -> None:
+        self.events = events
         self.delay = delay
-        self.events = ["slow1", "slow2", "slow3"]
+        self.stopped = False
 
-    def listen(self) -> Iterator[str]:
+    async def listen(self) -> AsyncIterator[str]:
         for event in self.events:
-            if not self._running:
-                break
-            time.sleep(self.delay)  # simulate processing time
+            if self.delay:
+                await asyncio.sleep(self.delay)
             yield event
 
-    def stop(self) -> None:
-        self._running = False
+    async def stop(self) -> None:
+        self.stopped = True
 
 
-class ExceptionEventListener(EventListener):
-    """Mock implementation of EventListener that raises an exception."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
-
-    def listen(self) -> Iterator[str]:
-        self._running = True
-        # Raise exception after yielding one event
-        yield "event_before_exception"
-        raise ValueError("Test exception in listener")
-
-    def stop(self) -> None:
-        pass
-
-
-class StopStreamingEventListener(EventListener):
-    """Mock listener that requests the event stream to stop."""
-    event_models: ClassVar[list[type[EventBase]]] = [ApplicationDidLaunch]
-
-    def listen(self) -> Iterator[str]:
-        yield from ()
+class StopListener(ListListener):
+    async def listen(self) -> AsyncIterator[str]:
         raise StopStreaming
-
-    def stop(self) -> None:
-        pass
+        yield "unreachable"
 
 
+def test_multiple_listeners_merge_and_cleanup() -> None:
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        first = ListListener(["a", "b"])
+        second = ListListener(["c", "d"], delay=0.001)
+        manager.add_listener(first)
+        manager.add_listener(second)
+        events: list[str] = []
+        async for event in manager.event_stream():
+            events.append(event)
+            if len(events) == 4:
+                break
+        await manager.stop()
+        assert set(events) == {"a", "b", "c", "d"}
+        assert first.stopped and second.stopped
+
+    asyncio.run(scenario())
 
 
-def test_add_listener():
-    """Test adding a listener to the manager."""
-    manager = EventListenerManager()
-    listener = Mock()
+def test_stop_streaming_ends_the_merged_stream() -> None:
+    class CountingStopListener(StopListener):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.stop_calls = 0
 
-    assert len(manager.listeners_lookup_by_thread) == 0
+        async def stop(self) -> None:
+            self.stop_calls += 1
+            await super().stop()
 
-    manager.add_listener(listener)
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        listener = CountingStopListener()
+        manager.add_listener(listener)
+        assert [event async for event in manager.event_stream()] == []
+        await manager.stop()
+        assert listener.stop_calls == 1
 
-    # Check that a thread was created and added to the lookup dict
-    assert len(manager.listeners_lookup_by_thread) == 1
-    thread = next(iter(manager.listeners_lookup_by_thread.keys()))
-    assert isinstance(thread, threading.Thread)
-    assert manager.listeners_lookup_by_thread[thread] is listener
-
-
-def test_event_stream_basic():
-    """Test that event_stream yields events from added listeners."""
-    manager = EventListenerManager()
-    listener = MockEventListener()
-
-    manager.add_listener(listener)
-
-    # Collect the first few events
-    events : list[EventNameStr] = []
-    for event in manager.event_stream():
-        events.append(event)  # type: ignore[arg-type]
-        if len(events) >= 3:  # We expect 3 events from MockEventListener
-            manager.stop()
-            break
-
-    # Check that we got the expected events
-    assert events == listener.events
+    asyncio.run(scenario())
 
 
-def test_event_stream_stops_when_listener_raises_stop_streaming():
-    """A StopStreaming request ends the stream without exposing its internal sentinel."""
-    manager = EventListenerManager()
-    manager.add_listener(StopStreamingEventListener())
+def test_cleanup_attempts_every_listener_when_a_stop_hook_fails() -> None:
+    class FailingStopListener(ListListener):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.stop_calls = 0
 
-    assert list(manager.event_stream()) == []
+        async def stop(self) -> None:
+            self.stop_calls += 1
+            raise RuntimeError("stop failed")
 
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(StopListener([]))
+        failing_listener = FailingStopListener()
+        other_listener = ListListener([])
+        manager.add_listener(failing_listener)
+        manager.add_listener(other_listener)
 
-def test_event_stream_multiple_listeners():
-    """Test that events from multiple listeners are interleaved."""
-    manager = EventListenerManager()
-    listener1 = MockEventListener()
-    listener2 = SlowMockEventListener(delay=0.01)  # Small delay to ensure deterministic order
+        with pytest.raises(Exception, match="Event listener cleanup failed") as exc_info:
+            async for _ in manager.event_stream():
+                pass
 
-    manager.add_listener(listener1)
-    manager.add_listener(listener2)
+        assert type(exc_info.value).__name__ == "ExceptionGroup"
+        assert [str(error) for error in exc_info.value.exceptions] == ["stop failed"]
+        assert failing_listener.stop_calls == 1
+        assert other_listener.stopped
 
-    # Collect all events
-    events: list[EventNameStr] = []
-    for event in manager.event_stream():
-        events.append(event)  # type: ignore[arg-type]
-        if len(events) >= 6:  # We expect 6 events total (3 from each listener)
-            manager.stop()
-            break
-
-    # Check that we got all expected events (order may vary)
-    assert len(events) == 6
-    assert set(events) == {"event1", "event2", "event3", "slow1", "slow2", "slow3"}
-
-
-def test_stop():
-    """Test that stop() correctly stops all listeners."""
-    manager = EventListenerManager()
-    listener1 = MockEventListener()
-    listener2 = MockEventListener()
-
-    manager.add_listener(listener1)
-    manager.add_listener(listener2)
-
-    # Start the event stream but then immediately stop it
-    event_iter = manager.event_stream()
-    next(event_iter)  # Get the first event to ensure threads start
-    manager.stop()
-
-    # Check that all listeners were stopped
-    assert listener1.stop_called
-    assert listener2.stop_called
-    assert not manager.running
+    asyncio.run(scenario())
 
 
-@patch("streamdeck.event_listener.logger")
-def test_listener_exception_handling(mock_logger: Mock):
-    """Test that exceptions in listeners are properly caught and logged."""
-    manager = EventListenerManager()
-    listener = ExceptionEventListener()
+def test_stop_groups_multiple_listener_cleanup_errors() -> None:
+    class FailingStopListener(ListListener):
+        def __init__(self, message: str) -> None:
+            super().__init__([])
+            self.message = message
 
-    manager.add_listener(listener)
+        async def stop(self) -> None:
+            raise RuntimeError(self.message)
 
-    # Collect events - should get one event before the exception
-    events: list[Any] = []
-    for event in manager.event_stream():
-        events.append(event)
-        if len(events) >= 1:  # We expect 1 event before exception
-            time.sleep(0.1)  # Give time for exception to be raised
-            manager.stop()
-            break
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(FailingStopListener("first stop failed"))
+        manager.add_listener(FailingStopListener("second stop failed"))
 
-    assert "event_before_exception" in events
-    # Check that the exception was logged
-    mock_logger.exception.assert_called_with("Unexpected error in wrapped listener %s. Stopping just this listener.", listener)
+        with pytest.raises(Exception, match="Event listener cleanup failed") as exc_info:
+            await manager.stop()
+
+        assert type(exc_info.value).__name__ == "ExceptionGroup"
+        assert [str(error) for error in exc_info.value.exceptions] == [
+            "first stop failed",
+            "second stop failed",
+        ]
+
+    asyncio.run(scenario())
 
 
-def test_listener_wrapper():
-    """Test the _listener_wrapper method that runs listeners in threads."""
-    manager = EventListenerManager()
-    listener = MockEventListener()
+def test_event_stream_groups_multiple_listener_cleanup_errors() -> None:
+    class FailingStopListener(ListListener):
+        def __init__(self, message: str) -> None:
+            super().__init__([])
+            self.message = message
 
-    # Run the wrapper directly
-    manager.running = True
-    manager._listener_wrapper(listener)
+        async def stop(self) -> None:
+            raise RuntimeError(self.message)
 
-    # Check that events were put in the queue
-    assert manager.event_queue.qsize() == 3
-    assert manager.event_queue.get() == "event1"
-    assert manager.event_queue.get() == "event2"
-    assert manager.event_queue.get() == "event3"
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(StopListener([]))
+        manager.add_listener(FailingStopListener("first stop failed"))
+        manager.add_listener(FailingStopListener("second stop failed"))
+
+        with pytest.raises(Exception, match="Event listener cleanup failed") as exc_info:
+            async for _ in manager.event_stream():
+                pass
+
+        assert type(exc_info.value).__name__ == "ExceptionGroup"
+        assert [str(error) for error in exc_info.value.exceptions] == [
+            "first stop failed",
+            "second stop failed",
+        ]
+
+    asyncio.run(scenario())
+
+
+def test_event_stream_error_is_preserved_when_cleanup_fails() -> None:
+    class FailingStopListener(ListListener):
+        async def stop(self) -> None:
+            raise RuntimeError("cleanup failed")
+
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(FailingStopListener([]))
+        manager.add_listener(FailingStopListener([]))
+        manager._event_queue.put_nowait(cast(str, 123))
+
+        with pytest.raises(TypeError, match="Unexpected event queue item"):
+            async for _ in manager.event_stream():
+                pass
+
+    asyncio.run(scenario())
+
+
+def test_cleanup_does_not_group_base_exceptions() -> None:
+    class CancelledStopListener(ListListener):
+        async def stop(self) -> None:
+            raise asyncio.CancelledError
+
+    class FailingStopListener(ListListener):
+        async def stop(self) -> None:
+            raise RuntimeError("ordinary cleanup failure")
+
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(CancelledStopListener([]))
+        manager.add_listener(FailingStopListener([]))
+
+        with pytest.raises(asyncio.CancelledError):
+            await manager.stop()
+
+    asyncio.run(scenario())
+
+
+def test_normal_completion_does_not_end_stream_and_stop_cancels_waiter() -> None:
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        listener = ListListener(["once"])
+        manager.add_listener(listener)
+        stream = manager.event_stream()
+        assert await anext(stream) == "once"
+        pending = asyncio.create_task(anext(stream))
+        try:
+            await asyncio.wait_for(asyncio.shield(pending), timeout=0.01)
+        except asyncio.TimeoutError:
+            pass
+        else:
+            raise AssertionError("A normally completed listener must not end the stream.")
+        await manager.stop()
+        pending.cancel()
+        try:
+            await pending
+        except (asyncio.CancelledError, StopAsyncIteration):
+            pass
+        await stream.aclose()
+        assert listener.stopped
+
+    asyncio.run(scenario())
+
+
+def test_listener_failure_isolated_and_logged() -> None:
+    class FailingListener(ListListener):
+        async def listen(self) -> AsyncIterator[str]:
+            raise ValueError("broken")
+            yield "unreachable"
+
+    async def scenario() -> None:
+        manager = EventListenerManager()
+        manager.add_listener(FailingListener([]))
+        survivor = ListListener(["survived"])
+        manager.add_listener(survivor)
+        stream = manager.event_stream()
+        assert await anext(stream) == "survived"
+        await stream.aclose()
+        assert survivor.stopped
+
+    asyncio.run(scenario())

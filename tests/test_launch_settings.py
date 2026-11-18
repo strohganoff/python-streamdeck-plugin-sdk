@@ -1,7 +1,8 @@
+import asyncio
 import json
 import subprocess
 import sys
-from unittest.mock import Mock, call
+from unittest.mock import AsyncMock, Mock, call
 
 import pytest
 from pydantic import ValidationError
@@ -234,6 +235,7 @@ def test_launcher_imports_from_plugin_directory_and_registers_listeners_first(
     process_args = ["--unrelated-process-argument"] if explicit_args else args
     monkeypatch.setattr(sys, "argv", ["streamdeck", *process_args])
     manager = Mock()
+    manager.run = AsyncMock()
     factory = Mock(return_value=manager)
     monkeypatch.setattr(entry, "PluginManager", factory)
     monkeypatch.setattr(entry, "configure_streamdeck_logger", Mock())
@@ -306,8 +308,9 @@ def test_run_plugin_uses_supplied_settings_without_reading_process_args(tmp_path
     )
     monkeypatch.setattr(sys, "argv", ["unrelated-program", "--invalid"])
     manager = Mock()
+    manager.run = AsyncMock()
     monkeypatch.setattr(entry, "PluginManager", Mock(return_value=manager))
-    entry.run_plugin(launch, config)
+    asyncio.run(entry.run_plugin(launch, config))
     assert [call[0] for call in manager.mock_calls] == [
         "register_action",
         "register_injectable_handler_param",

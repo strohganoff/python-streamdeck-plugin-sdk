@@ -1,18 +1,26 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import Mock, create_autospec
+from unittest.mock import AsyncMock, Mock, create_autospec
 
 import pytest
+
 from streamdeck.event_listener import EventListenerManager
 from streamdeck.manager import PluginManager
 from streamdeck.websocket import WebSocketClient
-
 from tests.test_utils.fake_event_factories import KeyDownEventFactory
 
 
+async def _empty_event_stream() -> AsyncIterator[str]:
+    if False:
+        yield ""
+
+
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
     import pytest_mock
+
     from streamdeck.models import events
 
 
@@ -54,7 +62,8 @@ def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> Mock:
         Mock: Mocked instance of WebSocketClient
     """
     mock_websocket_client: Mock = create_autospec(WebSocketClient, spec_set=True)
-    mock_websocket_client.__enter__.return_value = mock_websocket_client
+    mock_websocket_client.__aenter__.return_value = mock_websocket_client
+    mock_websocket_client.__aexit__.return_value = False
 
     monkeypatch.setattr("streamdeck.manager.WebSocketClient", (lambda *args, **kwargs: mock_websocket_client))
 
@@ -72,6 +81,7 @@ def mock_command_sender(mocker: pytest_mock.MockerFixture) -> Mock:
         Mock: Mocked instance of StreamDeckCommandSender
     """
     mock_cmd_sender = Mock()
+    mock_cmd_sender.send_action_registration = AsyncMock()
     mocker.patch("streamdeck.manager.StreamDeckCommandSender", return_value=mock_cmd_sender)
     return mock_cmd_sender
 
@@ -91,6 +101,7 @@ def patch_event_listener_manager(monkeypatch: pytest.MonkeyPatch) -> Mock:
         Mock: Mocked instance of EventListenerManager
     """
     mock_event_listener_manager: Mock = create_autospec(EventListenerManager, spec_set=True)
+    mock_event_listener_manager.event_stream.return_value = _empty_event_stream()
 
     monkeypatch.setattr("streamdeck.manager.EventListenerManager", (lambda *args, **kwargs: mock_event_listener_manager))
 
@@ -105,12 +116,15 @@ def mock_event_listener_manager_with_fake_events(patch_event_listener_manager: M
     Returns:
         tuple: Mocked instance of EventListenerManager, and a list of fake event messages.
     """
-    print("MOCK EVENT LISTENER MANAGER")
     # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen() method.
     fake_event_messages: list[events.EventBase] = [
         KeyDownEventFactory.build(action="my-fake-action-uuid"),
     ]
 
-    patch_event_listener_manager.event_stream.return_value = [event.model_dump_json() for event in fake_event_messages]
+    async def event_stream() -> AsyncIterator[str]:
+        for event in fake_event_messages:
+            yield event.model_dump_json()
+
+    patch_event_listener_manager.event_stream.return_value = event_stream()
 
     return patch_event_listener_manager, fake_event_messages

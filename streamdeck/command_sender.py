@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
     from typing import Any, Literal
 
     from pydantic import JsonValue
@@ -16,67 +17,72 @@ if TYPE_CHECKING:
         EventNameStr,
         PluginDefinedData,
     )
-    from streamdeck.websocket import WebSocketClient
 
 
 
 logger = getLogger("streamdeck.command_sender")
 
 
+class AsyncEventSender(Protocol):
+    """Narrow async capability required by the command sender."""
+
+    def send_event(self, data: dict[str, JsonValue]) -> Awaitable[None]: ...
+
+
 class StreamDeckCommandSender:
     """Class for sending command event messages to the Stream Deck software through a WebSocket client."""
 
-    def __init__(self, client: WebSocketClient, plugin_registration_uuid: str):
+    def __init__(self, client: AsyncEventSender, plugin_registration_uuid: str):
         self._client = client
         self._plugin_registration_uuid = plugin_registration_uuid
 
-    def _send_event(self, event: EventNameStr, **kwargs: Any) -> None:
-        self._client.send_event({
+    async def _send_event(self, event: EventNameStr, **kwargs: Any) -> None:
+        await self._client.send_event({
             "event": event,
             **kwargs,
         })
 
-    def set_settings(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
-        self._send_event(
+    async def set_settings(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
+        await self._send_event(
             event="setSettings",
             context=context,
             payload=payload,
         )
 
-    def get_settings(self, context: ActionInstanceUUIDStr) -> None:
-        self._send_event(
+    async def get_settings(self, context: ActionInstanceUUIDStr) -> None:
+        await self._send_event(
             event="getSettings",
             context=context,
         )
 
-    def set_global_settings(self, payload: PluginDefinedData) -> None:
-        self._send_event(
+    async def set_global_settings(self, payload: PluginDefinedData) -> None:
+        await self._send_event(
             event="setGlobalSettings",
             context=self._plugin_registration_uuid,
             payload=payload,
         )
 
-    def get_global_settings(self) -> None:
-        self._send_event(
+    async def get_global_settings(self) -> None:
+        await self._send_event(
             event="getGlobalSettings",
             context=self._plugin_registration_uuid,
         )
 
-    def open_url(self, context: ActionInstanceUUIDStr, url: str) -> None:
-        self._send_event(
+    async def open_url(self, context: ActionInstanceUUIDStr, url: str) -> None:
+        await self._send_event(
             event="openUrl",
             context=context,
             payload={"url": url},
         )
 
-    def log_message(self, context: ActionInstanceUUIDStr, message: str) -> None:
-        self._send_event(
+    async def log_message(self, context: ActionInstanceUUIDStr, message: str) -> None:
+        await self._send_event(
             event="logMessage",
             context=context,
             payload={"message": message},
         )
 
-    def set_title(
+    async def set_title(
         self,
         context: ActionInstanceUUIDStr,
         state: int | None = None,
@@ -92,13 +98,13 @@ class StreamDeckCommandSender:
         if title:
             payload["title"] = title
 
-        self._send_event(
+        await self._send_event(
             event="setTitle",
             context=context,
             payload=payload,
         )
 
-    def set_image(
+    async def set_image(
         self,
         context: ActionInstanceUUIDStr,
         image: str,  # base64 encoded image,
@@ -117,7 +123,7 @@ class StreamDeckCommandSender:
         }
         target_code = target_code_lookup[target]
 
-        self._send_event(
+        await self._send_event(
             event="setImage",
             context=context,
             payload={
@@ -127,33 +133,33 @@ class StreamDeckCommandSender:
             },
         )
 
-    def set_feedback(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
+    async def set_feedback(self, context: ActionInstanceUUIDStr, payload: PluginDefinedData) -> None:
         """Set's the feedback of an existing layout associated with an action instance.
 
         Args:
           context (str): Defines the context of the command, e.g. which action instance the command is intended for.
           payload (PluginDefinedData): Additional information supplied as part of the command.
         """
-        self._send_event(
+        await self._send_event(
             event="setFeedback",
             context=context,
             payload=payload,
         )
 
-    def set_feedback_layout(self, context: ActionInstanceUUIDStr, layout: str) -> None:
+    async def set_feedback_layout(self, context: ActionInstanceUUIDStr, layout: str) -> None:
         """Sets the layout associated with an action instance.
 
         Args:
           context (str): Defines the context of the command, e.g. which action instance the command is intended for.
           layout (str): Name of a pre-defined layout, or relative path to a custom one.
         """
-        self._send_event(
+        await self._send_event(
             event="setFeedbackLayout",
             context=context,
             payload={"layout": layout},
         )
 
-    def set_trigger_description(
+    async def set_trigger_description(
         self,
         context: ActionInstanceUUIDStr,
         rotate: str | None = None,
@@ -181,7 +187,7 @@ class StreamDeckCommandSender:
             long_touch: Describes the long-touch interaction with the touch display.
                 When None, the description will be hidden.
         """
-        self._send_event(
+        await self._send_event(
             event="setTriggerDescription",
             context=context,
             payload={
@@ -192,28 +198,28 @@ class StreamDeckCommandSender:
             },
         )
 
-    def show_alert(self, context: ActionInstanceUUIDStr) -> None:
+    async def show_alert(self, context: ActionInstanceUUIDStr) -> None:
         """Temporarily show an alert icon on the image displayed by an instance of an action."""
-        self._send_event(
+        await self._send_event(
             event="showAlert",
             context=context,
         )
 
-    def show_ok(self, context: ActionInstanceUUIDStr) -> None:
+    async def show_ok(self, context: ActionInstanceUUIDStr) -> None:
         """Temporarily show an OK checkmark icon on the image displayed by an instance of an action."""
-        self._send_event(
+        await self._send_event(
             event="showOk",
             context=context,
         )
 
-    def set_state(self, context: ActionInstanceUUIDStr, state: int) -> None:
-        self._send_event(
+    async def set_state(self, context: ActionInstanceUUIDStr, state: int) -> None:
+        await self._send_event(
             event="setState",
             context=context,
             payload={"state": state},
         )
 
-    def switch_to_profile(
+    async def switch_to_profile(
         self,
         context: ActionInstanceUUIDStr,
         device: DeviceUUIDStr,
@@ -241,23 +247,23 @@ class StreamDeckCommandSender:
                 "page": page,
             }
 
-        self._send_event(
+        await self._send_event(
             event="switchToProfile",
             context=context,
             device=device,
             payload=payload,
         )
 
-    def send_to_property_inspector(
+    async def send_to_property_inspector(
         self, context: ActionInstanceUUIDStr, payload: PluginDefinedData
     ) -> None:
-        self._send_event(
+        await self._send_event(
             event="sendToPropertyInspector",
             context=context,
             payload=payload,
         )
 
-    def send_to_plugin(
+    async def send_to_plugin(
         self, context: ActionInstanceUUIDStr, action: ActionUUIDStr, payload: PluginDefinedData
     ) -> None:
         """Send a payload to another plugin.
@@ -268,14 +274,14 @@ class StreamDeckCommandSender:
                 which action was triggered.
             payload: The data that will be received by the receiving plugin.
         """
-        self._send_event(
+        await self._send_event(
             event="sendToPlugin",
             context=context,
             action=action,
             payload=payload,
         )
 
-    def send_action_registration(
+    async def send_action_registration(
         self,
         register_event: str,
     ) -> None:
@@ -291,7 +297,7 @@ class StreamDeckCommandSender:
             register_event (str): The registration event type, passed in by the Stream Deck software as -registerEvent option.
                 It's value will almost definitely will be "registerPlugin".
         """
-        self._send_event(
+        await self._send_event(
             event=register_event,
             uuid=self._plugin_registration_uuid,
         )

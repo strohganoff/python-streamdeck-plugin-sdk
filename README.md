@@ -92,15 +92,19 @@ def handle_will_appear(event_data):
 
 A handler must have a required positional parameter named `event_data` first; the `.on()` decorator checks this when applied. At startup, before opening the WebSocket, the manager checks that any other required parameters have a stored injectable value. The SDK provides `command_sender`; plugins can define additional injected parameters in `pyproject.toml`. The SDK passes injectable values by keyword, so declare them as positional-or-keyword or keyword-only.
 
+Handlers may be synchronous or asynchronous. Synchronous handlers run directly
+on the event loop, so keep them brief and non-blocking. Use an async handler
+when it needs to await I/O or send commands:
+
 ```python
 from streamdeck.command_sender import StreamDeckCommandSender
 
 
 @my_action.on("willAppear")
-def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
+async def handle_will_appear(event_data, command_sender: StreamDeckCommandSender):
     # Use command_sender to interact with Stream Deck
-    command_sender.set_title(context=event_data.context, title="Hello!")
-    command_sender.set_state(context=event_data.context, state=0)
+    await command_sender.set_title(context=event_data.context, title="Hello!")
+    await command_sender.set_state(context=event_data.context, state=0)
 ```
 
 The `command_sender` parameter is optional. If included in the handler's signature, the SDK automatically injects a `StreamDeckCommandSender` instance that can be used to send commands back to the Stream Deck (like setting titles, states, or images). Startup raises `TypeError` for signatures whose required parameters cannot be supplied by dispatch.
@@ -237,6 +241,10 @@ Use `streamdeck --help` without launch arguments to see the available options. H
 
 The CLI entry point `streamdeck.__main__.main(argv=None)` accepts an optional argument list, excluding the executable name. Both settings models use that same list; omitting it uses the process arguments. Startup prepares imports, logging, and optional debugging before loading plugin settings, then calls `run_plugin(launch, config)` with both validated models. Startup and runtime failures are logged and re-raised.
 
+The console command owns the event loop. Code that calls `PluginManager.run()`
+directly must await it, and calls to `StreamDeckCommandSender` methods must also
+be awaited.
+
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
 
 #### Debugging
@@ -366,8 +374,9 @@ To create a custom event listener:
 
 ```python
 # custom_listener.py
-from collections.abc import Generator
-from typing import ClassVar, Literal
+import json
+from collections.abc import AsyncIterator
+from typing import Literal
 
 from streamdeck.event_listener import EventListener
 from streamdeck.models.events import EventBase
@@ -381,24 +390,21 @@ class MyCustomEvent(EventBase[Literal["somethingHappened"]]):
 
 class MyCustomEventListener(EventListener):
     event_models = [MyCustomEvent]
-    
-    def listen(self) -> Generator[str | bytes, None, None]:
-        ...
-        # Listen/poll for something here in a loop, and yield the result.
-        # This will be ran in a background thread.
-        # Ex:
-        # while self._running is True:
-        #     result = module.check_status()
-        #     if result is not None:
-        #         yield json.dumps({"event": "somethingHappened", "result": result})
-        #     time.sleep(1)
 
-    def stop(self) -> None:
-        ...
-        # Stop the loop or blocking call in the listen method.
-        # Ex:
-        # self._running = False
+    async def listen(self) -> AsyncIterator[str | bytes]:
+        # Replace wait_for_status() with cancellable async I/O for your source.
+        while True:
+            result = await wait_for_status()
+            yield json.dumps({"event": "somethingHappened", "result": result})
+
+    async def stop(self) -> None:
+        # Close any subscription or other resources owned by this listener.
+        await close_status_subscription()
 ```
+
+Listeners run as asyncio tasks, so their I/O must not block the event loop.
+`stop()` should be safe after partial startup and release resources even when
+`listen()` is waiting for input.
 
 ### Configuring Your Custom Listener
 
@@ -433,9 +439,6 @@ The following upcoming improvements are in the works:
 - **Improved Documentation**: Expand and improve the documentation with more examples, guides, and use cases.
 - **Store & Bind Settings**: Automatically store and bind action instance context-holding objects to handler function arguments if they are included in the definition.
 - **Optional Event Pattern Matching on Hooks**: Add support for optional pattern-matching on event messages to further filter when hooks get called.
-- **Async Support**: Introduce asynchronous features to handle WebSocket communication more efficiently.
-
-
 ## License
 
 This project is licensed under the MIT License.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 
@@ -24,6 +25,11 @@ logger = logging.getLogger("streamdeck")
 
 def main(argv: list[str] | None = None) -> None:
     """Console entry point for the Pydantic Settings CLI."""
+    asyncio.run(async_main(argv))
+
+
+async def async_main(argv: list[str] | None = None) -> None:
+    """Parse launch configuration and run the plugin inside the event loop."""
     args = sys.argv[1:] if argv is None else list(argv)
     try:
         launch = CliApp.run(LaunchArguments, cli_args=args)
@@ -44,7 +50,7 @@ def main(argv: list[str] | None = None) -> None:
             setup_debug_mode(launch.debug_port)
 
         config = CliApp.run(StreamDeckToolConfig, cli_args=args)
-        run_plugin(launch, config)
+        await run_plugin(launch, config)
     except Exception:
         logger.exception("Plugin startup or execution failed")
         raise
@@ -60,7 +66,7 @@ def setup_debug_mode(debug_port: int) -> None:
     logger.info("Debugger attached.")
 
 
-def run_plugin(launch: LaunchArguments, config: StreamDeckToolConfig) -> None:
+async def run_plugin(launch: LaunchArguments, config: StreamDeckToolConfig) -> None:
     """Register and run the plugin using validated launch and plugin settings."""
     manager = PluginManager(
         port=launch.port,
@@ -92,7 +98,7 @@ def run_plugin(launch: LaunchArguments, config: StreamDeckToolConfig) -> None:
         manager.register_action(action)
 
     logger.info("Connecting to Stream Deck on port %d", launch.port)
-    manager.run()
+    await manager.run()
 
 
 # Also run the plugin if this script is ran as a console script.

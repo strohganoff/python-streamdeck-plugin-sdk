@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Protocol
+from collections.abc import Awaitable, Callable, Iterable
+from typing import TYPE_CHECKING, Protocol, TypeAlias
 
 from typing_extensions import Concatenate, ParamSpec, TypeVar  # noqa: UP035
 
 from streamdeck.models.events import EventBase
+
 
 if TYPE_CHECKING:
     from streamdeck.types import EventNameStr
@@ -18,10 +19,16 @@ EventModel_contra = TypeVar("EventModel_contra", bound=EventBase, default=EventB
 InjectableHandlerParams = ParamSpec("InjectableHandlerParams", default=...)
 """Handler-specific trailing signature; it may include parameters the SDK cannot inject."""
 
+EventHandlerResult: TypeAlias = Awaitable[None] | None
+"""Result of calling a handler: ``None`` for sync handlers or an awaitable for async handlers."""
+
 # The ParamSpec preserves a handler's declared trailing signature at
 # registration. Its default ellipsis gives catalogs and dispatch a common type
 # with an event-first callable and an otherwise unspecified signature.
-EventHandlerFunc = Callable[Concatenate[EventModel_contra, InjectableHandlerParams], None]
+EventHandlerFunc = Callable[
+    Concatenate[EventModel_contra, InjectableHandlerParams],
+    EventHandlerResult,
+]
 """Event-first callable whose remaining signature is preserved by a ParamSpec.
 
 At registration, the ParamSpec retains the handler's trailing parameter types

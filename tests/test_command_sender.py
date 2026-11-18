@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import Mock
 
 import pytest
+
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.websocket import WebSocketClient
 
@@ -158,9 +160,9 @@ def test_command_sender_methods(
 
     method = getattr(command_sender, method_name)
     if context is not None:
-        method(context, **extra_args)
+        asyncio.run(method(context, **extra_args))
     else:
-        method(**extra_args)
+        asyncio.run(method(**extra_args))
 
     # Build the expected data structure to send through the WebSocket
     expected_data = {
@@ -171,3 +173,18 @@ def test_command_sender_methods(
 
     # Assert that the client's send_event method was called with the expected data
     mock_client.send_event.assert_called_once_with(expected_data)
+
+
+def test_send_action_registration_payload(
+    command_sender: StreamDeckCommandSender,
+    mock_client: Mock,
+) -> None:
+    """Send the registration event and registration UUID in the wire payload."""
+    asyncio.run(command_sender.send_action_registration(register_event="registerPlugin"))
+
+    mock_client.send_event.assert_called_once_with(
+        {
+            "event": "registerPlugin",
+            "uuid": command_sender._plugin_registration_uuid,
+        }
+    )

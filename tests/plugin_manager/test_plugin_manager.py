@@ -1,8 +1,11 @@
+import asyncio
+from collections.abc import AsyncIterator
 from typing import cast
 from unittest.mock import Mock, call
 
 import pytest
 import pytest_mock
+
 from streamdeck.event_handlers.actions import Action
 from streamdeck.manager import EventAdapter, PluginManager
 from streamdeck.models.events import (  #, event_adapter
@@ -57,13 +60,13 @@ def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -
     mock_event_model_class = Mock(get_model_event_names=lambda: ["fake_event_name"])
     listener = Mock(event_models=[mock_event_model_class])
 
-    assert len(plugin_manager._event_listener_manager.listeners_lookup_by_thread) == 0
+    assert len(plugin_manager._event_listener_manager._listeners) == 0
 
     plugin_manager.register_event_listener(listener)
 
     # Validate that the PluginManager's EventListenerManager has the listener properly registered.
-    assert len(plugin_manager._event_listener_manager.listeners_lookup_by_thread) == 1
-    assert next(iter(plugin_manager._event_listener_manager.listeners_lookup_by_thread.values())) == listener
+    assert len(plugin_manager._event_listener_manager._listeners) == 1
+    assert plugin_manager._event_listener_manager._listeners[0].listener == listener
 
     # Validate that the PluginManager's EventAdapter has the event model class properly registered.
     assert len(plugin_manager._event_adapter._models) == len(DEFAULT_EVENT_MODELS) + 1
@@ -84,11 +87,42 @@ def test_plugin_manager_sends_registration_event(
 
     NOTE: The WebSocketClient and EventListenerManager are mocked so as to be essentially ignored in this test.
     """
-    plugin_manager.run()
+    asyncio.run(plugin_manager.run())
 
     mock_command_sender.send_action_registration.assert_called_once_with(
         register_event=plugin_manager._register_event,
     )
+
+
+def test_plugin_manager_preserves_cancellation_when_cleanup_fails(
+    patch_websocket_client: Mock,
+    patch_event_listener_manager: Mock,
+    plugin_manager: PluginManager,
+) -> None:
+    """Close the WebSocket and preserve cancellation if listener cleanup fails."""
+
+    async def run_and_cancel() -> None:
+        stream_started = asyncio.Event()
+
+        async def blocked_stream() -> AsyncIterator[str]:
+            stream_started.set()
+            await asyncio.Event().wait()
+            yield "{}"
+
+        patch_event_listener_manager.event_stream.return_value = blocked_stream()
+        patch_event_listener_manager.stop.side_effect = RuntimeError("cleanup failure")
+
+        run_task = asyncio.create_task(plugin_manager.run())
+        await asyncio.wait_for(stream_started.wait(), timeout=1)
+        run_task.cancel()
+
+        with pytest.raises(asyncio.CancelledError):
+            await run_task
+
+    asyncio.run(run_and_cancel())
+
+    patch_websocket_client.__aexit__.assert_awaited_once()
+    patch_event_listener_manager.stop.assert_awaited_once()
 
 
 def test_plugin_manager_adds_websocket_event_listener(
@@ -107,8 +141,10 @@ def test_plugin_manager_adds_websocket_event_listener(
             Patched by the fixture, and used here to check if this instance was passed to the EventListenerManager.add_listener() method as an argument.
         plugin_manager (PluginManager): PluginManager fixture
     """
-    plugin_manager.run()
+    asyncio.run(plugin_manager.run())
 
+    patch_websocket_client.__aenter__.assert_awaited_once()
+    patch_websocket_client.__aexit__.assert_awaited_once()
     patch_event_listener_manager.add_listener.assert_called_once_with(patch_websocket_client)
 
 
@@ -124,7 +160,7 @@ def test_plugin_manager_process_event(
     mock_event_listener_mgr, fake_event_messages = mock_event_listener_manager_with_fake_events
     fake_event_message = fake_event_messages[0]
 
-    plugin_manager.run()
+    asyncio.run(plugin_manager.run())
 
     # First check that the EventListenerManager's event_stream() method was called.
     # This has been stubbed to return the fake_event_message's json string.

@@ -9,7 +9,7 @@ from streamdeck.models.events import EventBase
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncIterator
     from typing import ClassVar
 
 
@@ -25,10 +25,10 @@ class DummyEventListener(EventListener):
     event_models: ClassVar[list[type[EventBase]]] = [DummyEvent]
 
     @override
-    def listen(self) -> Iterator[str | bytes]:
+    async def listen(self) -> AsyncIterator[str | bytes]:
         """Yields a dummy event."""
         yield '{"event": "dummy", "something": 42}'
 
     @override
-    def stop(self) -> None:
+    async def stop(self) -> None:
         """Doesn't do anything."""

@@ -1,98 +1,136 @@
 from __future__ import annotations
 
+import asyncio
 import json
-from functools import partial
-from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock
+import logging
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from streamdeck.event_listener import StopStreaming
-from streamdeck.websocket import WebSocketClient
-from websockets import (
+from websockets.exceptions import (
     ConnectionClosed,
     ConnectionClosedError,
     ConnectionClosedOK,
-    InvalidHeader,
     WebSocketException,
 )
 
-
-if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
-
-
-@pytest.fixture
-def mock_connection() -> Mock:
-    """Fixture to mock the ClientConnection object returned by websockets.sync.client.connect."""
-    return Mock()
+from streamdeck.event_listener import StopStreaming
+from streamdeck.websocket import WebSocketClient
 
 
-@pytest.fixture
-def patched_connect(mocker: MockerFixture, mock_connection: Mock) -> Mock:
-    """Fixture to mock the ClientConnection object returned by websockets.sync.client.connect."""
-    return mocker.patch("streamdeck.websocket.connect", return_value=mock_connection)
+def test_start_send_and_stop(monkeypatch: pytest.MonkeyPatch, port_number: int) -> None:
+    async def scenario() -> None:
+        connection = Mock()
+        connection.send = AsyncMock()
+        connection.close = AsyncMock()
+        connect_mock = AsyncMock(return_value=connection)
+        monkeypatch.setattr("streamdeck.websocket.connect", connect_mock)
+        client = WebSocketClient(port_number)
+        await client.start()
+        connect_mock.assert_awaited_once_with(uri=f"ws://localhost:{port_number}")
+        payload = {"event": "test", "payload": {"k": "v"}}
+        await client.send_event(payload)
+        connection.send.assert_awaited_once_with(json.dumps(payload))
+        await client.stop()
+        connection.close.assert_awaited_once()
+        assert client._client is None
+
+    asyncio.run(scenario())
 
 
-def test_initialization_calls_connect_correctly(
-    patched_connect: Mock, mock_connection: Mock, port_number: int
+def test_async_context_manager_starts_and_closes_connection(
+    monkeypatch: pytest.MonkeyPatch,
+    port_number: int,
 ) -> None:
-    """Test that WebSocketClient initializes correctly by calling the connect function with the appropriate URI."""
-    with WebSocketClient(port=port_number) as client:
-        # Assert that 'connect' was called once with the correct URI.
-        patched_connect.assert_called_once_with(uri=f"ws://localhost:{port_number}")
+    async def scenario() -> None:
+        connection = Mock()
+        connection.close = AsyncMock()
+        connect_mock = AsyncMock(return_value=connection)
+        monkeypatch.setattr("streamdeck.websocket.connect", connect_mock)
+        client = WebSocketClient(port_number)
+        async with client as active_client:
+            assert active_client is client
+            assert client._client is connection
+        connect_mock.assert_awaited_once_with(uri=f"ws://localhost:{port_number}")
+        connection.close.assert_awaited_once()
+        assert client._client is None
 
-        # Assert that the client's _client attribute is the mocked connection
-        assert client._client == mock_connection
-
-
-@pytest.mark.usefixtures("patched_connect")
-def test_send_event_serializes_and_sends(mock_connection: Mock, port_number: int) -> None:
-    """Test that the send_event method corrently serializes the data to JSON and sends it via the websocket connection."""
-    with WebSocketClient(port=port_number) as client:
-        fake_data = {"event": "test_event", "payload": {"key": "value"}}
-        client.send_event(fake_data)
-
-    # Assert that the 'send' method was called once with the serialized data.
-    expected_message = json.dumps(fake_data)
-    mock_connection.send.assert_called_once_with(message=expected_message)
+    asyncio.run(scenario())
 
 
-@pytest.mark.usefixtures("patched_connect")
-def test_listen_yields_messages(mock_connection: Mock, port_number: int) -> None:
-    """Test that listen yields messages from the WebSocket connection."""
-    # Set up the mocked connection to return messages until closing
-    expected_results = ["message1", b"message2", "message3"]
-    mock_connection.recv.side_effect = expected_results
+def test_listen_yields_frames_and_stops_on_connection_close(port_number: int) -> None:
+    async def scenario() -> None:
+        client = WebSocketClient(port_number)
+        connection = Mock()
+        connection.recv = AsyncMock(side_effect=["text", b"binary", ConnectionClosed(None, None)])
+        client._client = connection
+        received: list[str | bytes] = []
+        with pytest.raises(StopStreaming):
+            async for message in client.listen():
+                received.append(message)
+        assert received == ["text", b"binary"]
 
-    with WebSocketClient(port=port_number) as client:
-        actual_messages: list[Any] = []
-        for i, msg in enumerate(client.listen()):
-            actual_messages.append(msg)
-            if i == 2:
-                break
+    asyncio.run(scenario())
 
-    assert actual_messages == expected_results
+
+def test_listen_translates_websocket_errors_to_stop_streaming(port_number: int) -> None:
+    async def scenario() -> None:
+        client = WebSocketClient(port_number)
+        connection = Mock()
+        connection.recv = AsyncMock(side_effect=WebSocketException("broken"))
+        client._client = connection
+        with pytest.raises(StopStreaming):
+            async for _ in client.listen():
+                pass
+
+    asyncio.run(scenario())
+
+
+def test_listen_translates_unexpected_receive_errors_to_stop_streaming(
+    port_number: int,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def scenario() -> None:
+        client = WebSocketClient(port_number)
+        connection = Mock()
+        connection.recv = AsyncMock(side_effect=RuntimeError("unexpected receive failure"))
+        client._client = connection
+        with pytest.raises(StopStreaming):
+            async for _ in client.listen():
+                pass
+
+    asyncio.run(scenario())
+
+    assert "Unexpected error while receiving from Stream Deck; stopping the runtime." in caplog.text
 
 
 @pytest.mark.parametrize(
-    "exception_class",
+    ("error", "level", "message"),
     [
-        partial(ConnectionClosedOK, None, None),
-        partial(ConnectionClosedError, None, None),
-        partial(InvalidHeader, "header-name", None),
-        partial(ConnectionClosed, None, None),
-        WebSocketException,
+        (ConnectionClosedOK(None, None), logging.DEBUG, "Connection was closed normally, stopping the client."),
+        (ConnectionClosedError(None, None), logging.ERROR, "Connection was terminated with an error."),
+        (ConnectionClosed(None, None), logging.ERROR, "Connection was already closed."),
+        (WebSocketException("broken"), logging.ERROR, "Connection is closed due to an unexpected WebSocket error."),
     ],
 )
-@pytest.mark.usefixtures("patched_connect")
-def test_listen_raises_StopStreaming_from_WebSocketException(
-    mock_connection: Mock, port_number: int, exception_class: type[WebSocketException]
+def test_listen_logs_websocket_exception_type(
+    port_number: int,
+    caplog: pytest.LogCaptureFixture,
+    error: WebSocketException,
+    level: int,
+    message: str,
 ) -> None:
-    """Test that listen raises a StopStreaming exception when a WebSocketException is raised."""
-    # Set up the mocked connection to return messages until closing
-    mock_connection.recv.side_effect = ["message1", b"message2", exception_class()]
+    async def scenario() -> None:
+        client = WebSocketClient(port_number)
+        connection = Mock()
+        connection.recv = AsyncMock(side_effect=error)
+        client._client = connection
+        with pytest.raises(StopStreaming):
+            async for _ in client.listen():
+                pass
 
-    # This should raise a StopStreaming exception when any WebSocketException is raised
-    with WebSocketClient(port=port_number) as client, pytest.raises(StopStreaming):
-        for _ in client.listen():
-            pass
+    caplog.set_level(logging.DEBUG, logger="streamdeck.websocket")
+    asyncio.run(scenario())
+
+    record = next(record for record in caplog.records if record.name == "streamdeck.websocket")
+    assert record.levelno == level
+    assert record.message == message

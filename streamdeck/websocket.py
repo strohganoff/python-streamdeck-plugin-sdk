@@ -1,6 +1,14 @@
-"""A client for connecting to the Stream Deck device's WebSocket server and sending/receiving events.
+"""Connect to Stream Deck's WebSocket server and send or receive events.
 
-Inherits from the EventListener class to work with the EventListenerManager for processing events.
+`WebSocketClient` implements :class:`~streamdeck.event_listener.EventListener`:
+its async `listen()` iterator yields inbound messages to the
+`EventListenerManager`, which merges them with messages from custom
+listeners. The client is the sole reader of the Stream Deck connection.
+
+Outbound commands use the same active connection through `send_event()`.
+The `StreamDeckCommandSender` builds command payloads and delegates sending
+to this client; connection setup and cleanup remain owned by the runtime via
+the client's async context manager.
 """
 from __future__ import annotations
 
@@ -8,71 +16,66 @@ import json
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from websockets import ConnectionClosedError, WebSocketException
-from websockets.exceptions import ConnectionClosed, ConnectionClosedOK
-from websockets.sync.client import ClientConnection, connect
+from websockets.asyncio.client import connect
+from websockets.exceptions import (
+    ConnectionClosed,
+    ConnectionClosedError,
+    ConnectionClosedOK,
+    WebSocketException,
+)
 
 from streamdeck.event_listener import EventListener, StopStreaming
-from streamdeck.models.events import DEFAULT_EVENT_MODELS, EventBase
+from streamdeck.models.events import DEFAULT_EVENT_MODELS
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncIterator
     from types import TracebackType
-    from typing import Any, ClassVar
+    from typing import ClassVar
 
-    from typing_extensions import Self  # noqa: UP035
+    from pydantic import JsonValue
+    from typing_extensions import Self
+    from websockets.asyncio.client import ClientConnection
+
+    from streamdeck.models.events import EventBase
 
 
 logger = getLogger("streamdeck.websocket")
 
 
-
 class WebSocketClient(EventListener):
-    """A client for connecting to the Stream Deck device's WebSocket server and sending/receiving events."""
-    _client: ClientConnection | None
+    """The sole reader and async sender for the active Stream Deck connection."""
 
     event_models: ClassVar[list[type[EventBase]]] = DEFAULT_EVENT_MODELS
 
-    def __init__(self, port: int):
-        """Initialize a WebSocketClient instance.
+    def __init__(self, port: int) -> None:
+        """Initialize the client for the Stream Deck WebSocket server.
+
+        The connection is established later by :meth:`start`, so constructing
+        a client does not perform network I/O.
 
         Args:
-            port (int): The port number to connect to the WebSocket server.
+            port: The local port number provided by Stream Deck for the
+                WebSocket connection.
         """
         self._port = port
-        self._client = None
+        self._client: ClientConnection | None = None
 
-    def send_event(self, data: dict[str, Any]) -> None:
-        """Send an event message to the WebSocket server.
-
-        Args:
-            data (dict[str, Any]): The event data to send.
-        """
+    async def send_event(self, data: dict[str, JsonValue]) -> None:
+        """Serialize and send a command through the active connection."""
         if self._client is None:
-            msg = "WebSocket connection not established yet."
-            raise ValueError(msg)
+            raise ValueError("WebSocket connection not established yet.")
 
-        data_str = json.dumps(data)
-        self._client.send(message=data_str)
+        await self._client.send(json.dumps(data))
 
-    def listen(self) -> Iterator[str | bytes]:
-        """Listen for messages from the WebSocket server indefinitely.
-
-        TODO: implement more concise error-handling.
-
-        Yields:
-            str | bytes: The received message from the WebSocket server.
-        """
+    async def listen(self) -> AsyncIterator[str | bytes]:
+        """Yield inbound frames; this is the connection's only receive loop."""
         if self._client is None:
-            msg = "WebSocket connection not established yet."
-            raise ValueError(msg)
+            raise ValueError("WebSocket connection not established yet.")
 
         try:
             while True:
-                message: str | bytes = self._client.recv()
-                yield message
-
+                yield await self._client.recv()
         except WebSocketException as exc:
             if isinstance(exc, ConnectionClosedOK):
                 logger.debug("Connection was closed normally, stopping the client.")
@@ -84,34 +87,47 @@ class WebSocketClient(EventListener):
                 logger.exception("Connection is closed due to an unexpected WebSocket error.")
 
             raise StopStreaming from None
-
         except Exception:
-            logger.exception("Failed to receive messages from websocket server due to unexpected error.")
-            raise
+            logger.exception("Unexpected error while receiving from Stream Deck; stopping the runtime.")
+            raise StopStreaming from None
 
-    def start(self) -> None:
-        """Start the connection to the websocket server."""
+    async def start(self) -> None:
+        """Establish the Stream Deck connection."""
         try:
-            self._client = connect(uri=f"ws://localhost:{self._port}")
+            self._client = await connect(uri=f"ws://localhost:{self._port}")
         except ConnectionRefusedError:
-            logger.exception("Failed to connect to the WebSocket server. Make sure the Stream Deck software is running.")
+            logger.exception("Failed to connect to the WebSocket server. Make sure Stream Deck is running.")
             raise
 
-    def stop(self) -> None:
-        """Close the WebSocket connection, if open."""
+    async def stop(self) -> None:
+        """Close the connection if it was established."""
         if self._client is not None:
-            self._client.close()
+            await self._client.close()
+            self._client = None
 
-    def __enter__(self) -> Self:
-        """Start the connection to the websocket server.
+    async def __aenter__(self) -> Self:
+        """Open the connection and return this client for an `async with` block.
 
         Returns:
             Self: The WebSocketClient instance after connecting to the WebSocket server.
         """
-        self.start()
+        await self.start()
         return self
 
-    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
-        """Close the WebSocket connection, if open."""
-        self.stop()
-
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool:
+        """Close the connection, preserving any exception from the block."""
+        try:
+            await self.stop()
+        except BaseException:
+            if exc_val is None:
+                raise
+            logger.exception(
+                "Failed to close WebSocket while handling %s",
+                exc_type.__name__ if exc_type is not None else "an exception",
+            )
+        return False

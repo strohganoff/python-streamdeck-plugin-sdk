@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Generic, Protocol, TypeVar
 
 from streamdeck.event_handlers.protocol import (
     EventHandlerFunc,
+    EventHandlerResult,
     EventModel_contra,
     inspect_event_handler_signature,
     validate_event_handler_event_parameter,
@@ -100,7 +101,11 @@ class InjectableHandlerParamStore:
             if name in self._specs
         }
 
-    def resolve_for_handler(self, handler: Callable[..., None], event_data: EventBase) -> dict[str, object]:
+    def resolve_for_handler(
+        self,
+        handler: Callable[..., EventHandlerResult],
+        event_data: EventBase,
+    ) -> dict[str, object]:
         """Resolve values only for injectable parameters declared by a handler."""
         return self.resolve(inspect.signature(handler).parameters, event_data)
 

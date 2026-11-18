@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+from contextlib import aclosing
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -8,7 +10,6 @@ from pydantic import ValidationError
 from streamdeck.command_sender import StreamDeckCommandSender
 from streamdeck.event_handlers.actions import Action, ActionBase
 from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
-from streamdeck.event_handlers.protocol import SupportsEventHandlers
 from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_handlers.scopes import ScopeName, scope_for_event
 from streamdeck.event_listener import EventListener, EventListenerManager
@@ -19,10 +20,11 @@ from streamdeck.websocket import WebSocketClient
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import AsyncGenerator
     from typing import Literal
 
     from streamdeck.event_handlers.injectables import InjectableResolver
+    from streamdeck.event_handlers.protocol import SupportsEventHandlers
     from streamdeck.models.events import EventBase
 
 
@@ -133,7 +135,7 @@ class PluginManager:
         """
         self._injectable_handler_param_store.register(name, resolver, scope=scope)
 
-    def _stream_event_data(self) -> Iterator[EventBase]:
+    async def _stream_event_data(self) -> AsyncGenerator[EventBase, None]:
         """Stream event data from the event listeners.
 
         Validate and model the incoming event data before yielding it.
@@ -141,7 +143,7 @@ class PluginManager:
         Yields:
             EventBase: The event data received from the event listeners.
         """
-        for message in self._event_listener_manager.event_stream():
+        async for message in self._event_listener_manager.event_stream():
             try:
                 data: EventBase = self._event_adapter.validate_json(message)
             except ValidationError:
@@ -157,7 +159,7 @@ class PluginManager:
 
             yield data
 
-    def _dispatch_event(self, event: EventBase) -> None:
+    async def _dispatch_event(self, event: EventBase) -> None:
         """Dispatch an event to the appropriate action handlers.
 
         Args:
@@ -169,9 +171,11 @@ class PluginManager:
             injected_params = self._injectable_handler_param_store.resolve_for_handler(event_handler, event)
             # TODO: from action-instance event occurrences, save metadata to the action's properties.
 
-            event_handler(event, **injected_params)
+            result = event_handler(event, **injected_params)
+            if inspect.isawaitable(result):
+                await result
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Run the PluginManager by connecting to the WebSocket server and processing incoming events.
 
         This method establishes a WebSocket connection, registers the plugin, listens for incoming messages,
@@ -179,6 +183,7 @@ class PluginManager:
 
         Raises:
             TypeError: If a registered handler requires a parameter with no stored injectable value.
+            ExceptionGroup: If one or more ordinary event listener cleanup operations fail.
         """
         client = WebSocketClient(port=self._port)
         command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
@@ -189,13 +194,25 @@ class PluginManager:
         )
         self._validate_registered_handler_signatures()
 
-        with client:
-            # Register the WebSocketClient as an event listener, so we can receive Stream Deck events.
-            self.register_event_listener(client)
+        primary_error: BaseException | None = None
+        try:
+            async with client:
+                # Register the WebSocketClient as an event listener, so we can receive Stream Deck events.
+                self.register_event_listener(client)
 
-            command_sender.send_action_registration(register_event=self._register_event)
+                await command_sender.send_action_registration(register_event=self._register_event)
 
-            for data in self._stream_event_data():
-                self._dispatch_event(data)
+                async with aclosing(self._stream_event_data()) as event_data_stream:
+                    async for data in event_data_stream:
+                        await self._dispatch_event(data)
 
-            logger.info("PluginManager has stopped processing events.")
+                logger.info("PluginManager has stopped processing events.")
+        except BaseException as exc:
+            primary_error = exc
+            raise
+        finally:
+            try:
+                await self._event_listener_manager.stop()
+            except BaseException:
+                if primary_error is None:
+                    raise

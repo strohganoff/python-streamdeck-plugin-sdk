@@ -243,8 +243,7 @@ The CLI entry point `streamdeck.__main__.main(argv=None)` accepts an optional ar
 
 The console command owns the event loop. Code that calls `PluginManager.run()`
 directly must await it, and calls to `StreamDeckCommandSender` methods must also
-be awaited. See the [async runtime migration guide](docs/ASYNC_MIGRATION.md)
-for the API changes and migration examples.
+be awaited.
 
 In addition to these, there is an additional option to use **debug mode**, which is discussed below.
 
@@ -405,8 +404,7 @@ class MyCustomEventListener(EventListener):
 
 Listeners run as asyncio tasks, so their I/O must not block the event loop.
 `stop()` should be safe after partial startup and release resources even when
-`listen()` is waiting for input. See the
-[async runtime migration guide](docs/ASYNC_MIGRATION.md) for details.
+`listen()` is waiting for input.
 
 ### Configuring Your Custom Listener
 

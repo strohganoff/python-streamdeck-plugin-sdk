@@ -1,4 +1,4 @@
-"""Process a stream of validated events with sequential dispatch."""
+"""Route validated events to request waiters and sequential handlers."""
 
 from __future__ import annotations
 
@@ -21,17 +21,21 @@ else:
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Awaitable, Callable
 
+    from streamdeck.request_broker import RequestBroker
+
 
 _END_DISPATCH = sentinel("_END_DISPATCH")
 
 
 class EventStreamProcessor:
-    """Read events concurrently with sequential dispatch."""
+    """Coordinate response routing and sequential event dispatch."""
 
     def __init__(
         self,
+        request_broker: RequestBroker,
         dispatch: Callable[[EventBase], Awaitable[None]],
     ) -> None:
+        self._request_broker = request_broker
         self._dispatch = dispatch
 
     async def _route_events(
@@ -39,11 +43,22 @@ class EventStreamProcessor:
         events: AsyncGenerator[EventBase, None],
         dispatch_queue: asyncio.Queue[object],
     ) -> None:
-        """Queue validated events in stream order."""
-        async with aclosing(events):
-            async for event in events:
-                await dispatch_queue.put(event)
-        await dispatch_queue.put(_END_DISPATCH)
+        """Resolve response waiters, then queue events for normal dispatch."""
+        try:
+            async with aclosing(events):
+                async for event in events:
+                    self._request_broker.resolve(event)
+                    await dispatch_queue.put(event)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            self._request_broker.fail_all(exc)
+            raise
+        else:
+            self._request_broker.fail_all(
+                RuntimeError("The event stream ended before the request completed.")
+            )
+            await dispatch_queue.put(_END_DISPATCH)
 
     async def _dispatch_events(self, dispatch_queue: asyncio.Queue[object]) -> None:
         """Dispatch queued events one at a time, awaiting each handler."""

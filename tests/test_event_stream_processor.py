@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import sys
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
 
 import pytest
 
 from streamdeck.event_stream_processor import EventStreamProcessor
+from streamdeck.request_broker import AsyncEventSender, RequestBroker
 from tests.test_utils.fake_event_factories import KeyDownEventFactory
 
 
@@ -36,7 +38,8 @@ def test_processor_reads_ahead_and_dispatches_in_order() -> None:
                 assert not handled
             handled.append(event)
 
-        await asyncio.wait_for(EventStreamProcessor(dispatch).run(events()), timeout=1)
+        processor = EventStreamProcessor(RequestBroker(AsyncMock(spec=AsyncEventSender)), dispatch)
+        await asyncio.wait_for(processor.run(events()), timeout=1)
         assert handled == [first, second]
 
     asyncio.run(scenario())
@@ -57,8 +60,9 @@ def test_dispatch_failure_closes_the_event_source() -> None:
         async def dispatch(_event: EventBase) -> None:
             raise error
 
+        processor = EventStreamProcessor(RequestBroker(AsyncMock(spec=AsyncEventSender)), dispatch)
         with pytest.raises(ExceptionGroup) as captured:
-            await asyncio.wait_for(EventStreamProcessor(dispatch).run(events()), timeout=1)
+            await asyncio.wait_for(processor.run(events()), timeout=1)
 
         assert captured.value.exceptions == (error,)
         assert source_closed.is_set()

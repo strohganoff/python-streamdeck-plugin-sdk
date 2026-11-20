@@ -16,13 +16,16 @@ stops each listener and cancels and awaits its associated task.
 from __future__ import annotations
 
 import asyncio
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from exceptiongroup import ExceptionGroup
 from typing_extensions import sentinel
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 
 if TYPE_CHECKING:

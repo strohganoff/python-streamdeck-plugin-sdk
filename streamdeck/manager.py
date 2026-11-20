@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from contextlib import aclosing
+import sys
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -13,10 +13,14 @@ from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
 from streamdeck.event_handlers.registry import HandlersRegistry
 from streamdeck.event_handlers.scopes import ScopeName, scope_for_event
 from streamdeck.event_listener import EventListener, EventListenerManager
+from streamdeck.event_stream_processor import EventStreamProcessor
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ActionInstanceEventMixin
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketEventListener, WebSocketTransport
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 
 if TYPE_CHECKING:
@@ -31,7 +35,6 @@ if TYPE_CHECKING:
 
 # TODO: Fix this up to push to a log in the apropos directory and filename.
 logger = getLogger("streamdeck.manager")
-
 
 class PluginManager:
     """Manages plugin actions and communicates with a WebSocket server to handle events."""
@@ -183,7 +186,7 @@ class PluginManager:
 
         Raises:
             TypeError: If a registered handler requires a parameter with no stored injectable value.
-            ExceptionGroup: If one or more ordinary event listener cleanup operations fail.
+            ExceptionGroup: If event processing or runtime cleanup fails.
         """
         transport = WebSocketTransport(port=self._port)
         command_sender = StreamDeckCommandSender(transport, plugin_registration_uuid=self._registration_uuid)
@@ -202,9 +205,9 @@ class PluginManager:
 
                 await command_sender.send_action_registration(register_event=self._register_event)
 
-                async with aclosing(self._stream_event_data()) as event_data_stream:
-                    async for data in event_data_stream:
-                        await self._dispatch_event(data)
+                await EventStreamProcessor(
+                    dispatch=self._dispatch_event,
+                ).run(self._stream_event_data())
 
                 logger.info("PluginManager has stopped processing events.")
         except BaseException as exc:
@@ -213,6 +216,15 @@ class PluginManager:
         finally:
             try:
                 await self._event_listener_manager.stop()
-            except BaseException:
+            except BaseException as cleanup_error:
                 if primary_error is None:
                     raise
+                if isinstance(primary_error, Exception) and isinstance(cleanup_error, Exception):
+                    raise ExceptionGroup(
+                        "Plugin runtime and listener cleanup both failed",
+                        [primary_error, cleanup_error],
+                    ) from None
+                logger.exception(
+                    "Listener cleanup failed while preserving the active %s",
+                    type(primary_error).__name__,
+                )

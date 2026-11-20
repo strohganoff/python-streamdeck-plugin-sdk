@@ -8,6 +8,7 @@ import pytest_mock
 
 from streamdeck.event_handlers.actions import Action
 from streamdeck.manager import EventAdapter, PluginManager
+from streamdeck.websocket import WebSocketEventListener
 from streamdeck.models.events import (  #, event_adapter
     DEFAULT_EVENT_MODELS,
     DEFAULT_EVENT_NAMES,
@@ -76,7 +77,7 @@ def test_plugin_manager_register_event_listener(plugin_manager: PluginManager) -
     assert "fake_event_name" in plugin_manager._event_adapter._event_names
 
 
-@pytest.mark.usefixtures("patch_websocket_client", "patch_event_listener_manager")
+@pytest.mark.usefixtures("patch_websocket_transport", "patch_event_listener_manager")
 def test_plugin_manager_sends_registration_event(
     mock_command_sender: Mock,
     plugin_manager: PluginManager,
@@ -85,7 +86,7 @@ def test_plugin_manager_sends_registration_event(
 
     When the PluginManager.run() method is called, it should register the plugin with the StreamDeck software by sending an action registration event via the StreamDeckCommandSender instance.
 
-    NOTE: The WebSocketClient and EventListenerManager are mocked so as to be essentially ignored in this test.
+    NOTE: The WebSocketTransport and EventListenerManager are mocked so as to be essentially ignored in this test.
     """
     asyncio.run(plugin_manager.run())
 
@@ -95,7 +96,7 @@ def test_plugin_manager_sends_registration_event(
 
 
 def test_plugin_manager_preserves_cancellation_when_cleanup_fails(
-    patch_websocket_client: Mock,
+    patch_websocket_transport: Mock,
     patch_event_listener_manager: Mock,
     plugin_manager: PluginManager,
 ) -> None:
@@ -121,35 +122,28 @@ def test_plugin_manager_preserves_cancellation_when_cleanup_fails(
 
     asyncio.run(run_and_cancel())
 
-    patch_websocket_client.__aexit__.assert_awaited_once()
+    patch_websocket_transport.__aexit__.assert_awaited_once()
     patch_event_listener_manager.stop.assert_awaited_once()
 
 
 def test_plugin_manager_adds_websocket_event_listener(
     patch_event_listener_manager: Mock,
-    patch_websocket_client: Mock,
+    patch_websocket_transport: Mock,
     plugin_manager: PluginManager,  # This fixture must come after patch_event_listener_manager to ensure monkeypatching occurs.
 ) -> None:
-    """Test that the PluginManager adds the WebSocketClient as an event listener.
-
-    The PluginManager.run() method should add the WebSocketClient as an event listener to the EventListenerManager.
-
-    Args:
-        patch_event_listener_manager (Mock): Mocked instance of EventListenerManager.
-            Patched by the fixture, and used here to check if this instance's .add_listener() method was called with the appropriate arguments.
-        patch_websocket_client (Mock): Mocked instance of WebSocketClient.
-            Patched by the fixture, and used here to check if this instance was passed to the EventListenerManager.add_listener() method as an argument.
-        plugin_manager (PluginManager): PluginManager fixture
-    """
+    """Register a listener backed by the active WebSocket transport."""
     asyncio.run(plugin_manager.run())
 
-    patch_websocket_client.__aenter__.assert_awaited_once()
-    patch_websocket_client.__aexit__.assert_awaited_once()
-    patch_event_listener_manager.add_listener.assert_called_once_with(patch_websocket_client)
+    patch_websocket_transport.__aenter__.assert_awaited_once()
+    patch_websocket_transport.__aexit__.assert_awaited_once()
+    patch_event_listener_manager.add_listener.assert_called_once()
+    listener = patch_event_listener_manager.add_listener.call_args.args[0]
+    assert isinstance(listener, WebSocketEventListener)
+    assert listener._transport is patch_websocket_transport
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures("patch_websocket_client")
+@pytest.mark.usefixtures("patch_websocket_transport")
 def test_plugin_manager_process_event(
     mock_event_listener_manager_with_fake_events: tuple[Mock, list[EventBase]],
     _spy_handlers_registry_get_event_handlers: None,  # This fixture must come after mock_event_listener_manager_with_fake_events to ensure monkeypatching occurs.

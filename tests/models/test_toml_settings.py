@@ -91,7 +91,7 @@ def test_cli_listener_modules_replace_toml_before_import(tmp_path, flag):
 
 def test_repeated_listener_aliases_combine_in_one_override(tmp_path):
     from tests.data.dummy_event_listener import DummyEventListener
-    from streamdeck.websocket import WebSocketClient
+    from streamdeck.websocket import WebSocketEventListener
 
     write_config(
         tmp_path,
@@ -109,7 +109,7 @@ def test_repeated_listener_aliases_combine_in_one_override(tmp_path):
         "tests.data.dummy_event_listener",
         "streamdeck.websocket",
     ]
-    assert config.event_listeners == [DummyEventListener, WebSocketClient]
+    assert config.event_listeners == [DummyEventListener, WebSocketEventListener]
 
 
 def test_cli_listener_override_retains_toml_actions(tmp_path):

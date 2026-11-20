@@ -141,7 +141,7 @@ def test_dispatch_awaits_async_handlers_in_registration_sequence(plugin_manager:
     assert calls == ["async-start", "async-end", "sync"]
 
 
-@pytest.mark.usefixtures("patch_websocket_client")
+@pytest.mark.usefixtures("patch_websocket_transport")
 def test_run_manager_events_handled_with_correct_params(
     mock_event_listener_manager_with_fake_events: tuple[Mock, list[events.EventBase]],
     plugin_manager: PluginManager,
@@ -156,7 +156,7 @@ def test_run_manager_events_handled_with_correct_params(
       - Ensure that mocked event handlers were called with the correct params,
           binding the `command_sender` parameter if defined in the handler's signature.
 
-    NOTE: The WebSocketClient is mocked so as to be essentially ignored in this test.
+    NOTE: The WebSocketTransport is mocked so as to be essentially ignored in this test.
 
     Args:
         mock_event_listener_manager_with_fake_events (tuple[Mock, list[events.EventBase]]): Mocked instance of EventListenerManager, and a list of fake event messages it will yield.

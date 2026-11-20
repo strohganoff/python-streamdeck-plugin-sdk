@@ -6,13 +6,13 @@ from unittest.mock import Mock
 import pytest
 
 from streamdeck.command_sender import StreamDeckCommandSender
-from streamdeck.websocket import WebSocketClient
+from streamdeck.websocket import WebSocketTransport
 
 
 @pytest.fixture
 def mock_client() -> Mock:
-    """Fixture to mock the WebSocketClient."""
-    return Mock(spec=WebSocketClient)
+    """Fixture to mock the WebSocketTransport."""
+    return Mock(spec=WebSocketTransport)
 
 
 @pytest.fixture

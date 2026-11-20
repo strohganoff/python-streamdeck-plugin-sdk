@@ -45,7 +45,7 @@ class HandlersRegistry:
         """Yield registered event names with their handlers, optionally filtered.
 
         Args:
-            event_name: The event name to retrieve, or ``ALL_EVENTS`` to enumerate every
+            event_name: The event name to retrieve, or `ALL_EVENTS` to enumerate every
                 registered event.
             event_action_uuid: The action UUID to filter action-specific catalogs by. If None,
                 include handlers from all catalogs.
@@ -72,12 +72,12 @@ class HandlersRegistry:
     ) -> Iterator[EventHandlerFunc]:
         """Yield handlers matching an event name or enumerate all registrations.
 
-        Passing ``ALL_EVENTS`` enumerates handlers registered under every event
+        Passing `ALL_EVENTS` enumerates handlers registered under every event
         name. It does not register a handler to receive every event.
 
         Args:
             event_name (EventNameStr | ALL_EVENTS): The event name to retrieve,
-                or ``ALL_EVENTS`` to enumerate every registered event.
+                or `ALL_EVENTS` to enumerate every registered event.
             event_action_uuid (str | None): The action UUID to get handlers for.
                 If None (i.e., the event is not action-specific), get all handlers for the event.
 

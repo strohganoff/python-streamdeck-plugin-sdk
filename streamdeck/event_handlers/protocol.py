@@ -20,7 +20,7 @@ InjectableHandlerParams = ParamSpec("InjectableHandlerParams", default=...)
 """Handler-specific trailing signature; it may include parameters the SDK cannot inject."""
 
 EventHandlerResult: TypeAlias = Awaitable[None] | None
-"""Result of calling a handler: ``None`` for sync handlers or an awaitable for async handlers."""
+"""Result of calling a handler: `None` for sync handlers or an awaitable for async handlers."""
 
 # The ParamSpec preserves a handler's declared trailing signature at
 # registration. Its default ellipsis gives catalogs and dispatch a common type

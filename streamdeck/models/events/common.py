@@ -30,6 +30,13 @@ class DeviceSpecificEventMixin:
     """Unique identifier of the Stream Deck device that this event is associated with."""
 
 
+class RequestCorrelationMixin:
+    """Mixin for response events that may include the originating request ID."""
+
+    id: str | None = None
+    """Request identifier, absent for unsolicited updates."""
+
+
 ## Payload models and metadata used by multiple event models.
 
 EncoderControllerType = Literal["Encoder"]

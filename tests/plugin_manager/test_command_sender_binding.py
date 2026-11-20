@@ -9,9 +9,14 @@ import pytest
 from streamdeck.event_handlers.actions import Action
 from streamdeck.event_handlers.injectables import InjectableHandlerParamStore
 from streamdeck.event_handlers.scopes import Scope
+from tests.test_utils.fake_event_factories import DidReceiveSettingsFactory, KeyDownEventFactory
 
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from pydantic import JsonValue
+
     from streamdeck.command_sender import StreamDeckCommandSender
     from streamdeck.event_handlers.protocol import EventHandlerFunc
     from streamdeck.manager import PluginManager
@@ -185,3 +190,54 @@ def test_run_manager_events_handled_with_correct_params(
     # Ensure that mocked event handlers were called with the correct params, binding the `command_sender` parameter if defined in the handler's signature.
     mock_event_handler_without_cmd_sender.assert_called_once_with(fake_event_message)
     mock_event_handler_with_cmd_sender.assert_called_once_with(fake_event_message, mock_command_sender)
+
+
+def test_handler_can_await_settings_before_response_dispatch(
+    patch_websocket_transport: Mock,
+    patch_event_listener_manager: Mock,
+    plugin_manager: PluginManager,
+) -> None:
+    async def scenario() -> None:
+        key_down = KeyDownEventFactory.build()
+        action = Action(key_down.action)
+        responses: asyncio.Queue[events.DidReceiveSettings] = asyncio.Queue()
+        handled: list[tuple[str, events.DidReceiveSettings]] = []
+
+        async def event_stream() -> AsyncIterator[str]:
+            yield key_down.model_dump_json()
+            response = await responses.get()
+            yield response.model_dump_json()
+
+        async def send(data: dict[str, JsonValue]) -> None:
+            if data["event"] == "getSettings":
+                assert data["context"] == key_down.context
+                request_id = data["id"]
+                assert isinstance(request_id, str)
+                responses.put_nowait(DidReceiveSettingsFactory.build(
+                    id=request_id,
+                    action=key_down.action,
+                    context=key_down.context,
+                    device=key_down.device,
+                ))
+
+        @action.on("keyDown")
+        async def request_settings(
+            event_data: events.KeyDown,
+            command_sender: StreamDeckCommandSender,
+        ) -> None:
+            response = await command_sender.get_settings(event_data.context, wait_for_response=True)
+            handled.append(("request", response))
+
+        @action.on("didReceiveSettings")
+        def receive_settings(event_data: events.DidReceiveSettings) -> None:
+            handled.append(("dispatch", event_data))
+
+        patch_event_listener_manager.event_stream.return_value = event_stream()
+        patch_websocket_transport.send_event.side_effect = send
+        plugin_manager.register_action(action)
+        await asyncio.wait_for(plugin_manager.run(), timeout=1)
+
+        assert [step for step, _ in handled] == ["request", "dispatch"]
+        assert handled[0][1] is handled[1][1]
+
+    asyncio.run(scenario())

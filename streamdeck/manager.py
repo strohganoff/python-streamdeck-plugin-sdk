@@ -16,6 +16,7 @@ from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.event_stream_processor import EventStreamProcessor
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ActionInstanceEventMixin
+from streamdeck.request_broker import RequestBroker
 from streamdeck.utils.logging import configure_streamdeck_logger
 from streamdeck.websocket import WebSocketEventListener, WebSocketTransport
 
@@ -189,7 +190,8 @@ class PluginManager:
             ExceptionGroup: If event processing or runtime cleanup fails.
         """
         transport = WebSocketTransport(port=self._port)
-        command_sender = StreamDeckCommandSender(transport, plugin_registration_uuid=self._registration_uuid)
+        request_broker = RequestBroker(transport)
+        command_sender = StreamDeckCommandSender(request_broker, plugin_registration_uuid=self._registration_uuid)
         self._injectable_handler_param_store.register(
             "command_sender",
             lambda _event_data: command_sender,
@@ -206,6 +208,7 @@ class PluginManager:
                 await command_sender.send_action_registration(register_event=self._register_event)
 
                 await EventStreamProcessor(
+                    request_broker=request_broker,
                     dispatch=self._dispatch_event,
                 ).run(self._stream_event_data())
 
@@ -214,6 +217,9 @@ class PluginManager:
             primary_error = exc
             raise
         finally:
+            request_broker.fail_all(
+                RuntimeError("The plugin runtime stopped before the request completed.")
+            )
             try:
                 await self._event_listener_manager.stop()
             except BaseException as cleanup_error:

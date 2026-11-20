@@ -6,6 +6,8 @@ from unittest.mock import Mock
 import pytest
 
 from streamdeck.command_sender import StreamDeckCommandSender
+from streamdeck.models.events.settings import DidReceiveGlobalSettings
+from streamdeck.request_broker import RequestBroker
 from streamdeck.websocket import WebSocketTransport
 
 
@@ -18,7 +20,7 @@ def mock_client() -> Mock:
 @pytest.fixture
 def command_sender(mock_client: Mock, plugin_registration_uuid: str) -> StreamDeckCommandSender:
     """Fixture to provide an instance of StreamDeckCommandSender with a mocked client."""
-    return StreamDeckCommandSender(client=mock_client, plugin_registration_uuid=plugin_registration_uuid)
+    return StreamDeckCommandSender(request_broker=RequestBroker(mock_client), plugin_registration_uuid=plugin_registration_uuid)
 
 
 @pytest.mark.parametrize(
@@ -160,9 +162,10 @@ def test_command_sender_methods(
 
     method = getattr(command_sender, method_name)
     if context is not None:
-        asyncio.run(method(context, **extra_args))
+        result = asyncio.run(method(context, **extra_args))
     else:
-        asyncio.run(method(**extra_args))
+        result = asyncio.run(method(**extra_args))
+    assert result is None
 
     # Build the expected data structure to send through the WebSocket
     expected_data = {
@@ -188,3 +191,24 @@ def test_send_action_registration_payload(
             "uuid": command_sender._plugin_registration_uuid,
         }
     )
+
+
+def test_wait_for_global_settings_returns_correlated_response(
+    mock_client: Mock,
+    plugin_registration_uuid: str,
+) -> None:
+    broker = RequestBroker(mock_client)
+    sender = StreamDeckCommandSender(broker, plugin_registration_uuid)
+
+    async def send(data: dict[str, str]) -> None:
+        assert data["event"] == "getGlobalSettings"
+        assert data["context"] == plugin_registration_uuid
+        assert broker.resolve(DidReceiveGlobalSettings.model_validate({
+            "event": "didReceiveGlobalSettings",
+            "id": data["id"],
+            "payload": {"settings": {"enabled": True}},
+        }))
+
+    mock_client.send_event.side_effect = send
+    response = asyncio.run(sender.get_global_settings(wait_for_response=True))
+    assert response.payload.settings == {"enabled": True}

@@ -11,6 +11,7 @@ from streamdeck.models.events.common import (
     DeviceSpecificEventMixin,
     KeypadControllerType,
     MultiActionPayloadMixin,
+    RequestCorrelationMixin,
     SettingsPayloadMixin,
     SingleActionPayloadMixin,
     StatefulActionPayloadMixin,
@@ -40,7 +41,7 @@ class MultiActionSettingsPayload(
     """
 
 
-class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], ActionInstancePayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
+class DidReceiveSettings(EventBase[Literal["didReceiveSettings"]], RequestCorrelationMixin, ActionInstancePayloadEventMixin[CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]], DeviceSpecificEventMixin):  # fmt: skip
     """Occurs when the settings associated with an action instance are requested, or when the the settings were updated by the property inspector."""
 
     payload: CardinalityDiscriminated[SingleActionSettingsPayload, MultiActionSettingsPayload]
@@ -54,7 +55,7 @@ class GlobalSettingsPayload(ConfiguredBaseModel, SettingsPayloadMixin):
     """Additional information about the didReceiveGlobalSettings event that occurred."""
 
 
-class DidReceiveGlobalSettings(EventBase[Literal["didReceiveGlobalSettings"]]):
+class DidReceiveGlobalSettings(EventBase[Literal["didReceiveGlobalSettings"]], RequestCorrelationMixin):
     """Occurs when the plugin receives the global settings from the Stream Deck."""
 
     payload: GlobalSettingsPayload

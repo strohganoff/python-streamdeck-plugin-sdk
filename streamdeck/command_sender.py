@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from logging import getLogger
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, overload
+
+from streamdeck.models.events.settings import DidReceiveGlobalSettings, DidReceiveSettings
 
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
     from typing import Any, Literal
 
     from pydantic import JsonValue
 
+    from streamdeck.request_broker import RequestBroker
     from streamdeck.types import (
         ActionInstanceUUIDStr,
         ActionUUIDStr,
@@ -19,25 +21,18 @@ if TYPE_CHECKING:
     )
 
 
-
 logger = getLogger("streamdeck.command_sender")
 
 
-class AsyncEventSender(Protocol):
-    """Narrow async capability required by the command sender."""
-
-    def send_event(self, data: dict[str, JsonValue]) -> Awaitable[None]: ...
-
-
 class StreamDeckCommandSender:
-    """Class for sending command event messages to the Stream Deck software through a WebSocket client."""
+    """Send Stream Deck commands and await correlated response events."""
 
-    def __init__(self, client: AsyncEventSender, plugin_registration_uuid: str):
-        self._client = client
+    def __init__(self, request_broker: RequestBroker, plugin_registration_uuid: str):
+        self._request_broker = request_broker
         self._plugin_registration_uuid = plugin_registration_uuid
 
     async def _send_event(self, event: EventNameStr, **kwargs: Any) -> None:
-        await self._client.send_event({
+        await self._request_broker.send_event({
             "event": event,
             **kwargs,
         })
@@ -49,10 +44,49 @@ class StreamDeckCommandSender:
             payload=payload,
         )
 
-    async def get_settings(self, context: ActionInstanceUUIDStr) -> None:
-        await self._send_event(
-            event="getSettings",
+    @overload
+    async def get_settings(
+        self,
+        context: ActionInstanceUUIDStr,
+        *,
+        wait_for_response: Literal[True],
+        timeout: float | None = 5.0,
+    ) -> DidReceiveSettings: ...
+
+    @overload
+    async def get_settings(
+        self,
+        context: ActionInstanceUUIDStr,
+        *,
+        wait_for_response: Literal[False] = False,
+        timeout: float | None = 5.0,
+    ) -> None: ...
+
+    @overload
+    async def get_settings(
+        self,
+        context: ActionInstanceUUIDStr,
+        *,
+        wait_for_response: bool,
+        timeout: float | None = 5.0,
+    ) -> DidReceiveSettings | None: ...
+
+    async def get_settings(
+        self,
+        context: ActionInstanceUUIDStr,
+        *,
+        wait_for_response: bool = False,
+        timeout: float | None = 5.0,
+    ) -> DidReceiveSettings | None:
+        if not wait_for_response:
+            await self._send_event("getSettings", context=context)
+            return None
+
+        return await self._request_broker.request(
+            response_type=DidReceiveSettings,
             context=context,
+            timeout=timeout,
+            command={"event": "getSettings", "context": context},
         )
 
     async def set_global_settings(self, payload: PluginDefinedData) -> None:
@@ -62,10 +96,51 @@ class StreamDeckCommandSender:
             payload=payload,
         )
 
-    async def get_global_settings(self) -> None:
-        await self._send_event(
-            event="getGlobalSettings",
-            context=self._plugin_registration_uuid,
+    @overload
+    async def get_global_settings(
+        self,
+        *,
+        wait_for_response: Literal[True],
+        timeout: float | None = 5.0,
+    ) -> DidReceiveGlobalSettings: ...
+
+    @overload
+    async def get_global_settings(
+        self,
+        *,
+        wait_for_response: Literal[False] = False,
+        timeout: float | None = 5.0,
+    ) -> None: ...
+
+    @overload
+    async def get_global_settings(
+        self,
+        *,
+        wait_for_response: bool,
+        timeout: float | None = 5.0,
+    ) -> DidReceiveGlobalSettings | None: ...
+
+    async def get_global_settings(
+        self,
+        *,
+        wait_for_response: bool = False,
+        timeout: float | None = 5.0,
+    ) -> DidReceiveGlobalSettings | None:
+        if not wait_for_response:
+            await self._send_event(
+                "getGlobalSettings",
+                context=self._plugin_registration_uuid,
+            )
+            return None
+
+        return await self._request_broker.request(
+            response_type=DidReceiveGlobalSettings,
+            context=None,
+            timeout=timeout,
+            command={
+                "event": "getGlobalSettings",
+                "context": self._plugin_registration_uuid,
+            },
         )
 
     async def open_url(self, context: ActionInstanceUUIDStr, url: str) -> None:

@@ -7,7 +7,7 @@ import pytest
 
 from streamdeck.event_listener import EventListenerManager
 from streamdeck.manager import PluginManager
-from streamdeck.websocket import WebSocketClient
+from streamdeck.websocket import WebSocketTransport
 from tests.test_utils.fake_event_factories import KeyDownEventFactory
 
 
@@ -49,25 +49,13 @@ def mock_streamdeck_logger(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def patch_websocket_client(monkeypatch: pytest.MonkeyPatch) -> Mock:
-    """Fixture that uses pytest's MonkeyPatch to mock WebSocketClient for the PluginManager run method.
-
-    The mocked WebSocketClient can be given fake event messages to yield when listen() is called:
-      ```patch_websocket_client.listen.return_value = [fake_event_json1, fake_event_json2, ...]```
-
-    Args:
-        monkeypatch: pytest's monkeypatch fixture.
-
-    Returns:
-        Mock: Mocked instance of WebSocketClient
-    """
-    mock_websocket_client: Mock = create_autospec(WebSocketClient, spec_set=True)
-    mock_websocket_client.__aenter__.return_value = mock_websocket_client
-    mock_websocket_client.__aexit__.return_value = False
-
-    monkeypatch.setattr("streamdeck.manager.WebSocketClient", (lambda *args, **kwargs: mock_websocket_client))
-
-    return mock_websocket_client
+def patch_websocket_transport(monkeypatch: pytest.MonkeyPatch) -> Mock:
+    """Provide the manager with a transport that performs no network I/O."""
+    transport: Mock = create_autospec(WebSocketTransport, spec_set=True)
+    transport.__aenter__.return_value = transport
+    transport.__aexit__.return_value = False
+    monkeypatch.setattr("streamdeck.manager.WebSocketTransport", lambda *args, **kwargs: transport)
+    return transport
 
 
 @pytest.fixture
@@ -116,7 +104,7 @@ def mock_event_listener_manager_with_fake_events(patch_event_listener_manager: M
     Returns:
         tuple: Mocked instance of EventListenerManager, and a list of fake event messages.
     """
-    # Create a list of fake event messages, and convert them to json strings to be passed back by the client.listen() method.
+    # Create a list of fake event messages, and convert them to json strings to be passed back by the listener manager.
     fake_event_messages: list[events.EventBase] = [
         KeyDownEventFactory.build(action="my-fake-action-uuid"),
     ]

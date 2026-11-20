@@ -16,7 +16,7 @@ from streamdeck.event_listener import EventListener, EventListenerManager
 from streamdeck.models.events.adapter import EventAdapter
 from streamdeck.models.events.common import ActionInstanceEventMixin
 from streamdeck.utils.logging import configure_streamdeck_logger
-from streamdeck.websocket import WebSocketClient
+from streamdeck.websocket import WebSocketEventListener, WebSocketTransport
 
 
 if TYPE_CHECKING:
@@ -185,8 +185,8 @@ class PluginManager:
             TypeError: If a registered handler requires a parameter with no stored injectable value.
             ExceptionGroup: If one or more ordinary event listener cleanup operations fail.
         """
-        client = WebSocketClient(port=self._port)
-        command_sender = StreamDeckCommandSender(client, plugin_registration_uuid=self._registration_uuid)
+        transport = WebSocketTransport(port=self._port)
+        command_sender = StreamDeckCommandSender(transport, plugin_registration_uuid=self._registration_uuid)
         self._injectable_handler_param_store.register(
             "command_sender",
             lambda _event_data: command_sender,
@@ -196,9 +196,9 @@ class PluginManager:
 
         primary_error: BaseException | None = None
         try:
-            async with client:
-                # Register the WebSocketClient as an event listener, so we can receive Stream Deck events.
-                self.register_event_listener(client)
+            async with transport:
+                # Register a WebSocketEventListener, so we can receive Stream Deck events.
+                self.register_event_listener(WebSocketEventListener(transport))
 
                 await command_sender.send_action_registration(register_event=self._register_event)
 
